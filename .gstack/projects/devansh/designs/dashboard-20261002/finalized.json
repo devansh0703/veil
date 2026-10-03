@@ -1,0 +1,99 @@
+{
+  "source_mockup": null,
+  "source_plan": "docs/designs/veil-agent-payments.md",
+  "mode": "plan-driven",
+  "html_file": "web/dashboard.html",
+  "pretext_tier": "full",
+  "framework": "vanilla",
+  "iterations": 5,
+  "date": "2026-10-02T13:10:00Z",
+  "screen": "veil-four-surfaces",
+  "branch": "main",
+  "surfaces": [
+    {
+      "file": "web/index.html",
+      "job": "persuade",
+      "ground": "paper",
+      "pretext_patterns": ["prepare+lazy-measure"],
+      "note": "Two-window demo composition: agent transcript beside the merchant's own account, one of them carrying figures and the other a redaction bar."
+    },
+    {
+      "file": "web/dashboard.html",
+      "job": "reconcile",
+      "ground": "graphite",
+      "pretext_patterns": ["prepare+lazy-measure", "layoutNextLine-flow-around-obstacle"],
+      "note": "The refusal panel is the obstacle; prose genuinely flows around it rather than reserving a column. Measured 7 flow lines at desktop, 16 at 375."
+    },
+    {
+      "file": "web/limits.html",
+      "job": "state the limits honestly",
+      "ground": "paper",
+      "pretext_patterns": ["prepare+lazy-measure", "layoutNextLine-flow-around-obstacle"],
+      "note": "A first-class surface, not a footnote. Prose flows around the two precondition checks."
+    },
+    {
+      "file": "web/402.html",
+      "job": "the protocol body, machine and human legible",
+      "ground": "graphite",
+      "pretext_patterns": ["prepare+lazy-measure"],
+      "note": "Real captured body from a running server, refusal catalog with the HTTP status each code actually returns."
+    }
+  ],
+  "standalone": {
+    "generator": "scripts/build-standalone.ts",
+    "output_dir": ".gstack/projects/devansh/designs/standalone-20261002",
+    "note": "Not hand-written. Generated from the live web/ sources with fonts, CSS and JS inlined, so it cannot drift from the product."
+  },
+  "shared_assets": [
+    "web/assets/tokens.css",
+    "web/assets/app.css",
+    "web/assets/fonts.css",
+    "web/assets/pretext.js",
+    "web/assets/veil.js"
+  ],
+  "verification": {
+    "browser": "chromium via playwright (python binding; the node playwright module is not installed)",
+    "viewports": [375, 768, 1440],
+    "shots_dir": ".gstack/projects/devansh/designs/shots-20261002",
+    "report": ".gstack/projects/devansh/designs/shots-20261002/report.json",
+    "result": "12/12 pages: horizontal overflow 0, page errors 0, all 5 faces loaded, window.Pretext live, ground correct per surface",
+    "standalone_result": "4/4 files from file://: 0 external references, 0 page errors, all 4 faces resolved, window.Pretext with 9 exports"
+  },
+  "slop_gate": {
+    "engine": "/home/devansh/.impeccable/bin/0.1.5/impeccable",
+    "exit": 0,
+    "counted": 0,
+    "totals_final": {
+      "web/index.html": 1,
+      "web/dashboard.html": 2,
+      "web/limits.html": 1,
+      "web/402.html": 1
+    },
+    "totals_before_the_contrast_token_promotion": {
+      "web/index.html": 5,
+      "web/dashboard.html": 4,
+      "web/limits.html": 3,
+      "web/402.html": 3
+    },
+    "accepted_with_reason": [
+      {
+        "rule": "repeating-stripes-gradient",
+        "reason": "The redaction bar's hatch. DESIGN.md specifies this exact pattern as the redaction treatment; a solid block would read as a censored field rather than a printed one."
+      },
+      {
+        "rule": "em-dash-overuse",
+        "reason": "DESIGN.md's Decisions Log records the em-dash as the house parenthetical device. 13 in the dashboard's body copy is at the top of what reads naturally and is worth watching, not a defect."
+      },
+      {
+        "rule": "design-system-color",
+        "reason": "Fixed rather than accepted: the four literals flagged were the prefers-contrast:more ramp (#4F4D49, #B4B6BB, #B6AF9F, #3C3F46). Legitimate values that were undocumented, so they were moved into DESIGN.md and tokens.css as named contrast tokens and the media query now references them."
+      }
+    ]
+  },
+  "departures": [
+    "The skill specifies one page per invocation. The user explicitly asked for the whole product, so this run covers four surfaces that share one token set and one behaviour file. Recorded here rather than silently.",
+    "No source mockup and no AI-generated mockups: OPENAI_API_KEY is unset and the zero-budget constraint forbids buying one, so the run took the plan-driven path from docs/designs/veil-agent-payments.md. Source-zero is 'no mockup', which is why mode is plan-driven and source_mockup is null.",
+    "The outside voice (Codex) is not installed, so no adversarial second opinion was available in this phase. Missing coverage, not a blocker."
+  ],
+  "content_rule": "Every figure on every surface is injected by scripts/build-pages.ts from data/demo/run.json and data/fixtures/responses.json, which are captured from a real run against a real ephemeral HTTP server. The build refuses to render if run.json is absent, so no surface can describe a run the software did not perform."
+}

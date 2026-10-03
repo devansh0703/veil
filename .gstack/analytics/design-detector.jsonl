@@ -1,0 +1,10 @@
+{"ts":"2026-10-02T08:35:28.059Z","verb":"probe","sentinel":"IMPECCABLE_READY","engine":"0.1.5","hook":"absent","ignored":0,"exit":0}
+{"ts":"2026-10-02T13:09:03.820Z","verb":"scan","sentinel":"IMPECCABLE_READY","engine":"0.1.5","targets":1,"total":1,"ignored":0,"exit":0,"ms":63}
+{"ts":"2026-10-02T13:09:03.923Z","verb":"scan","sentinel":"IMPECCABLE_READY","engine":"0.1.5","targets":1,"total":2,"ignored":0,"exit":0,"ms":74}
+{"ts":"2026-10-02T13:09:04.017Z","verb":"scan","sentinel":"IMPECCABLE_READY","engine":"0.1.5","targets":1,"total":1,"ignored":0,"exit":0,"ms":58}
+{"ts":"2026-10-02T13:09:04.115Z","verb":"scan","sentinel":"IMPECCABLE_READY","engine":"0.1.5","targets":1,"total":1,"ignored":0,"exit":0,"ms":71}
+{"ts":"2026-10-02T13:09:04.244Z","verb":"scan","sentinel":"IMPECCABLE_READY","engine":"0.1.5","targets":1,"total":1,"ignored":0,"exit":0,"ms":95}
+{"ts":"2026-10-02T13:10:31.517Z","verb":"scan","sentinel":"IMPECCABLE_READY","engine":"0.1.5","targets":1,"total":1,"ignored":0,"exit":0,"ms":58}
+{"ts":"2026-10-02T13:10:31.615Z","verb":"scan","sentinel":"IMPECCABLE_READY","engine":"0.1.5","targets":1,"total":2,"ignored":0,"exit":0,"ms":68}
+{"ts":"2026-10-02T13:10:31.701Z","verb":"scan","sentinel":"IMPECCABLE_READY","engine":"0.1.5","targets":1,"total":1,"ignored":0,"exit":0,"ms":54}
+{"ts":"2026-10-02T13:10:31.802Z","verb":"scan","sentinel":"IMPECCABLE_READY","engine":"0.1.5","targets":1,"total":1,"ignored":0,"exit":0,"ms":66}

@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Veil — design wireframe (from /plan-design-review)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F4F1EA; --ink:#17161A; --rule-paper:#D8D3C8;
+    --graphite:#101114; --panel:#17181C; --graphite-rule:#2A2C31;
+    --fg:#E8E6E1; --muted:#8A8C93;
+    --redact:#B4341F; --reconciled:#3E9C6B; --amber:#C99A3B;
+    --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-6:24px; --sp-8:32px; --sp-12:48px;
+    --r:2px;
+    --ease:cubic-bezier(.22,1,.36,1);
+    --font-display:"Space Grotesk",system-ui,sans-serif;
+    --font-mono:"IBM Plex Mono",ui-monospace,monospace;
+    --fs-body:16px; --fs-label:13px; --fs-sm:12px; --fs-total:44px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font-display);font-size:var(--fs-body);line-height:1.5}
+  .wrap{max-width:1180px;margin:0 auto;padding:var(--sp-8) var(--sp-6) var(--sp-12)}
+  h1{font-size:28px;font-weight:700;letter-spacing:-.01em;margin:0 0 var(--sp-2)}
+  .sub{color:#6B6862;margin:0 0 var(--sp-8)}
+  .note{font-size:var(--fs-sm);color:#6B6862;border-left:2px solid var(--rule-paper);padding-left:var(--sp-3);margin:var(--sp-4) 0}
+  .panel{margin:0 0 var(--sp-12)}
+  .panel > h2{font-size:var(--fs-sm);text-transform:uppercase;letter-spacing:.12em;color:#6B6862;font-weight:600;margin:0 0 var(--sp-3);border-bottom:1px solid var(--rule-paper);padding-bottom:var(--sp-2)}
+  .stage{background:var(--graphite);color:var(--fg);border:1px solid var(--graphite-rule);border-radius:var(--r);overflow:hidden}
+  .stage.paper{background:var(--paper);color:var(--ink);border-color:var(--rule-paper)}
+  /* truth strip */
+  .truth{display:grid;grid-template-columns:1.4fr 1fr 1fr auto;gap:var(--sp-6);padding:var(--sp-6);border-bottom:1px solid var(--graphite-rule);align-items:end}
+  .k{font-size:var(--fs-sm);text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:var(--sp-1)}
+  .total{font-family:var(--font-mono);font-size:var(--fs-total);font-weight:600;letter-spacing:-.02em;line-height:1}
+  .total .cents{font-size:.55em;color:var(--muted)}
+  .num{font-family:var(--font-mono);font-size:20px;font-weight:600}
+  .meta{font-family:var(--font-mono);font-size:var(--fs-sm);color:var(--muted)}
+  .toggle{display:inline-flex;border:1px solid var(--graphite-rule);border-radius:var(--r);overflow:hidden}
+  .toggle button{font-family:var(--font-display);font-size:var(--fs-label);font-weight:600;padding:10px 14px;min-height:44px;background:transparent;color:var(--muted);border:0;cursor:pointer;letter-spacing:.03em}
+  .toggle button[aria-pressed="true"]{background:var(--redact);color:#fff}
+  /* badges */
+  .badge{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-sm);font-family:var(--font-display);font-weight:600;border:1px solid var(--reconciled);color:var(--reconciled);border-radius:var(--r);padding:4px 8px}
+  .badge.amber{border-color:var(--amber);color:var(--amber)}
+  .badge.redact{border-color:var(--redact);color:#E4A899}
+  .dot{width:7px;height:7px;border-radius:50%;background:currentColor;display:inline-block}
+  /* vendor rail */
+  .vendors{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-bottom:1px solid var(--graphite-rule)}
+  .vendor{padding:var(--sp-4) var(--sp-6);border-right:1px solid var(--graphite-rule)}
+  .vendor:last-child{border-right:0}
+  .vendor .name{font-size:var(--fs-label);font-weight:600;letter-spacing:.02em}
+  .vendor .name .alias{font-family:var(--font-mono);color:var(--muted);font-weight:500}
+  .vendor .amt{font-family:var(--font-mono);font-size:22px;font-weight:600;margin-top:var(--sp-2)}
+  .vendor .last{font-size:var(--fs-sm);color:var(--muted);margin-top:var(--sp-1)}
+  /* ledger table */
+  table{width:100%;border-collapse:collapse;font-size:var(--fs-label)}
+  th{text-align:left;font-size:var(--fs-sm);text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:600;padding:var(--sp-3) var(--sp-6);border-bottom:1px solid var(--graphite-rule)}
+  th.r,td.r{text-align:right}
+  td{padding:11px var(--sp-6);border-bottom:1px solid var(--graphite-rule);vertical-align:middle}
+  tr:last-child td{border-bottom:0}
+  .alias{font-family:var(--font-mono);color:#CFCBC2}
+  /* redaction bar — the signature element */
+  .amt{font-family:var(--font-mono);font-weight:600;display:inline-flex;justify-content:flex-end;min-width:92px}
+  .redacted{display:inline-block;background:var(--redact);color:transparent;border-radius:1px;user-select:none;position:relative}
+  .redacted::after{content:"";position:absolute;inset:0;background:
+    repeating-linear-gradient(90deg,rgba(0,0,0,.28) 0 6px,transparent 6px 11px)}
+  .reveal .redacted{background:transparent;color:var(--fg)}
+  .reveal .redacted::after{display:none}
+  .pill{display:inline-flex;align-items:center;gap:5px;font-size:var(--fs-sm);font-family:var(--font-mono);border-radius:var(--r);padding:3px 7px;border:1px solid var(--graphite-rule);color:var(--muted)}
+  .pill.settled{color:var(--reconciled);border-color:#26503A}
+  .pill.served{color:#CFCBC2}
+  .pill.verify{border-style:dashed}
+  .pill.err{color:#E4A899;border-color:var(--redact);background:rgba(180,52,31,.10)}
+  .footer{display:flex;justify-content:space-between;align-items:center;padding:var(--sp-3) var(--sp-6);border-top:1px solid var(--graphite-rule)}
+  .btn{font-family:var(--font-display);font-size:var(--fs-label);font-weight:600;padding:10px 14px;min-height:44px;background:transparent;color:var(--fg);border:1px solid var(--graphite-rule);border-radius:var(--r);cursor:pointer}
+  .btn[disabled]{opacity:.45;cursor:not-allowed}
+  /* landing hero */
+  .hero{display:grid;grid-template-columns:1.05fr .95fr;gap:var(--sp-12);padding:var(--sp-12) var(--sp-8);align-items:center}
+  .wordmark{font-size:20px;font-weight:700;letter-spacing:-.02em}
+  .wordmark .v{color:var(--redact)}
+  .h1{font-size:44px;font-weight:700;letter-spacing:-.02em;line-height:1.05;margin:var(--sp-6) 0 var(--sp-4)}
+  .lead{font-size:18px;color:#4A4842;max-width:34ch;margin:0 0 var(--sp-6)}
+  .cta{display:flex;gap:var(--sp-3);align-items:center}
+  .cta .primary{background:var(--ink);color:var(--paper);border:1px solid var(--ink)}
+  .cta .ghost{background:transparent;color:var(--ink);border:1px solid var(--rule-paper)}
+  .demo{border:1px solid var(--rule-paper);border-radius:var(--r);overflow:hidden;background:#0E0F12}
+  .demo .bar{display:flex;gap:6px;padding:10px 12px;border-bottom:1px solid #2A2C31}
+  .demo .bar i{width:9px;height:9px;border-radius:50%;background:#3A3C42;display:block}
+  .demo .split{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#2A2C31}
+  .demo .cell{background:#121317;padding:var(--sp-4);min-height:196px;font-family:var(--font-mono);font-size:11.5px;color:#9DA0A8;line-height:1.7}
+  .demo .cell b{color:#E8E6E1;font-weight:600}
+  .demo .strip{border-top:1px solid #2A2C31;padding:10px var(--sp-4);font-family:var(--font-mono);font-size:12px;color:#E8E6E1;display:flex;justify-content:space-between}
+  .stoplight{color:var(--reconciled)}
+  /* mobile */
+  .phone{width:375px;max-width:100%;border:1px solid var(--graphite-rule);border-radius:8px;overflow:hidden;background:var(--graphite);color:var(--fg)}
+  .phone .p-truth{padding:var(--sp-4);border-bottom:1px solid var(--graphite-rule);position:sticky;top:0;background:var(--graphite)}
+  .phone .p-truth .total{font-size:34px}
+  .p-row{padding:var(--sp-4);border-bottom:1px solid var(--graphite-rule);display:grid;grid-template-columns:1fr auto;gap:var(--sp-2)}
+  .legend{display:flex;gap:var(--sp-6);flex-wrap:wrap;font-size:var(--fs-sm);color:#4A4842;margin-top:var(--sp-4)}
+  .swatch{display:inline-flex;align-items:center;gap:var(--sp-2)}
+  .sw{width:14px;height:14px;border-radius:2px;border:1px solid rgba(0,0,0,.15)}
+  @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Veil — design wireframe</h1>
+  <p class="sub">Review artifact from /plan-design-review · 2026-10-02 · target <code>docs/designs/veil-agent-payments.md</code></p>
+  <p class="note"><strong>Not a mockup render.</strong> The gstack designer has no OpenAI credentials and the project is zero-budget, so this is a hand-authored HTML wireframe: it fixes hierarchy, states, tokens and the redaction metaphor as concrete values an implementer can build from. Open the <code>Auditor view</code> panel to see the signature element.</p>
+
+  <!-- ============ DASHBOARD: PUBLIC VIEW ============ -->
+  <section class="panel">
+    <h2>Merchant dashboard — OPERATE · Public view (default)</h2>
+    <div class="stage">
+      <div class="truth">
+        <div>
+          <div class="k">Settled on-chain</div>
+          <div class="total">$<span class="redacted" style="min-width:132px">0000.00</span><span class="cents">.00</span></div>
+          <div class="meta" style="margin-top:8px">mint <b style="color:#CFCBC2">VeilUSD</b> · key v1 · 50 payments · 2 vendors</div>
+        </div>
+        <div>
+          <div class="k">Available (spendable)</div>
+          <div class="num">$<span class="redacted" style="min-width:88px">0000</span></div>
+          <div class="meta" style="margin-top:8px">pending in-flight: 3 · decrypt at claim</div>
+        </div>
+        <div>
+          <div class="k">Confidentiality</div>
+          <span class="badge"><span class="dot"></span>enforced</span>
+          <div class="meta" style="margin-top:8px">ext present · non-conf credits off</div>
+        </div>
+        <div>
+          <div class="k">View</div>
+          <div class="toggle" role="group" aria-label="Ledger view">
+            <button aria-pressed="true">Public</button>
+            <button aria-pressed="false">Auditor</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="vendors">
+        <div class="vendor"><div class="name">Feedmarket <span class="alias">· 9xK…4tR</span></div><div class="amt">$<span class="redacted" style="min-width:84px">0000</span></div><div class="last">24 payments · last 12s ago</div></div>
+        <div class="vendor"><div class="name">Oracle Tide <span class="alias">· 3mP…8qL</span></div><div class="amt">$<span class="redacted" style="min-width:84px">0000</span></div><div class="last">26 payments · last 4s ago</div></div>
+        <div class="vendor"><div class="name" style="color:var(--muted)">+ add a vendor</div><div class="last" style="margin-top:10px">each vendor is a separate sub-total across its one-time addresses</div></div>
+      </div>
+
+      <table>
+        <thead><tr><th>Payment alias</th><th>Vendor</th><th>Time</th><th>State</th><th class="r">Amount</th></tr></thead>
+        <tbody>
+          <tr><td class="alias">p_7f3a…c21</td><td>Feedmarket</td><td class="meta">12s ago</td><td><span class="pill settled">settled</span></td><td class="r amt"><span class="redacted">0000.00</span></td></tr>
+          <tr><td class="alias">p_2b91…e07</td><td>Oracle Tide</td><td class="meta">18s ago</td><td><span class="pill settled">settled</span></td><td class="r amt"><span class="redacted">0000.00</span></td></tr>
+          <tr><td class="alias">p_9c04…77a</td><td>Feedmarket</td><td class="meta">31s ago</td><td><span class="pill served">served</span></td><td class="r amt"><span class="redacted">0000.00</span></td></tr>
+          <tr><td class="alias">p_1de6…3b9</td><td>Oracle Tide</td><td class="meta">44s ago</td><td><span class="pill verify">verifying</span></td><td class="r amt"><span class="redacted">0000.00</span></td></tr>
+          <tr><td class="alias">p_5a72…f13</td><td>Feedmarket</td><td class="meta">1m ago</td><td><span class="pill err">amount unreadable · key v1≠v2</span></td><td class="r amt"><span class="redacted">0000.00</span></td></tr>
+        </tbody>
+      </table>
+
+      <div class="footer">
+        <span class="meta">reconciled ✓ against slot 289,441,002</span>
+        <button class="btn">Export CSV</button>
+      </div>
+    </div>
+    <p class="legend">
+      <span class="swatch"><span class="sw" style="background:#B4341F"></span>redact — hidden by default</span>
+      <span class="swatch"><span class="sw" style="background:#3E9C6B"></span>reconciled (only success colour)</span>
+      <span class="swatch"><span class="sw" style="background:#C99A3B"></span>amber — needs attention</span>
+    </p>
+  </section>
+
+  <!-- ============ DASHBOARD: AUDITOR VIEW ============ -->
+  <section class="panel">
+    <h2>Merchant dashboard — Auditor view (same rows, redaction lifted)</h2>
+    <div class="stage reveal">
+      <div class="truth">
+        <div>
+          <div class="k">Settled on-chain</div>
+          <div class="total">$247.80<span class="cents">.00</span></div>
+          <div class="meta" style="margin-top:8px">mint <b style="color:#CFCBC2">VeilUSD</b> · key v1 · 50 payments · 2 vendors</div>
+        </div>
+        <div>
+          <div class="k">Available (spendable)</div>
+          <div class="num">$240.10</div>
+          <div class="meta" style="margin-top:8px">pending in-flight: 3 · $7.70</div>
+        </div>
+        <div>
+          <div class="k">Confidentiality</div>
+          <span class="badge"><span class="dot"></span>enforced</span>
+          <div class="meta" style="margin-top:8px">decrypted with your recipient key</div>
+        </div>
+        <div>
+          <div class="k">View</div>
+          <div class="toggle" role="group" aria-label="Ledger view">
+            <button aria-pressed="false">Public</button>
+            <button aria-pressed="true">Auditor</button>
+          </div>
+        </div>
+      </div>
+      <div class="vendors">
+        <div class="vendor"><div class="name">Feedmarket <span class="alias">· 9xK…4tR</span></div><div class="amt">$118.40</div><div class="last">24 payments · last 12s ago</div></div>
+        <div class="vendor"><div class="name">Oracle Tide <span class="alias">· 3mP…8qL</span></div><div class="amt">$129.40</div><div class="last">26 payments · last 4s ago</div></div>
+        <div class="vendor"><div class="name" style="color:var(--muted)">invite accountant</div><div class="last" style="margin-top:10px">optional third-party auditor key — separate from your own reconciliation</div></div>
+      </div>
+      <table>
+        <thead><tr><th>Payment alias</th><th>Vendor</th><th>Time</th><th>State</th><th class="r">Amount</th></tr></thead>
+        <tbody>
+          <tr><td class="alias">p_7f3a…c21</td><td>Feedmarket</td><td class="meta">12s ago</td><td><span class="pill settled">settled</span></td><td class="r amt">$4.90</td></tr>
+          <tr><td class="alias">p_2b91…e07</td><td>Oracle Tide</td><td class="meta">18s ago</td><td><span class="pill settled">settled</span></td><td class="r amt">$5.10</td></tr>
+          <tr><td class="alias">p_9c04…77a</td><td>Feedmarket</td><td class="meta">31s ago</td><td><span class="pill served">served</span></td><td class="r amt">$3.80</td></tr>
+          <tr><td class="alias">p_1de6…3b9</td><td>Oracle Tide</td><td class="meta">44s ago</td><td><span class="pill verify">verifying</span></td><td class="r amt">$2.60</td></tr>
+          <tr><td class="alias">p_5a72…f13</td><td>Feedmarket</td><td class="meta">1m ago</td><td><span class="pill err">amount unreadable · key v1≠v2</span></td><td class="r amt">—</td></tr>
+        </tbody>
+      </table>
+      <div class="footer">
+        <span class="meta">reconciled ✓ against slot 289,441,002</span>
+        <button class="btn">Export CSV</button>
+      </div>
+    </div>
+    <p class="note">The toggle is the product thesis. One authored motion: the redaction bars lift, staggered, 320ms, ease-out. Under <code>prefers-reduced-motion</code> the values swap instantly.</p>
+  </section>
+
+  <!-- ============ EMPTY STATE ============ -->
+  <section class="panel">
+    <h2>Merchant dashboard — empty state (first-run)</h2>
+    <div class="stage">
+      <div class="truth" style="grid-template-columns:1fr">
+        <div class="k">Settled on-chain</div>
+      </div>
+      <div style="padding:var(--sp-12) var(--sp-6);text-align:left;max-width:46ch">
+        <div style="font-family:var(--font-mono);font-size:20px;font-weight:600">No private payments yet.</div>
+        <p class="meta" style="color:#9DA0A8;margin:12px 0 20px">Your ledger fills the moment your first confidential settlement confirms. Nothing here is a placeholder — an empty ledger means no payments, not missing data.</p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <button class="btn" style="border-color:#B4341F;color:#E4A899">Copy your merchant alias</button>
+          <button class="btn">View the 3-line integration</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ LANDING ============ -->
+  <section class="panel">
+    <h2>Landing page — PERSUADE · first viewport as one composition</h2>
+    <div class="stage paper">
+      <div class="hero">
+        <div>
+          <div class="wordmark"><span class="v">V</span>eil</div>
+          <h3 class="h1">The agent payment graph is public. Yours doesn't have to be.</h3>
+          <p class="lead">Private settlement for x402 on Solana — amounts encrypted, counterparties unlinkable, and the merchant's ledger still reconciles to the cent.</p>
+          <div class="cta">
+            <button class="btn primary">See it run on devnet</button>
+            <button class="btn ghost">Verify it yourself ↗</button>
+          </div>
+        </div>
+        <div class="demo">
+          <div class="bar"><i></i><i></i><i></i></div>
+          <div class="split">
+            <div class="cell">
+              <b>agent</b> → feedmarket.402<br>
+              <span class="stoplight">200</span> resource served<br>
+              tx <b>4sG…Kq</b> confidential<br>
+              amount <span style="color:#B4341F">██████</span><br>
+              to <b>9xK…4tR</b> (fresh)<br>
+              <span style="color:#3E9C6B">● live counter 037/050</span>
+            </div>
+            <div class="cell">
+              explorer · merchant wallet<br>
+              transfers <b>50</b><br>
+              amounts <span style="color:#B4341F">unreadable</span><br>
+              repeated counterparty <span style="color:#3E9C6B">none</span><br>
+              every link <b>real devnet</b>
+            </div>
+          </div>
+          <div class="strip"><span>two windows, one gap</span><span>devnet · live</span></div>
+        </div>
+      </div>
+    </div>
+    <p class="note">Light paper ground, ink, one oxidized-red accent = the redaction ink. Deliberately not the dark+neon look the migration headline pulls toward. Every explorer link in the embed is real and clickable — the realness is the persuasion.</p>
+  </section>
+
+  <!-- ============ MOBILE ============ -->
+  <section class="panel">
+    <h2>Merchant dashboard — mobile 375px (stacked ledger, sticky total)</h2>
+    <div class="phone">
+      <div class="p-truth">
+        <div class="k">Settled · Public</div>
+        <div class="total">$<span class="redacted" style="min-width:104px">0000</span></div>
+        <div class="toggle" style="margin-top:12px" role="group" aria-label="Ledger view">
+          <button aria-pressed="true">Public</button><button aria-pressed="false">Auditor</button>
+        </div>
+      </div>
+      <div class="p-row"><div><div style="font-family:var(--font-mono);font-size:13px;color:#CFCBC2">p_7f3a…c21</div><div class="meta">Feedmarket · 12s ago</div></div><div style="text-align:right"><div class="amt"><span class="redacted">0000.00</span></div><div class="meta" style="margin-top:6px"><span class="pill settled">settled</span></div></div></div>
+      <div class="p-row"><div><div style="font-family:var(--font-mono);font-size:13px;color:#CFCBC2">p_2b91…e07</div><div class="meta">Oracle Tide · 18s ago</div></div><div style="text-align:right"><div class="amt"><span class="redacted">0000.00</span></div><div class="meta" style="margin-top:6px"><span class="pill settled">settled</span></div></div></div>
+      <div class="p-row"><div><div style="font-family:var(--font-mono);font-size:13px;color:#CFCBC2">p_5a72…f13</div><div class="meta">Feedmarket · 1m ago</div></div><div style="text-align:right"><div class="amt"><span class="redacted">0000.00</span></div><div class="meta" style="margin-top:6px"><span class="pill err">unreadable · v1≠v2</span></div></div></div>
+      <div class="footer"><span class="meta">reconciled ✓</span><button class="btn">CSV</button></div>
+    </div>
+    <p class="note">Table becomes row blocks, not a sideways-scrolling table. Touch targets ≥44px. State pills carry a text label so colour is never the only signal.</p>
+  </section>
+</div>
+</body>
+</html>

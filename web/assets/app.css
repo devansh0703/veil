@@ -1,0 +1,285 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Veil components. Used by every surface so the four pages cannot drift apart.
+   No cards: a ledger is a table and its depth comes from hairline rules and a
+   ground change. Radius stays 2-4px; `full` belongs to the status dot alone.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+body{margin:0;background:var(--surface);color:var(--text);
+  font-family:var(--font-body);font-size:var(--t-body);line-height:1.55;
+  -webkit-font-smoothing:antialiased}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:var(--r-sm)}
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;
+  clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.skip{position:absolute;left:var(--s4);top:-100px;z-index:20;background:var(--surface-raise);
+  color:var(--text);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 14px;
+  font-size:var(--t-label);text-decoration:none;transition:top var(--dur-short) var(--ease)}
+.skip:focus{top:var(--s4)}
+.wrap{max-width:1120px;margin:0 auto;padding:0 var(--s6)}
+
+/* ── masthead ────────────────────────────────────────────────────────────── */
+.masthead{border-bottom:1px solid var(--border);position:sticky;top:0;z-index:6;background:var(--surface)}
+.masthead .wrap{display:flex;align-items:center;justify-content:space-between;gap:var(--s4);
+  min-height:60px;flex-wrap:wrap}
+.wordmark{font-family:var(--font-display);font-weight:700;font-size:var(--t-h2);
+  letter-spacing:-.02em;text-decoration:none;color:var(--text)}
+.wordmark .v{color:var(--accent)}
+.masthead .who{display:flex;align-items:center;gap:var(--s3);font-family:var(--font-mono);
+  font-size:var(--t-label);color:var(--text-muted);flex-wrap:wrap}
+.masthead .who b{color:var(--text);font-weight:500}
+.masthead nav{display:flex;gap:var(--s4);flex-wrap:wrap}
+.masthead nav a{font-size:var(--t-ui);font-weight:500;color:var(--text-muted);
+  text-decoration:none;min-height:44px;display:inline-flex;align-items:center}
+.masthead nav a:hover,[aria-current="page"]{color:var(--text);text-decoration:underline;
+  text-underline-offset:3px}
+
+/* ── type ────────────────────────────────────────────────────────────────── */
+h1{font-family:var(--font-display);font-weight:700;font-size:var(--t-h1);
+  letter-spacing:-.02em;margin:var(--s8) 0 var(--s3)}
+h2{font-family:var(--font-display);font-weight:700;font-size:var(--t-h2);
+  letter-spacing:-.01em;margin:0 0 var(--s3);padding-bottom:var(--s2);
+  border-bottom:1px solid var(--border)}
+h3{font-family:var(--font-body);font-weight:600;font-size:var(--t-ui);margin:0 0 var(--s2)}
+p{margin:0 0 var(--s4)}
+.lede{color:var(--text-muted);font-size:var(--t-body);max-width:64ch}
+/* Measure, not just margins: at 1120px the prose columns would otherwise run to
+   ~106 characters a line. Cap every long-form column at a readable measure. */
+.spec-rows dd{max-width:72ch}
+.states dd{max-width:78ch}
+td .note{max-width:44ch}
+.k{font-family:var(--font-body);font-weight:600;font-size:var(--t-label);
+  letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted)}
+/* `.k` is for short labels only (SETTLED ON-CHAIN, IN FLIGHT). A full positioning
+   sentence set in tracked-out uppercase loses word shape and reads worse — it
+   takes .kicker, which keeps the sentence in case and carries emphasis by
+   weight alone. */
+.kicker{font-family:var(--font-body);font-weight:600;font-size:var(--t-ui);
+  color:var(--text-muted);margin:0 0 var(--s3)}
+.mono,code{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+section{margin:0 0 var(--s12)}
+.fig{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-weight:600;
+  font-size:var(--t-figure);letter-spacing:-.02em;line-height:1.02}
+
+/* ── buttons ─────────────────────────────────────────────────────────────── */
+.btn{font-family:var(--font-body);font-weight:600;font-size:var(--t-label);
+  padding:11px 16px;min-height:44px;border-radius:var(--r-sm);cursor:pointer;
+  border:1px solid transparent;text-decoration:none;display:inline-flex;
+  align-items:center;gap:8px}
+.btn.primary{background:var(--text);color:var(--surface)}
+.btn.primary:hover{background:var(--redact-fill);color:var(--on-redact)}
+.btn.secondary{background:transparent;color:var(--text);border-color:var(--border)}
+.btn.secondary:hover{background:var(--chip-bg)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.row{display:flex;gap:var(--s3);flex-wrap:wrap;align-items:center}
+
+/* ── badge + pills: colour never carries meaning alone ───────────────────── */
+.badge{display:inline-flex;align-items:center;gap:7px;font-family:var(--font-mono);
+  font-size:var(--t-small);padding:5px 9px;border-radius:var(--r-sm);
+  border:1px solid var(--border);text-decoration:none;color:var(--text-muted)}
+.badge.ok{color:var(--ok);border-color:var(--ok)}
+.badge.refuse{color:var(--err);border-color:var(--err)}
+.dot{width:7px;height:7px;border-radius:9999px;background:currentColor;flex:none}
+.pill{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);
+  font-size:var(--t-small);padding:3px 8px;border-radius:var(--r-sm);
+  border:1px solid var(--border);white-space:nowrap}
+.pill.settled{color:var(--ok);border-color:var(--ok)}
+.pill.served{color:var(--text-muted)}
+.pill.verifying{color:var(--warn);border-color:var(--warn);border-style:dashed}
+.pill.unreadable{color:var(--err);border-color:var(--err)}
+.pill.neutral{color:var(--text-muted)}
+
+/* ── truth strip ─────────────────────────────────────────────────────────── */
+.truth{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,.85fr) minmax(0,.9fr) minmax(0,1fr) auto;
+  gap:var(--s6);align-items:end;padding:var(--s6) 0;border-bottom:1px solid var(--border)}
+.total{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-weight:600;
+  font-size:clamp(1.75rem,4.4vw,2.75rem);letter-spacing:-.02em;line-height:1.02;margin-top:var(--s1)}
+.total.secondary{font-size:clamp(1.25rem,2.6vw,1.75rem)}
+.total.tertiary{font-size:var(--t-h2);color:var(--text-muted)}
+.sub{font-family:var(--font-mono);font-size:var(--t-small);color:var(--text-muted);margin-top:var(--s1)}
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden}
+.seg button{font-family:var(--font-body);font-weight:600;font-size:var(--t-label);
+  padding:10px 15px;min-height:44px;background:transparent;color:var(--text-muted);
+  border:0;cursor:pointer}
+.seg button+button{border-left:1px solid var(--border)}
+.seg button[aria-pressed="true"]{background:var(--redact-fill);color:var(--on-redact)}
+.seg button:hover:not([aria-pressed="true"]){color:var(--text);background:var(--chip-bg)}
+
+/* ── tables: the only container this system uses ─────────────────────────── */
+table{width:100%;border-collapse:collapse}
+caption{text-align:left;color:var(--text-muted);font-size:var(--t-label);padding-bottom:var(--s3)}
+th{text-align:left;font-family:var(--font-body);font-weight:600;font-size:var(--t-label);
+  letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);
+  padding:0 var(--s4) var(--s2) 0}
+td{padding:11px var(--s4) 11px 0;border-top:1px solid var(--border);vertical-align:top}
+th:last-child,td:last-child{padding-right:0}
+td.r,th.r{text-align:right}
+.vendors{font-size:var(--t-ui)}
+.ledger{font-size:var(--t-label)}
+.ledger td{padding-top:11px;padding-bottom:11px}
+.ledger tbody tr:hover,.vendors tbody tr:hover{background:var(--chip-bg)}
+.pay,.when{font-family:var(--font-mono);color:var(--text-muted)}
+.pay{font-size:var(--t-small)}
+.when{white-space:nowrap;font-size:var(--t-small)}
+.alias{font-weight:500}
+.note{color:var(--text-muted);font-size:var(--t-label);display:block;margin-top:2px}
+.reason{display:block;color:var(--text-muted);font-size:var(--t-small);max-width:30ch;margin-top:var(--s1)}
+.cipher{font-family:var(--font-mono);color:var(--text-muted);font-size:var(--t-small);word-break:break-all}
+
+/* ── the redaction bar: the system's signature element ───────────────────── */
+.amount{display:flex;justify-content:flex-end}
+.redact{position:relative;display:inline-block;white-space:nowrap}
+[data-view="public"] .redact{user-select:none}
+.amount-value{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-weight:600;
+  color:transparent;transition:color var(--dur-micro) linear;
+  transition-delay:calc(var(--i,0) * var(--stagger) + 90ms)}
+.redaction-bar{position:absolute;inset:0;border-radius:var(--r-sm);background:var(--redact-bar);
+  background-image:repeating-linear-gradient(90deg,var(--hatch) 0 5px,transparent 5px 10px);
+  transform:translateY(0);opacity:1;
+  transition:transform var(--dur-medium) var(--ease),opacity var(--dur-short) linear;
+  transition-delay:calc(var(--i,0) * var(--stagger))}
+[data-view="auditor"] .redaction-bar{transform:translateY(-118%);opacity:0}
+[data-view="auditor"] .amount-value{color:var(--text)}
+
+/* ── states list (a list, never a grid of cards) ─────────────────────────── */
+.states{display:grid;grid-template-columns:minmax(0,168px) minmax(0,1fr);gap:0 var(--s6);margin:0}
+.states dt{font-family:var(--font-mono);font-size:var(--t-small);color:var(--text-muted);
+  padding:var(--s3) 0;border-top:1px solid var(--border)}
+.states dd{margin:0;padding:var(--s3) 0;border-top:1px solid var(--border);font-size:var(--t-ui)}
+.states dd span{color:var(--text-muted)}
+.states .last dt,.states .last dd{border-bottom:1px solid var(--border)}
+
+/* ── refusal panel: prose flowing around a real obstacle ─────────────────── */
+.refuse-panel{border:1px solid var(--err);border-radius:var(--r-md);padding:var(--s6)}
+.refuse-panel .spec{font-family:var(--font-body);font-weight:600;color:var(--err);
+  font-size:var(--t-label);letter-spacing:.08em;text-transform:uppercase;margin:0 0 var(--s4)}
+.obstacle-host{position:relative}
+.obstacle-host .line{position:absolute;left:0;white-space:pre;font-family:var(--font-body);
+  color:var(--text-muted);font-size:var(--t-body)}
+.obstacle{margin:0 0 var(--s6)}
+@media (min-width:1024px){ .obstacle{position:absolute;top:0;right:0;width:304px;margin:0} }
+.checks{list-style:none;margin:0;padding:0;border:1px solid var(--border);
+  border-radius:var(--r-md);background:var(--surface-raise)}
+.checks li{padding:var(--s3) var(--s4);border-bottom:1px solid var(--border);font-size:var(--t-ui)}
+.checks li:last-child{border-bottom:0}
+.checks .verdict{font-family:var(--font-mono);font-size:var(--t-small);display:block;margin-top:2px}
+.checks .pass{color:var(--ok)} .checks .fail{color:var(--err)}
+
+/* ── the two-window demo: one composition, not three panels ──────────────── */
+.demo{border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden;
+  background:var(--graphite);color:var(--fg)}
+.demo-split{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--rule-dark)}
+.demo-cell{background:var(--raise);padding:var(--s4);min-height:216px;
+  font-family:var(--font-mono);font-size:var(--t-small);line-height:1.75;
+  color:var(--muted-dark);overflow:hidden}
+.demo-cell b{color:var(--fg);font-weight:500}
+.demo-cell .ok{color:var(--success-dark)}
+.demo-cell .hid{color:var(--redact-dark)}
+.demo-strip{border-top:1px solid var(--rule-dark);padding:10px var(--s4);display:flex;
+  justify-content:space-between;gap:var(--s4);align-items:center;color:var(--fg);
+  font-family:var(--font-mono);font-size:var(--t-small);flex-wrap:wrap}
+.demo-head{border-bottom:1px solid var(--rule-dark);padding:10px var(--s4);display:flex;
+  justify-content:space-between;gap:var(--s4);color:var(--muted-dark);
+  font-family:var(--font-mono);font-size:var(--t-small);flex-wrap:wrap}
+/* No progress bar here. A static green fill implies a loading state that does
+   not exist, and green is reserved for "reconciled" — colour is meaning in this
+   system, never decoration. The strip carries three real strings instead. */
+.demo-strip>span:first-child,.demo-strip>span:last-child{flex:none}
+
+/* ── the landing hero is a poster, not a document ────────────────────────── */
+.poster{padding:var(--s12) 0 var(--s8);border-bottom:1px solid var(--border)}
+/* Display leading is deliberate: a three-line 64px poster headline takes 1.03.
+   The detector's 1.3 floor targets body text, and display type tightens as it
+   grows — loose leading on a poster headline is the amateur tell. The waiver
+   is recorded in .impeccable/config.json (tight-leading, scoped to
+   web/index.html) rather than here, because this declaration is reached from a
+   linked stylesheet and an inline comment cannot be attributed to the finding. */
+.poster h1{font-size:var(--t-display);margin:0 0 var(--s4);max-width:19ch;line-height:1.03}
+.poster .lede{font-size:var(--t-h2);max-width:38ch;color:var(--text-muted);margin-bottom:var(--s6)}
+.claim{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--s12);align-items:center}
+
+/* ── spec rows: the replacement for a feature grid ───────────────────────── */
+.spec-rows{display:grid;grid-template-columns:minmax(0,200px) minmax(0,1fr);gap:0 var(--s6);margin:0}
+.spec-rows dt{font-family:var(--font-mono);font-size:var(--t-label);color:var(--text-muted);
+  padding:var(--s4) 0;border-top:1px solid var(--border)}
+.spec-rows dd{margin:0;padding:var(--s4) 0;border-top:1px solid var(--border);font-size:var(--t-body)}
+.spec-rows .last dt,.spec-rows .last dd{border-bottom:1px solid var(--border)}
+
+/* ── payload / code body ─────────────────────────────────────────────────── */
+.payload{border:1px solid var(--border);border-radius:var(--r-md);background:var(--surface-raise);
+  overflow:hidden}
+.payload header{display:flex;justify-content:space-between;gap:var(--s4);align-items:center;
+  padding:10px var(--s4);border-bottom:1px solid var(--border);font-family:var(--font-mono);
+  font-size:var(--t-small);color:var(--text-muted);flex-wrap:wrap}
+.payload pre{margin:0;padding:var(--s4);overflow-x:auto;font-family:var(--font-mono);
+  font-size:var(--t-small);line-height:1.7;color:var(--text)}
+.payload .key{color:var(--text-muted)} .payload .val{color:var(--text)}
+.payload .str{color:var(--ok)}
+
+/* Redaction bars inside the demo's dark cells: the bar takes the lifted red
+   regardless of the page ground, and a revealed value takes the cell's own
+   foreground so the lift stays legible on graphite. */
+.demo .redact{--redact-bar:var(--redact-dark)}
+.demo .redact .amount-value{color:transparent}
+[data-view="auditor"] .demo .redact .amount-value{color:var(--fg)}
+
+/* ── footer ──────────────────────────────────────────────────────────────── */
+footer{border-top:1px solid var(--border);margin-top:var(--s12);padding:var(--s6) 0 var(--s12)}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:var(--s4);flex-wrap:wrap}
+.foot .marker{font-family:var(--font-mono);font-size:var(--t-small);color:var(--text-muted)}
+.foot .marker b{color:var(--ok);font-weight:500}
+.foot nav{display:flex;gap:var(--s4);flex-wrap:wrap}
+.foot nav a{font-size:var(--t-label);color:var(--text-muted);text-decoration:none;
+  min-height:44px;display:inline-flex;align-items:center}
+.foot nav a:hover{color:var(--text);text-decoration:underline;text-underline-offset:3px}
+
+/* ── responsive: 1120 / 768 / 375 ────────────────────────────────────────── */
+@media (max-width:1120px){ .wrap{padding:0 var(--s6)} }
+@media (max-width:1024px){
+  .truth{grid-template-columns:minmax(0,1fr) minmax(0,1fr);row-gap:var(--s6)}
+  .truth .view{grid-column:1 / -1}
+  .claim{grid-template-columns:minmax(0,1fr);gap:var(--s8)}
+  .poster h1{max-width:26ch}
+}
+@media (max-width:768px){
+  .wrap{padding:0 var(--s4)}
+  .hide-sm{display:none}
+  .states,.spec-rows{grid-template-columns:minmax(0,1fr)}
+  .states dt,.spec-rows dt{border-bottom:0;padding-bottom:0}
+  .states dd,.spec-rows dd{border-top:0;padding-top:var(--s1);padding-bottom:var(--s4)}
+  .states dd:last-child,.spec-rows dd:last-child{border-bottom:1px solid var(--border)}
+  .demo-split{grid-template-columns:1fr}
+  .demo-cell{min-height:0}
+  .poster{padding-top:var(--s8)}
+}
+@media (max-width:600px){
+  /* a sideways-scrolling ledger is not responsive: one payment per block */
+  .ledger thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  .ledger tbody tr{display:block;border-top:1px solid var(--border);padding:var(--s3) 0}
+  .ledger tbody td{display:flex;justify-content:space-between;gap:var(--s4);
+    border:0;padding:2px 0;align-items:baseline}
+  .ledger tbody td::before{content:attr(data-label);font-family:var(--font-body);
+    font-weight:600;font-size:var(--t-label);letter-spacing:.08em;text-transform:uppercase;
+    color:var(--text-muted);flex:none}
+  .ledger .r{text-align:left}
+  .amount{justify-content:flex-start}
+  .truth{grid-template-columns:minmax(0,1fr)}
+  .states{grid-template-columns:minmax(0,1fr)}
+  .foot{flex-direction:column;align-items:flex-start}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .redaction-bar{transition:none;transform:none;display:none}
+  .amount-value{transition:none;color:var(--text)}
+  [data-view="public"] .redaction-bar{display:block;background-image:none}
+  .skip{transition:none}
+}
+@media (prefers-contrast:more){
+  :root{--muted:var(--muted-contrast);--muted-dark:var(--muted-contrast-dark);
+        --rule:var(--rule-contrast);--rule-dark:var(--rule-contrast-dark)}
+}
+@media print{
+  .seg,.masthead nav,.btn,.skip{display:none}
+  [data-view="auditor"] .redaction-bar{display:block;transform:none;opacity:1}
+  .obstacle{position:static}
+}

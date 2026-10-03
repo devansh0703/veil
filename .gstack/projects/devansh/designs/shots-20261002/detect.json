@@ -1,0 +1,80 @@
+IMPECCABLE_READY: /home/devansh/.impeccable/bin/0.1.5/impeccable
+IMPECCABLE_SKILL: present
+IMPECCABLE_HOOK: absent
+IMPECCABLE_IGNORED_RULES: 
+IMPECCABLE_IGNORED_FILES: 
+IMPECCABLE_IGNORED_VALUES: 
+IMPECCABLE_ENGINE_UNTESTED: 0.1.5
+{
+  "schemaVersion": 1,
+  "engine": "/home/devansh/.impeccable/bin/0.1.5/impeccable",
+  "engineVersion": "0.1.5",
+  "targets": 1,
+  "exit": 0,
+  "total": 3,
+  "counted": 0,
+  "advisory": 3,
+  "ignoredRules": [],
+  "byRule": {
+    "design-system-color": 2,
+    "repeating-stripes-gradient": 1
+  },
+  "findings": [
+    {
+      "id": "design-system-color",
+      "impeccableId": "design-system-color",
+      "file": "/home/devansh/colosseum/.gstack/projects/devansh/designs/dashboard-20261002/finalized.html",
+      "line": 0,
+      "snippet": "border-bottom rgb(60, 63, 70) on header \"VEIL merchant feedmarket.veil mint VeilU\" is outside DESIGN.md colors",
+      "message": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an i…",
+      "category": "color",
+      "kind": "quality",
+      "impact": "medium",
+      "tier": "ask",
+      "advisory": true,
+      "handoff": "polish"
+    },
+    {
+      "id": "design-system-color",
+      "impeccableId": "design-system-color",
+      "file": "/home/devansh/colosseum/.gstack/projects/devansh/designs/dashboard-20261002/finalized.html",
+      "line": 0,
+      "snippet": "text color rgb(180, 182, 187) on span \"merchant feedmarket.veil\" is outside DESIGN.md colors",
+      "message": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an i…",
+      "category": "color",
+      "kind": "quality",
+      "impact": "medium",
+      "tier": "ask",
+      "advisory": true,
+      "handoff": "polish"
+    },
+    {
+      "id": "repeating-stripes-gradient",
+      "impeccableId": "repeating-stripes-gradient",
+      "file": "/home/devansh/colosseum/.gstack/projects/devansh/designs/dashboard-20261002/finalized.html",
+      "line": 0,
+      "snippet": "repeating-gradient decorative stripes",
+      "message": "Repeating-gradient stripes used as surface decoration are a recurring generated-UI signature. Reach for a deliberate te…",
+      "category": "surface",
+      "kind": "slop",
+      "impact": "polish",
+      "tier": "ask",
+      "advisory": true,
+      "handoff": "quieter"
+    }
+  ],
+  "truncated": false,
+  "diagnostics": [],
+  "untrusted": [
+    "findings[].file",
+    "findings[].snippet",
+    "findings[].message",
+    "findings[].value",
+    "diagnostics[]"
+  ]
+}
+═══ BEGIN UNTRUSTED CONTENT (design detector output) ═══
+DETECT_TOP total=3 rules=0
+═══ END UNTRUSTED CONTENT ═══
+DETECT_SUMMARY: total=3 slop=0 quality=0 advisory=3 ignored=0 high=0 medium=0 polish=0
+DETECT_EXIT: 0

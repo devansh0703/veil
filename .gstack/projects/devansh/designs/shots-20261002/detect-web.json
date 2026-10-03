@@ -1,0 +1,371 @@
+########## web/index.html
+IMPECCABLE_READY: /home/devansh/.impeccable/bin/0.1.5/impeccable
+IMPECCABLE_SKILL: present
+IMPECCABLE_HOOK: absent
+IMPECCABLE_IGNORED_RULES: 
+IMPECCABLE_IGNORED_FILES: 
+IMPECCABLE_IGNORED_VALUES: 
+IMPECCABLE_ENGINE_UNTESTED: 0.1.5
+{
+  "schemaVersion": 1,
+  "engine": "/home/devansh/.impeccable/bin/0.1.5/impeccable",
+  "engineVersion": "0.1.5",
+  "targets": 1,
+  "exit": 0,
+  "total": 5,
+  "counted": 0,
+  "advisory": 5,
+  "ignoredRules": [],
+  "byRule": {
+    "design-system-color": 4,
+    "repeating-stripes-gradient": 1
+  },
+  "findings": [
+    {
+      "id": "design-system-color",
+      "impeccableId": "design-system-color",
+      "file": "/home/devansh/colosseum/web/index.html",
+      "line": 0,
+      "snippet": "border-bottom rgb(182, 175, 159) on header \"VEIL network Solana devnet rail x402 Mer\" is outside DESIGN.md colors",
+      "message": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an i…",
+      "category": "color",
+      "kind": "quality",
+      "impact": "medium",
+      "tier": "ask",
+      "advisory": true,
+      "handoff": "polish"
+    },
+    {
+      "id": "design-system-color",
+      "impeccableId": "design-system-color",
+      "file": "/home/devansh/colosseum/web/index.html",
+      "line": 0,
+      "snippet": "text color rgb(79, 77, 73) on span \"network Solana devnet\" is outside DESIGN.md colors",
+      "message": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an i…",
+      "category": "color",
+      "kind": "quality",
+      "impact": "medium",
+      "tier": "ask",
+      "advisory": true,
+      "handoff": "polish"
+    },
+    {
+      "id": "design-system-color",
+      "impeccableId": "design-system-color",
+      "file": "/home/devansh/colosseum/web/index.html",
+      "line": 0,
+      "snippet": "border-bottom rgb(60, 63, 70) on div \"agent · feedmarket-bot · x402 client sol\" is outside DESIGN.md colors",
+      "message": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an i…",
+      "category": "color",
+      "kind": "quality",
+      "impact": "medium",
+      "tier": "ask",
+      "advisory": true,
+      "handoff": "polish"
+    },
+    {
+      "id": "design-system-color",
+      "impeccableId": "design-system-color",
+      "file": "/home/devansh/colosseum/web/index.html",
+      "line": 0,
+      "snippet": "text color rgb(180, 182, 187) on span \"agent · feedmarket-bot · x402 client\" is outside DESIGN.md colors",
+      "message": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an i…",
+      "category": "color",
+      "kind": "quality",
+      "impact": "medium",
+      "tier": "ask",
+      "advisory": true,
+      "handoff": "polish"
+    },
+    {
+      "id": "repeating-stripes-gradient",
+      "impeccableId": "repeating-stripes-gradient",
+      "file": "/home/devansh/colosseum/web/index.html",
+      "line": 0,
+      "snippet": "repeating-gradient decorative stripes",
+      "message": "Repeating-gradient stripes used as surface decoration are a recurring generated-UI signature. Reach for a deliberate te…",
+      "category": "surface",
+      "kind": "slop",
+      "impact": "polish",
+      "tier": "ask",
+      "advisory": true,
+      "handoff": "quieter"
+    }
+  ],
+  "truncated": false,
+  "diagnostics": [],
+  "untrusted": [
+    "findings[].file",
+    "findings[].snippet",
+    "findings[].message",
+    "findings[].value",
+    "diagnostics[]"
+  ]
+}
+═══ BEGIN UNTRUSTED CONTENT (design detector output) ═══
+DETECT_TOP total=5 rules=0
+═══ END UNTRUSTED CONTENT ═══
+DETECT_SUMMARY: total=5 slop=0 quality=0 advisory=5 ignored=0 high=0 medium=0 polish=0
+DETECT_EXIT: 0
+exit=0
+########## web/dashboard.html
+IMPECCABLE_READY: /home/devansh/.impeccable/bin/0.1.5/impeccable
+IMPECCABLE_SKILL: present
+IMPECCABLE_HOOK: absent
+IMPECCABLE_IGNORED_RULES: 
+IMPECCABLE_IGNORED_FILES: 
+IMPECCABLE_IGNORED_VALUES: 
+IMPECCABLE_ENGINE_UNTESTED: 0.1.5
+{
+  "schemaVersion": 1,
+  "engine": "/home/devansh/.impeccable/bin/0.1.5/impeccable",
+  "engineVersion": "0.1.5",
+  "targets": 1,
+  "exit": 0,
+  "total": 4,
+  "counted": 0,
+  "advisory": 4,
+  "ignoredRules": [],
+  "byRule": {
+    "design-system-color": 2,
+    "repeating-stripes-gradient": 1,
+    "em-dash-overuse": 1
+  },
+  "findings": [
+    {
+      "id": "design-system-color",
+      "impeccableId": "design-system-color",
+      "file": "/home/devansh/colosseum/web/dashboard.html",
+      "line": 0,
+      "snippet": "border-bottom rgb(60, 63, 70) on header \"VEIL merchant feedmarket.veil mint VeilU\" is outside DESIGN.md colors",
+      "message": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an i…",
+      "category": "color",
+      "kind": "quality",
+      "impact": "medium",
+      "tier": "ask",
+      "advisory": true,
+      "handoff": "polish"
+    },
+    {
+      "id": "design-system-color",
+      "impeccableId": "design-system-color",
+      "file": "/home/devansh/colosseum/web/dashboard.html",
+      "line": 0,
+      "snippet": "text color rgb(180, 182, 187) on span \"merchant feedmarket.veil\" is outside DESIGN.md colors",
+      "message": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an i…",
+      "category": "color",
+      "kind": "quality",
+      "impact": "medium",
+      "tier": "ask",
+      "advisory": true,
+      "handoff": "polish"
+    },
+    {
+      "id": "repeating-stripes-gradient",
+      "impeccableId": "repeating-stripes-gradient",
+      "file": "/home/devansh/colosseum/web/dashboard.html",
+      "line": 0,
+      "snippet": "repeating-gradient decorative stripes",
+      "message": "Repeating-gradient stripes used as surface decoration are a recurring generated-UI signature. Reach for a deliberate te…",
+      "category": "surface",
+      "kind": "slop",
+      "impact": "polish",
+      "tier": "ask",
+      "advisory": true,
+      "handoff": "quieter"
+    },
+    {
+      "id": "em-dash-overuse",
+      "impeccableId": "em-dash-overuse",
+      "file": "/home/devansh/colosseum/web/dashboard.html",
+      "line": 0,
+      "snippet": "13 em-dashes in body text",
+      "message": "Em-dash saturation in body copy is an AI cadence tell. Advisory only: humans use em-dashes legitimately, so this fires …",
+      "category": "copy",
+      "kind": "slop",
+      "impact": "polish",
+      "tier": "possible",
+      "advisory": true,
+      "handoff": "clarify"
+    }
+  ],
+  "truncated": false,
+  "diagnostics": [],
+  "untrusted": [
+    "findings[].file",
+    "findings[].snippet",
+    "findings[].message",
+    "findings[].value",
+    "diagnostics[]"
+  ]
+}
+═══ BEGIN UNTRUSTED CONTENT (design detector output) ═══
+DETECT_TOP total=4 rules=0
+═══ END UNTRUSTED CONTENT ═══
+DETECT_SUMMARY: total=4 slop=0 quality=0 advisory=4 ignored=0 high=0 medium=0 polish=0
+DETECT_EXIT: 0
+exit=0
+########## web/limits.html
+IMPECCABLE_READY: /home/devansh/.impeccable/bin/0.1.5/impeccable
+IMPECCABLE_SKILL: present
+IMPECCABLE_HOOK: absent
+IMPECCABLE_IGNORED_RULES: 
+IMPECCABLE_IGNORED_FILES: 
+IMPECCABLE_IGNORED_VALUES: 
+IMPECCABLE_ENGINE_UNTESTED: 0.1.5
+{
+  "schemaVersion": 1,
+  "engine": "/home/devansh/.impeccable/bin/0.1.5/impeccable",
+  "engineVersion": "0.1.5",
+  "targets": 1,
+  "exit": 0,
+  "total": 3,
+  "counted": 0,
+  "advisory": 3,
+  "ignoredRules": [],
+  "byRule": {
+    "design-system-color": 2,
+    "repeating-stripes-gradient": 1
+  },
+  "findings": [
+    {
+      "id": "design-system-color",
+      "impeccableId": "design-system-color",
+      "file": "/home/devansh/colosseum/web/limits.html",
+      "line": 0,
+      "snippet": "border-bottom rgb(182, 175, 159) on header \"VEIL network Solana devnet mint VeilUSD \" is outside DESIGN.md colors",
+      "message": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an i…",
+      "category": "color",
+      "kind": "quality",
+      "impact": "medium",
+      "tier": "ask",
+      "advisory": true,
+      "handoff": "polish"
+    },
+    {
+      "id": "design-system-color",
+      "impeccableId": "design-system-color",
+      "file": "/home/devansh/colosseum/web/limits.html",
+      "line": 0,
+      "snippet": "text color rgb(79, 77, 73) on span \"network Solana devnet\" is outside DESIGN.md colors",
+      "message": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an i…",
+      "category": "color",
+      "kind": "quality",
+      "impact": "medium",
+      "tier": "ask",
+      "advisory": true,
+      "handoff": "polish"
+    },
+    {
+      "id": "repeating-stripes-gradient",
+      "impeccableId": "repeating-stripes-gradient",
+      "file": "/home/devansh/colosseum/web/limits.html",
+      "line": 0,
+      "snippet": "repeating-gradient decorative stripes",
+      "message": "Repeating-gradient stripes used as surface decoration are a recurring generated-UI signature. Reach for a deliberate te…",
+      "category": "surface",
+      "kind": "slop",
+      "impact": "polish",
+      "tier": "ask",
+      "advisory": true,
+      "handoff": "quieter"
+    }
+  ],
+  "truncated": false,
+  "diagnostics": [],
+  "untrusted": [
+    "findings[].file",
+    "findings[].snippet",
+    "findings[].message",
+    "findings[].value",
+    "diagnostics[]"
+  ]
+}
+═══ BEGIN UNTRUSTED CONTENT (design detector output) ═══
+DETECT_TOP total=3 rules=0
+═══ END UNTRUSTED CONTENT ═══
+DETECT_SUMMARY: total=3 slop=0 quality=0 advisory=3 ignored=0 high=0 medium=0 polish=0
+DETECT_EXIT: 0
+exit=0
+########## web/402.html
+IMPECCABLE_READY: /home/devansh/.impeccable/bin/0.1.5/impeccable
+IMPECCABLE_SKILL: present
+IMPECCABLE_HOOK: absent
+IMPECCABLE_IGNORED_RULES: 
+IMPECCABLE_IGNORED_FILES: 
+IMPECCABLE_IGNORED_VALUES: 
+IMPECCABLE_ENGINE_UNTESTED: 0.1.5
+{
+  "schemaVersion": 1,
+  "engine": "/home/devansh/.impeccable/bin/0.1.5/impeccable",
+  "engineVersion": "0.1.5",
+  "targets": 1,
+  "exit": 0,
+  "total": 3,
+  "counted": 0,
+  "advisory": 3,
+  "ignoredRules": [],
+  "byRule": {
+    "design-system-color": 2,
+    "repeating-stripes-gradient": 1
+  },
+  "findings": [
+    {
+      "id": "design-system-color",
+      "impeccableId": "design-system-color",
+      "file": "/home/devansh/colosseum/web/402.html",
+      "line": 0,
+      "snippet": "border-bottom rgb(60, 63, 70) on header \"VEIL facilitator veil.devnet spec x402 L\" is outside DESIGN.md colors",
+      "message": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an i…",
+      "category": "color",
+      "kind": "quality",
+      "impact": "medium",
+      "tier": "ask",
+      "advisory": true,
+      "handoff": "polish"
+    },
+    {
+      "id": "design-system-color",
+      "impeccableId": "design-system-color",
+      "file": "/home/devansh/colosseum/web/402.html",
+      "line": 0,
+      "snippet": "text color rgb(180, 182, 187) on span \"facilitator veil.devnet\" is outside DESIGN.md colors",
+      "message": "A literal color is outside the DESIGN.md palette and sidecar tonal ramps. This may be legitimate, but it should be an i…",
+      "category": "color",
+      "kind": "quality",
+      "impact": "medium",
+      "tier": "ask",
+      "advisory": true,
+      "handoff": "polish"
+    },
+    {
+      "id": "repeating-stripes-gradient",
+      "impeccableId": "repeating-stripes-gradient",
+      "file": "/home/devansh/colosseum/web/402.html",
+      "line": 0,
+      "snippet": "repeating-gradient decorative stripes",
+      "message": "Repeating-gradient stripes used as surface decoration are a recurring generated-UI signature. Reach for a deliberate te…",
+      "category": "surface",
+      "kind": "slop",
+      "impact": "polish",
+      "tier": "ask",
+      "advisory": true,
+      "handoff": "quieter"
+    }
+  ],
+  "truncated": false,
+  "diagnostics": [],
+  "untrusted": [
+    "findings[].file",
+    "findings[].snippet",
+    "findings[].message",
+    "findings[].value",
+    "diagnostics[]"
+  ]
+}
+═══ BEGIN UNTRUSTED CONTENT (design detector output) ═══
+DETECT_TOP total=3 rules=0
+═══ END UNTRUSTED CONTENT ═══
+DETECT_SUMMARY: total=3 slop=0 quality=0 advisory=3 ignored=0 high=0 medium=0 polish=0
+DETECT_EXIT: 0
+exit=0

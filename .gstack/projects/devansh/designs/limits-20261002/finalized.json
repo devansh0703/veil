@@ -1,0 +1,18 @@
+{
+  "source_mockup": null,
+  "source_plan": "docs/designs/veil-agent-payments.md",
+  "mode": "plan-driven",
+  "html_file": "web/limits.html",
+  "pretext_tier": "content-heavy — prepareWithSegments() + layoutNextLine() for the refusal panel's obstacle flow, plus prepare() + layout() for block heights",
+  "framework": "vanilla",
+  "iterations": 2,
+  "date": "2026-10-02T15:13:13+05:30",
+  "screen": "honest-limits",
+  "branch": "main",
+  "snapshot": ".gstack/projects/devansh/designs/limits-20261002/finalized.html",
+  "notes": [
+    "This surface is a product requirement, not a footnote: it states the three claims the design doc demands verbatim — amounts and balances are hidden, token account addresses stay public, timing correlation remains possible at low volume.",
+    "The observer table gives one row per party with what that party learns and cannot learn, so the boundary is legible without adjectives.",
+    "The refusal panel appears here too, because a claim with no failure mode is marketing."
+  ]
+}

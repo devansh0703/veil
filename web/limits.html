@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en" data-ground="paper" data-view="public">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Veil — what it hides, and what it does not</title>
+<meta name="description" content="The honest limits of Veil: amounts and balances are hidden, token account addresses stay public, and timing correlation remains possible at low volume. Stated plainly, on the page, not buried in a README.">
+<!-- Every face is self-hosted (see assets/fonts.css). No font CDN at runtime. -->
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/app.css">
+</head>
+
+<body>
+<a class="skip" href="#limits">Skip to the limits</a>
+
+<header class="masthead">
+  <div class="wrap">
+    <a class="wordmark" href="index.html"><span class="v">V</span>EIL</a>
+    <div class="who">
+      <span>network <b>testnet + devnet</b></span>
+      <span>mint <b>VeilUSD</b></span>
+    </div>
+    <nav>
+      <a href="index.html">Landing</a>
+      <a href="dashboard.html">Merchant ledger</a>
+      <a href="402.html">402 body</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap" id="top">
+
+  <h1 id="limits">What Veil hides, and what it does not</h1>
+  <p class="lede" data-pretext>Privacy products earn trust in the exact place they are tempted to be vague. So this page is not a footnote. It is a surface, linked from the top of every other one, and it makes three claims without hedging: what is hidden, what stays public, and what a determined observer can still infer.</p>
+  <!-- veil:provenance -->
+  <p class="note" style="margin-top:var(--s4)">Provenance of this build: one run on <b>02 Oct · 14:21 UTC</b>, settlement mode <span class="mono">local-ledger-only</span>, chain <span class="mono">not-executed</span>. The confidential preconditions were <span class="mono">declared, not chain-read</span> and published as <span class="mono">privacySource: pool-ledger</span>. This run broadcast nothing — but broadcasting is not hypothetical: the same transfers have been confirmed on Solana testnet and devnet with these proofs, linked from <a href="index.html#live-solana">Live on Solana</a>. The limits below describe what the code does and where it has been demonstrated.</p>
+      <!-- /veil:provenance -->
+
+  <!-- ── the three claims, verbatim ─────────────────────────────────────── -->
+  <section aria-labelledby="hides-h">
+    <h2 id="hides-h">The three claims</h2>
+    <dl class="spec-rows">
+      <dt>Amounts and balances<br><span class="note">hidden</span></dt>
+      <dd>Every transfer amount is stored as ciphertext, and so is the balance of every confidential account. A validator confirms the transfer is well-formed and non-inflationary without learning the figure. This is Token-2022's Confidential Balances extension, verified on chain — not a mixer, and not a custodian holding your money.
+        <span class="note">Veil's behaviour is to refuse, not to assume: before quoting a price the server checks that the mint carries the extension and that the destination accepts confidential credits. If it cannot check, it answers <span class="mono">VEIL-CONF-003</span> and offers no price at all.</span></dd>
+
+      <dt>Token account addresses<br><span class="note">stay public</span></dt>
+      <dd>Confidential Balances encrypts the <em>fields</em>, not the <em>existence</em> of an account, and not its address. Anyone can see that a given one-time account received a transfer. <span class="note">What they cannot see is how much, or where that account's owner is elsewhere on the graph. This is the claim most privacy pitches get wrong, so Veil states it first — and the merchant ledger prints the destination address of every row rather than hiding it, because hiding it would misrepresent the boundary.</span></dd>
+
+      <dt class="last">Timing correlation<br><span class="note">still possible at low volume</span></dt>
+      <dd>One-time addresses break the direct link between an agent and a merchant, but not every link. If exactly one confidential transfer arrives at a merchant within the minute a specific agent went quiet, an observer who is watching both ends can guess. At high volume that guess drowns; at low volume, as in a demo, it does not. Veil does not claim to hide the occasion of payment, only its amount and its recurrence.
+        <span class="note">No defence is offloaded to "heuristics". This is a real residual, and it is named.</span></dd>
+    </dl>
+  </section>
+
+  <!-- ── the honest table: who learns what ──────────────────────────────── -->
+  <section aria-labelledby="who-h">
+    <h2 id="who-h">Who can still learn what</h2>
+    <p class="lede" data-pretext>The useful question is not "is it private" but "private from whom, and about what". Read the columns, not the adjectives.</p>
+    <table class="vendors">
+      <caption>An honest boundary, one observer per row. "Knows" is what that party can establish, not what it suspects.</caption>
+      <thead>
+        <tr>
+          <th scope="col">Observer</th>
+          <th scope="col">Learns</th>
+          <th scope="col" class="hide-sm">Cannot learn</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="alias">Anyone watching the account</span></td>
+          <td><span class="redact"><span class="amount-value">every settled amount</span><span class="redaction-bar" aria-hidden="true"></span></span></td>
+          <td class="hide-sm note">The amount. The running balance. Which buyer this was.</td>
+        </tr>
+        <tr>
+          <td><span class="alias">The merchant's own key holder</span></td>
+          <td class="note">Everything about its own account — that is the point of reconciliation.</td>
+          <td class="hide-sm note">Other merchants' amounts. It holds a viewing key for its own ciphertext, not a global one.</td>
+        </tr>
+        <tr>
+          <td><span class="alias">Holder of the mint auditor key</span></td>
+          <td class="note">It can decrypt compliant transfers under the protocol's audit path.</td>
+          <td class="hide-sm note">It is a <b>single global key per mint</b>, not a per-merchant one — so it is not, and is not offered as, the merchant reconciliation path.</td>
+        </tr>
+        <tr>
+          <td><span class="alias">The RPC provider</span></td>
+          <td class="note">Your IP, your request timing, which accounts you query.</td>
+          <td class="hide-sm note">The encrypted amounts themselves — it relays ciphertext it cannot open.</td>
+        </tr>
+        <tr>
+          <td><span class="alias">A validator</span></td>
+          <td class="note">That a confidential transfer occurred, is valid, and is not inflationary.</td>
+          <td class="hide-sm note">The transfer amount or either balance. Proof verification needs no plaintext.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ── the refusal, since a claim without a failure mode is marketing ─── -->
+  <section aria-labelledby="refuse-h">
+    <h2 id="refuse-h">What happens when the claim stops being true</h2>
+    <div class="refuse-panel">
+      <p class="spec">refusing to serve</p>
+      <div class="obstacle-host" id="obstacle-host"
+           data-flow-text="A negative claim — &quot;an observer cannot read this amount&quot; — is only worth something if the product refuses to repeat it the instant it becomes false. So before it quotes a price, the server checks two things: that the mint carries the confidential-transfer extension, and that the destination account is configured to receive confidential credits. If either check fails, or cannot be made at all, it returns a specific refusal code and no price. It never downgrades to a public transfer, because a merchant who believed an amount was hidden while it sat in the clear has been actively misled. The failure is loud, machine-readable and specific on purpose. A privacy product that degrades quietly is lying about which mode it is in, and a merchant cannot tell the difference until after the money moved.">
+        <div class="obstacle" id="obstacle">
+          <!-- veil:checks -->
+          <ul class="checks">
+            <li>Mint carries the confidential extension<span class="verdict pass">declared, not chain-read</span></li>
+            <li>Destination accepts confidential credits<span class="verdict pass">from the pool ledger</span></li>
+            <li>Cannot verify at all → refuse<span class="verdict pass">VEIL-CONF-003 observed</span></li>
+          </ul>
+      <!-- /veil:checks -->
+        </div>
+        <p class="sr-only">Two assertions gate every price. A refusal is shown here with the code a real run returned.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── the rest of the honest list ────────────────────────────────────── -->
+  <section aria-labelledby="caveats-h">
+    <h2 id="caveats-h">The rest of the list, in plain language</h2>
+    <dl class="states">
+      <dt>chain execution: demonstrated on both clusters</dt>
+      <dd>The figures on these pages come from a local run that reports its own settlement mode as <span class="mono">local-ledger-only</span> — but broadcasting is not hypothetical. Confidential transfers have been confirmed on Solana <b>testnet</b> and <b>devnet</b>, both from the operator's end-to-end run and from an independent payer through the x402 facilitator, with the three zero-knowledge proofs generated locally each time.
+        <span class="note">All four transactions are linked from <a href="index.html#live-solana">Live on Solana</a>. The checkout is no longer local-only: <span class="mono">serve</span> and the facilitator are also deployed at <span class="mono">veil-sable-five.vercel.app</span>, and a payment settled through the hosted facilitator on testnet. What hosting does not fix is the rate-limited public RPC — a busy rail still needs a paid endpoint, and the hosted ledger is per-instance.</span></dd>
+      <dt>where the proofs come from</dt>
+      <dd>The proofs are generated <em>on the payer's own machine</em>, by WASM shipped inside the <span class="mono">@solana/zk-sdk</span> package. There is no prover service, no RPC round trip, and no fee: a transfer's three proofs build in about 50&nbsp;ms in Node and run identically in a browser, because it is the same WASM. Nothing about the amount leaves the client to make them — the only inputs are the payer's own key material, the amount, and the destination's <em>public</em> key. That is what makes the client side of this real rather than a promise.</dd>
+      <dt>not audited</dt>
+      <dd>No third party has reviewed this code. Confidential Balances is an audited chain primitive; <em>Veil's use of it</em> is not. Treat the facilitator as a prototype.</dd>
+      <dt>address rotation</dt>
+      <dd>One-time addresses only unlink if the buyer actually rotates. An agent that reuses one address is exactly as linkable as a non-private one — the privacy is only as good as the integration.</dd>
+      <dt>account pool</dt>
+      <dd>Configuring a confidential account needs the owner's signature, so Veil pre-creates and pre-configures a pool of payment accounts rather than configuring one per call. When the pool is exhausted, a naive integration would fall back to a public transfer. Veil refuses instead.</dd>
+      <dt>no mixing</dt>
+      <dd>Veil never pools funds and never mixes them. There is no shared pot and no custodial balance. The chain sees individual confidential transfers between individual accounts, so the trust model is just Solana's.</dd>
+      <dt>a deployment can lie about itself</dt>
+      <dd>The preconditions are answered by a probe the deployment supplies. A deployment that answers them from its own pool ledger is reporting a real record, but not an independent one — so the server publishes <span class="mono">privacySource: pool-ledger</span> and never calls it <span class="mono">chain</span>. Trusting that field means trusting the deployment, which is why it is published rather than kept internal.</dd>
+      <dt class="last">what it is for</dt>
+      <dd>Hiding what an agent pays, from whom it buys, and how often — from a competitor reading the explorer. That is the threat. It is not a defence against a global adversary who can watch every packet, and Veil will not style itself as one.</dd>
+    </dl>
+  </section>
+
+  <footer>
+    <div class="foot">
+      <!-- veil:footer -->
+      <span class="marker">claims checked against <b>local-ledger-only</b> · 4 refusals observed · run 02 Oct · 14:21 UTC</span>
+      <!-- /veil:footer -->
+      <nav>
+        <a href="index.html">Landing</a>
+        <a href="dashboard.html">Merchant ledger</a>
+        <a href="402.html">402 body</a>
+      </nav>
+      <div class="row">
+        <button type="button" class="btn secondary" data-ground-toggle>Inspect on graphite</button>
+        <a class="btn primary" href="dashboard.html">See it reconcile</a>
+      </div>
+    </div>
+  </footer>
+
+</main>
+
+<noscript><div class="wrap"><p class="lede">JavaScript is off. The limits are text, so they are fully readable — a privacy statement that needed script to appear would be a poor one.</p></div></noscript>
+
+<script src="assets/pretext.js"></script>
+<script src="assets/veil.js"></script>
+</body>
+</html>

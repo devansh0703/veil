@@ -1,0 +1,36 @@
+{
+  "mint": "H1WQvSNbaRrJrfRME8vrRdMgCvQGEpfzDwUYZmApCA7p",
+  "network": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+  "rpcUrl": "https://api.devnet.solana.com",
+  "confidentialExtension": true,
+  "verifiedAt": "2026-10-03T17:05:02.098Z",
+  "verifiedFrom": "chain",
+  "payer": "3RWhpyX2JaE89UWqxM8LRsB3xykSVwHyEvBmgdo9N1FJ",
+  "poolSize": 1,
+  "poolCreated": true,
+  "configured": true,
+  "poolAccounts": 3,
+  "ledger": "data/pool-ledger.devnet.json",
+  "outstanding": [],
+  "sent": [],
+  "created": [
+    {
+      "alias": "oracle.tide",
+      "slot": 0,
+      "address": "8NzXxVqLGMnVxtG7iXQGs9rMe3W6xCVjBaAV1kiV4cV9",
+      "signature": "38GCc9HvNnznMsnWNKR2VVxiXgE8v4PKbvvz5t8hZmZGUomsr4aLaZRfaZzSPRnk7vf6f2tymWij1WKCbMmhhrNd"
+    },
+    {
+      "alias": "feedmarket",
+      "slot": 0,
+      "address": "H6Hm6TXydvh6aMW5QSpa3cggkSfEgKS6ooquRxuRkuX5",
+      "signature": "4b7PDUTWV6GJY1ZVvhrJqM9e9cTXPQq4dToedzZNrcqsYFVMzTEDQtMVhr1A7ohjJVhiKFDuq2oax4uJfPHzjNGL"
+    },
+    {
+      "alias": "sensor.attest",
+      "slot": 0,
+      "address": "4sCsYfcmkYjVLj2JPN66L5XftTS5uGsWwdYmptPyivuX",
+      "signature": "481p4ugBACVLdAEXc3fsPrpqJGPJcRiTon3Gq2wQbcbXuoqmiL4VMEkPiVLCqbA8vjKQtQfo7FgYU496i51Bg2jj"
+    }
+  ]
+}

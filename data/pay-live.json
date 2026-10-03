@@ -1,0 +1,22 @@
+{
+  "agent": {
+    "address": "3BPvBJawS5uDaC72HmqnbA7K2XDcPkNwmGpXufhKojBr",
+    "tokenAccount": "E4LmWmmEpaydozevL1HkaD3P1Szu9pi7dDBWoL1sbBgg"
+  },
+  "runs": [
+    {
+      "destination": "8V561rigpmqDT2JgbeXywg56rdTsxcL2r3bkhiUwnB21",
+      "amount": "49000",
+      "signature": "64pgyaE6WPsrNueCKt788w81yBafB5WPmu55AbQykBzp9zwjF5XFXpW4dDBnAFfuSCT6qHFj67A5Y7kEE7MahsUQ",
+      "payer": "3BPvBJawS5uDaC72HmqnbA7K2XDcPkNwmGpXufhKojBr",
+      "at": "2026-10-03T16:31:52.302Z"
+    },
+    {
+      "destination": "5QU2gN1M3cQTSQr5xRcSJWyo669s71Wco3ZFjFHMkgKX",
+      "amount": "49000",
+      "signature": "3L47ttQouoXWxu8Y7AZcKPH6FX6T6tvhG9upj5yRQK84PrqEf8HuKMrWa3BcEbNkuoAcuTfeFJ83h4ToxZ6AXKoy",
+      "payer": "3BPvBJawS5uDaC72HmqnbA7K2XDcPkNwmGpXufhKojBr",
+      "at": "2026-10-03T19:26:30.369Z"
+    }
+  ]
+}

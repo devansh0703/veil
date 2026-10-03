@@ -1,0 +1,138 @@
+{
+  "402-375": {
+    "ground": "graphite",
+    "overflow": 0,
+    "pretext": true,
+    "faces": {
+      "display": true,
+      "body": true,
+      "semibold": true,
+      "mono400": true,
+      "mono600": true
+    },
+    "bars": 0,
+    "flow": 0,
+    "blocked_requests": [],
+    "page_errors": [],
+    "ok": true
+  },
+  "402-1440": {
+    "ground": "graphite",
+    "overflow": 0,
+    "pretext": true,
+    "faces": {
+      "display": true,
+      "body": true,
+      "semibold": true,
+      "mono400": true,
+      "mono600": true
+    },
+    "bars": 0,
+    "flow": 0,
+    "blocked_requests": [],
+    "page_errors": [],
+    "ok": true
+  },
+  "dashboard-375": {
+    "ground": "graphite",
+    "overflow": 0,
+    "pretext": true,
+    "faces": {
+      "display": true,
+      "body": true,
+      "semibold": true,
+      "mono400": true,
+      "mono600": true
+    },
+    "bars": 10,
+    "flow": 17,
+    "blocked_requests": [],
+    "page_errors": [],
+    "ok": true
+  },
+  "dashboard-1440": {
+    "ground": "graphite",
+    "overflow": 0,
+    "pretext": true,
+    "faces": {
+      "display": true,
+      "body": true,
+      "semibold": true,
+      "mono400": true,
+      "mono600": true
+    },
+    "bars": 10,
+    "flow": 7,
+    "blocked_requests": [],
+    "page_errors": [],
+    "ok": true
+  },
+  "index-375": {
+    "ground": "paper",
+    "overflow": 0,
+    "pretext": true,
+    "faces": {
+      "display": true,
+      "body": true,
+      "semibold": true,
+      "mono400": true,
+      "mono600": true
+    },
+    "bars": 2,
+    "flow": 0,
+    "blocked_requests": [],
+    "page_errors": [],
+    "ok": true
+  },
+  "index-1440": {
+    "ground": "paper",
+    "overflow": 0,
+    "pretext": true,
+    "faces": {
+      "display": true,
+      "body": true,
+      "semibold": true,
+      "mono400": true,
+      "mono600": true
+    },
+    "bars": 2,
+    "flow": 0,
+    "blocked_requests": [],
+    "page_errors": [],
+    "ok": true
+  },
+  "limits-375": {
+    "ground": "paper",
+    "overflow": 0,
+    "pretext": true,
+    "faces": {
+      "display": true,
+      "body": true,
+      "semibold": true,
+      "mono400": true,
+      "mono600": true
+    },
+    "bars": 1,
+    "flow": 21,
+    "blocked_requests": [],
+    "page_errors": [],
+    "ok": true
+  },
+  "limits-1440": {
+    "ground": "paper",
+    "overflow": 0,
+    "pretext": true,
+    "faces": {
+      "display": true,
+      "body": true,
+      "semibold": true,
+      "mono400": true,
+      "mono600": true
+    },
+    "bars": 1,
+    "flow": 8,
+    "blocked_requests": [],
+    "page_errors": [],
+    "ok": true
+  }
+}

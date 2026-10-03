@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en" data-ground="paper" data-view="public">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Veil — private payment rails for the agent economy</title>
+<meta name="description" content="x402 lets agents pay for APIs. Veil makes those payments private on Solana: amounts encrypted with Token-2022 Confidential Balances, counterparties unlinkable through one-time addresses, and a ledger that still reconciles to the cent.">
+<!-- Every face is self-hosted (see assets/fonts.css). No font CDN at runtime,
+     so the page renders the same offline, in a submission zip, or from file:// -->
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/app.css">
+</head>
+
+<body>
+<a class="skip" href="#demo">Skip to the two-window demo</a>
+
+<header class="masthead">
+  <div class="wrap">
+    <a class="wordmark" href="index.html"><span class="v">V</span>EIL</a>
+    <div class="who">
+      <span>network <b>testnet + devnet</b></span>
+      <span>rail <b>x402</b></span>
+    </div>
+    <nav>
+      <a href="dashboard.html">Merchant ledger</a>
+      <a href="limits.html">Honest limits</a>
+      <a href="402.html">402 body</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap" id="top">
+
+  <!-- ── the claim ──────────────────────────────────────────────────────── -->
+  <section class="poster" aria-labelledby="claim-h">
+    <p class="kicker">Private payment rails for the agent economy</p>
+    <!-- The headline takes 1.03 leading on purpose; see the note on .poster h1 in
+         assets/app.css and the scoped waiver in .impeccable/config.json. -->
+    <h1 id="claim-h">Agents can pay for anything. On a public chain, everyone can watch them do it.</h1>
+    <div class="claim">
+      <div>
+        <p class="lede">x402 gave agents a way to pay for an API call without a human and without an account. It left the amount, the counterparty and the pattern on a public ledger. Veil closes that gap with two real primitives — not a mixer, not a promise.</p>
+        <div class="row">
+          <a class="btn primary" href="#demo">Watch the two windows</a>
+          <a class="btn secondary" href="dashboard.html">Open the merchant ledger</a>
+        </div>
+      </div>
+      <div>
+        <dl class="spec-rows">
+          <dt>Amount</dt>
+          <dd>Encrypted on chain with Token-2022 Confidential Balances. Only the recipient's key decrypts its own balance.</dd>
+          <dt>Counterparty</dt>
+          <dd>The buyer rotates to a one-time address per call, so two payments from the same agent never sit next to each other on the graph.</dd>
+          <dt class="last">Correctness</dt>
+          <dd>The merchant still reconciles settled total, spendable balance and every row — to the cent, in public.</dd>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── the evidence: one composition, two windows ─────────────────────── -->
+  <section id="demo" aria-labelledby="demo-h">
+    <h2 id="demo-h">The same payment, seen from two places</h2>
+    <p class="lede" data-pretext>Left: the agent doing its job, paying each call into a one-time address. Right: what the merchant's own view holds back from everyone else. Same payment. One of them has numbers; the other has a redaction bar.</p>
+
+    <div class="demo">
+      <div class="demo-head">
+        <span>agent · <b>feedmarket-bot</b> · x402 client</span>
+        <span>solana explorer · devnet</span>
+      </div>
+
+      <div class="demo-split">
+        <!-- veil:demo-agent -->
+        <div class="demo-cell" aria-label="Agent log">
+<b>→ GET</b> /v1/oracle/tide  <b>402 Payment Required</b><br>
+← offer: $0.049 · mint 6pFk…3ur · x402 v2<br>
+<b>→ pay</b> to 7VMqy…Bu5w (one-time) <b>· confidential</b><br>
+<span class="ok">✓ settled 14:21:05</span> · slot 6<br>
+<b>→ retry</b> /v1/oracle/tide  <b>200 OK</b><br>
+<span class="ok">✓ resource delivered</span><br>
+<span class="ok">✓ next call → 8VNza…Vy3 (unlinkable)</span>
+        </div>
+      <!-- /veil:demo-agent -->
+
+        <!-- veil:demo-public -->
+        <div class="demo-cell" aria-label="What a public observer holds">
+<b>account</b> 7VMqy…Bu5w — receiving, slot 6<br>
+<b>extensions</b><br>
+&nbsp;&nbsp;ConfidentialTransferAccount <span class="ok">expected</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;allow_confidential_credits <span class="ok">required</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;allow_non_confidential_credits <span class="ok">required false</span><br>
+<b>the server's answer when it cannot check these</b><br>
+&nbsp;&nbsp;VEIL-CONF-003<br>
+<b>the amount</b><br>
+&nbsp;&nbsp;amount <span class="redact"><span class="amount-value">$0.049</span><span class="redaction-bar" aria-hidden="true"></span></span><br>
+&nbsp;&nbsp;destination 7VMqy…Bu5w <span>← public, and Veil says so</span><br>
+&nbsp;&nbsp;settlement mode <span>local-ledger-only <span>← published, not implied</span></span>
+        </div>
+      <!-- /veil:demo-public -->
+      </div>
+
+      <div class="demo-strip">
+        <span>the third beat is not a third window</span>
+        <span>same transfer · same slot</span>
+        <span class="ok">one of them has numbers</span>
+      </div>
+    </div>
+
+    <p class="note" style="margin-top:var(--s4)">The reveal above is the product's whole argument in one frame: nothing tries to make the transfer invisible. What is removed is the one field a competitor, an insurer or a data broker actually wants. <a href="limits.html">What this does not hide →</a></p>
+  </section>
+
+  <!-- ── the mechanism, stated as facts, not a feature grid ─────────────── -->
+  <section aria-labelledby="how-h">
+    <h2 id="how-h">What the mechanism actually is</h2>
+    <dl class="spec-rows">
+      <dt>01 · Confidential Balances</dt>
+      <dd>Token-2022's native extension. The transfer amount and both balances are stored as ElGamal ciphertext. Proofs are generated client-side and verified on chain, so a validator still knows the transfer is valid and non-inflationary — it just cannot read the number. <span class="note">No ZK circuit was written for this. The chain's own extension does it.</span></dd>
+      <dt>02 · Verify, then offer</dt>
+      <dd>Before quoting a price the server checks that the mint carries the extension and that the destination account accepts confidential credits. If it cannot check, it refuses with <span class="mono">VEIL-CONF-003</span> rather than quoting. A settlement offer is a promise, and this is where the promise is made conditional on evidence. <span class="note">The source of that evidence is published at <span class="mono">/.well-known/veil</span> as <span class="mono">privacySource</span>, so a deployment that declared it instead of reading it cannot pass for one that read it.</span></dd>
+      <dt>03 · One-time addresses</dt>
+      <dd>Each paid call derives a fresh recipient account from the merchant's alias, used once. Confidential Balances hides the amount; this hides the edge. Together they defeat the two cheap deanonymisation attacks: reading the figure, and counting the recurrence.</dd>
+      <dt class="last">04 · The refusal</dt>
+      <dd>When the preconditions cannot be satisfied or cannot be checked, the server returns a specific code — <span class="mono">VEIL-CONF-001</span> through <span class="mono">005</span> — and no price. It never downgrades to a public transfer, because a merchant who believed an amount was hidden while it sat in the clear has been actively misled. The merchant ledger renders those codes as rows, so a refusal is visible rather than quietly absent. A privacy claim is worth nothing the moment the product lies to keep it looking true.</dd>
+    </dl>
+  </section>
+
+  <!-- ── the redaction metaphor as a live control ───────────────────────── -->
+  <section aria-labelledby="mech-h">
+    <h2 id="mech-h">Encrypted until the holder decrypts — the mechanism, drawn</h2>
+    <div class="claim">
+      <div>
+        <p data-pretext>Public view writes a redaction bar over every amount. Lift view removes them, staggered — the same thing that happens the moment the merchant's key decrypts its own recipient ciphertext. It is not decoration: the toggle is how Veil states the boundary between the ledger's reader and everyone else, and how it proves the number was there the entire time.</p>
+        <p class="note">Lifting the bars is a demonstration, not a back door. The auditor key is a single global key per mint — it cannot be the merchant's reconciliation path, and Veil does not pretend otherwise. Merchant reconciliation decrypts the merchant's own ciphertext.</p>
+      </div>
+      <div>
+        <div class="payload">
+          <header><span>recipient ciphertext · same row</span><span>devnet</span></header>
+          <pre><span class="key">available_balance:</span> <span class="hid">[redacted]</span>
+<span class="key">lo</span>  <span class="str">0x9fH2k7QvT8…</span>
+<span class="key">hi</span>  <span class="str">0x14bC71dE03…</span>
+<span class="key">viewing_key</span> <span class="val">merchant · v1</span>
+<span class="key">decrypts_to</span> <span class="val">$240.10</span></pre>
+        </div>
+        <div class="row" style="margin-top:var(--s3)">
+          <span class="note" style="margin:0">Everything above the last line is what the chain stores. The last line is what only the holder can compute.</span>
+          <div class="seg" role="group" aria-label="Amount visibility">
+            <button type="button" data-view-toggle="public" aria-pressed="true">Redacted</button>
+            <button type="button" data-view-toggle="auditor" aria-pressed="false">Lift the bars</button>
+          </div>
+          <p class="sr-only">The second button reveals the amounts this merchant can already read. It reveals nothing an outside observer of the chain can see.</p>
+        </div>
+      </div>
+    </div>
+    <p class="sr-only" id="view-status" aria-live="polite">Redacted view: every amount is redacted.</p>
+  </section>
+
+  <!-- ── three lines, and the refusal beside them ───────────────────────── -->
+  <section aria-labelledby="dx-h">
+    <h2 id="dx-h">Drop-in, because x402 is already the standard</h2>
+    <p class="lede" data-pretext>Veil is a conformant x402 facilitator that speaks a confidential transfer instead of a plain one. A merchant that already accepts x402 adds a settlement address and nothing else. If the buyer's token account is not confidential, the facilitator refuses with a machine-readable reason instead of quietly settling in public.</p>
+
+    <div class="claim">
+      <div class="payload">
+        <header><span>merchant · settlement config</span><span>3 lines</span></header>
+        <pre><span class="key">settlement</span> <span class="val">= veil.facilitator(</span>
+  <span class="key">alias</span>: <span class="str">"feedmarket.veil"</span>,
+  <span class="key">confidential</span>: <span class="str">true</span> <span class="val">)</span></pre>
+      </div>
+      <div class="payload">
+        <header><span>facilitator · refusal body</span><span>HTTP 402</span></header>
+        <pre><span class="key">status</span>  <span class="val">402</span>
+<span class="key">code</span>    <span class="str">VEIL-CONF-003</span>
+<span class="key">reason</span>  <span class="str">"confidential extension absent"</span>
+<span class="key">action</span>  <span class="str">"configure account, then retry"</span></pre>
+      </div>
+    </div>
+    <p class="note" style="margin-top:var(--s4)">Refusing is a feature. A facilitator that accepts a non-confidential account still "works" and silently leaks the amount it promised to hide — which is worse than failing. <a href="402.html">Read the full 402 body →</a></p>
+  </section>
+
+  <!-- ── the deployment: both clusters, every claim linked ──────────────── -->
+  <section id="live-solana" aria-labelledby="live-h">
+    <h2 id="live-h">Live on Solana — testnet and devnet</h2>
+    <p class="lede" data-pretext>The rail is deployed, not diagrammed. The mint, the one-time pool and two complete payment flows are confirmed on both clusters, and every row below links to the transaction that proves it — the operator's own end-to-end run, and an independent payer holding nothing but its own key.</p>
+    <dl class="spec-rows">
+      <dt>Testnet · the pool is open</dt>
+      <dd>Mint <span class="mono">H1WQvSNb…CA7p</span> and 24 one-time seats — all 24 approved by the mint authority and able to receive confidential credits today. <span class="note">A fresh payer can settle into a new seat without touching anything of the deployer's.</span> <a href="https://explorer.solana.com/tx/38FFhzJGbY4Rdt52fFgHujf5aymk8NRiGdbANbX3YmmeF4sbb6ByGBcKJqfzNbaMRqygSNxc8wziZCjC4tZc17tt?cluster=testnet">operator's confidential transfer →</a></dd>
+      <dt>Testnet · an independent payer</dt>
+      <dd>A fresh keypair that has never seen the deployer's seed signed only its own half of a 636-byte transaction; the facilitator co-signed the fee. <span class="note">/verify valid in 233 ms → /settle confirmed in 919 ms; the merchant alone decrypted 49000 available, 0 pending.</span> <a href="https://explorer.solana.com/tx/64pgyaE6WPsrNueCKt788w81yBafB5WPmu55AbQykBzp9zwjF5XFXpW4dDBnAFfuSCT6qHFj67A5Y7kEE7MahsUQ?cluster=testnet">the settlement →</a></dd>
+      <dt>Devnet · the same, from a cold start</dt>
+      <dd>Mint and pool created in one session from an untouched 5 SOL for 0.011 SOL, then both flows ran end to end. <span class="note">/verify 260 ms → /settle 916 ms, and the merchant seat decrypted 49000 with the merchant key alone.</span> <a href="https://explorer.solana.com/tx/4LqbC6UvJn6xzxN1tFktfpbVgjTiHz4RL5A1LEsoYQ9KVVXeEnmaBwSEvsGA9FXsf1HZhbPxdunV3kvuPT6asRUA?cluster=devnet">operator transfer →</a> · <a href="https://explorer.solana.com/tx/5ubbHpgE6kNbuWPzrSYX3HvksJzHarkgJVKhH9nAhUtm1Gnq5cv9ehaEkV9HUv3qCSABJuRHRwyhbNW4emcRfD8N?cluster=devnet">independent-payer settle →</a></dd>
+      <dt>Hosted — the rail in public</dt>
+      <dd>Merchant server and facilitator behind one HTTPS origin, free tier, no card: <span class="mono">veil-sable-five.vercel.app</span>. <span class="note">A payment settled through the hosted facilitator — /verify → /settle against the public URL, merchant decrypted 49000.</span> <a href="https://explorer.solana.com/tx/3L47ttQouoXWxu8Y7AZcKPH6FX6T6tvhG9upj5yRQK84PrqEf8HuKMrWa3BcEbNkuoAcuTfeFJ83h4ToxZ6AXKoy?cluster=testnet">hosted settlement →</a></dd>
+      <dt class="last">The deployer is not in a payment</dt>
+      <dd>Deployment paid the one-time rent; after that the deployer's key signs nothing. The payer signs its own transfer, the facilitator co-signs the fee, the merchant alone decrypts the amount. <span class="note">Reproduce either cluster with <span class="mono">npm run pay:live -- --apply</span> — the three proofs are generated on the machine that pays.</span></dd>
+    </dl>
+  </section>
+
+  <footer>
+    <div class="foot">
+      <!-- veil:footer -->
+      <span class="marker">local run behind these figures · settlement <b>local-ledger-only</b> · live transfers: <b>testnet + devnet</b> · hosted rail: <b>veil-sable-five.vercel.app</b></span>
+      <!-- /veil:footer -->
+      <nav>
+        <a href="dashboard.html">Merchant ledger</a>
+        <a href="limits.html">Honest limits</a>
+        <a href="402.html">402 body</a>
+      </nav>
+      <div class="row">
+        <a class="btn primary" href="dashboard.html">Open the ledger</a>
+        <a class="btn secondary" href="limits.html">What it does not hide</a>
+      </div>
+    </div>
+  </footer>
+
+</main>
+
+<noscript><div class="wrap"><p class="lede">JavaScript is off. The claim, the mechanism and the honest limits all still read — but the amounts stay redacted, because the page will not reveal a value it cannot prove it should show.</p></div></noscript>
+
+<script src="assets/pretext.js"></script>
+<script src="assets/veil.js"></script>
+</body>
+</html>

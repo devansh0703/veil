@@ -1,0 +1,157 @@
+{
+  "capturedAt": "2026-10-02T14:21:06.207Z",
+  "wellKnown": {
+    "scheme": "exact-confidential",
+    "network": "solana:devnet",
+    "mint": "6pFkZndusKGifrKLXgaQJFjUT3Gi9n1uXcwkG7Jef3ur",
+    "decimals": 6,
+    "privacy": "confidential-balances",
+    "hides": [
+      "on-chain-amount",
+      "on-chain-balance"
+    ],
+    "exposes": [
+      "destination-account",
+      "mint",
+      "transaction-existence"
+    ],
+    "resources": [
+      {
+        "path": "/v1/oracle/tide",
+        "base": "0.049"
+      },
+      {
+        "path": "/v1/quote/feedmarket",
+        "base": "0.000",
+        "perUnit": "0.0011",
+        "units": 900
+      },
+      {
+        "path": "/v1/attest/sensor",
+        "base": "0.012"
+      }
+    ],
+    "privacySource": "pool-ledger",
+    "privacyGate": {
+      "mode": "enforcing",
+      "source": "pool-ledger",
+      "checks": [
+        "mint-confidential-extension",
+        "destination-confidential-credits"
+      ]
+    },
+    "settlement": {
+      "mode": "local-ledger-only",
+      "chain": "none",
+      "note": "settlements are accounting records here, not chain facts"
+    },
+    "refusals": [
+      {
+        "code": "VEIL-CONF-001",
+        "title": "Mint is not confidential",
+        "recoverable": false
+      },
+      {
+        "code": "VEIL-CONF-002",
+        "title": "Destination cannot receive confidential credits",
+        "recoverable": false
+      },
+      {
+        "code": "VEIL-CONF-003",
+        "title": "Confidentiality cannot be guaranteed — refusing to serve",
+        "recoverable": false
+      },
+      {
+        "code": "VEIL-CONF-004",
+        "title": "Buyer spend cap exceeded",
+        "recoverable": true
+      },
+      {
+        "code": "VEIL-CONF-005",
+        "title": "One-time address pool exhausted",
+        "recoverable": true
+      }
+    ]
+  },
+  "offer": {
+    "x402Version": 2,
+    "accepts": [
+      {
+        "scheme": "exact-confidential",
+        "network": "solana:devnet",
+        "asset": "6pFkZndusKGifrKLXgaQJFjUT3Gi9n1uXcwkG7Jef3ur",
+        "payTo": "2xcuRtD2dEvNnCwSgyavAwPJdKii8o62w4XhxxkUATZt",
+        "maxAmountRequired": "49000",
+        "resource": "/v1/oracle/tide",
+        "description": "Sea-state and tidal window, per call (0.049000 units)",
+        "maxTimeoutSeconds": 60,
+        "extra": {
+          "tokenProgram": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+          "decimals": 6,
+          "privacy": "confidential-balances",
+          "poolIndex": 7,
+          "auditor": null,
+          "hides": [
+            "on-chain-amount",
+            "on-chain-balance"
+          ]
+        }
+      }
+    ]
+  },
+  "paid": {
+    "paid": true,
+    "settled": {
+      "signature": null,
+      "amount": "49000",
+      "at": "2026-10-02T14:21:06.198Z",
+      "confid": "amount hidden on chain by Token-2022 confidential balances"
+    },
+    "data": {
+      "station": "Tidewater Atlas · Galveston Pier 21",
+      "window": "2026-10-02T04:12Z → 2026-10-02T10:38Z",
+      "waveHeightM": 1.2,
+      "source": "oracle.tide"
+    }
+  },
+  "refusal": {
+    "x402Version": 2,
+    "accepts": [
+      {
+        "scheme": "exact-confidential",
+        "network": "solana:devnet",
+        "asset": "6pFkZndusKGifrKLXgaQJFjUT3Gi9n1uXcwkG7Jef3ur",
+        "payTo": "FkYcqJMo7qhPH25gk1YK3pBvarQe7zpgy4WmFMMr9Q6h",
+        "maxAmountRequired": "12000",
+        "resource": "/v1/attest/sensor",
+        "description": "Sensor provenance attestation, per call (0.012000 units)",
+        "maxTimeoutSeconds": 60,
+        "extra": {
+          "tokenProgram": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+          "decimals": 6,
+          "privacy": "confidential-balances",
+          "poolIndex": 8,
+          "auditor": null,
+          "hides": [
+            "on-chain-amount",
+            "on-chain-balance"
+          ]
+        }
+      }
+    ]
+  },
+  "failClosed": {
+    "x402Version": 2,
+    "error": "Confidentiality cannot be guaranteed — refusing to serve",
+    "accepts": [],
+    "veil": {
+      "refused": "VEIL-CONF-003",
+      "message": "Confidentiality cannot be guaranteed — refusing to serve",
+      "remedy": "Fix the configuration fault (see the accompanying VEIL-CONF-00x reason) and retry. Veil never downgrades a payment to public."
+    }
+  },
+  "rejected": {
+    "error": "invalid-payment",
+    "detail": "payload.payTo is not a payment account Veil issued; it cannot be attributed to a merchant"
+  }
+}

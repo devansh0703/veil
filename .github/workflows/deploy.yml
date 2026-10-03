@@ -1,0 +1,48 @@
+name: Deploy hosted rail
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "api/**"
+      - "api-src/**"
+      - "scripts/**"
+      - "web/**"
+      - "vercel.json"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-hosted-rail
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: vercel --prod
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      # Rebuild the committed bundles so what ships matches api-src/, then let
+      # Vercel's buildCommand rebuild them too (idempotent by design).
+      - name: Build api bundles
+        run: npm run build:api
+
+      - name: Deploy to production
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+          VERCEL_CLI_VERSION: latest
+        run: npx vercel@latest deploy --prod --yes --token "$VERCEL_TOKEN"

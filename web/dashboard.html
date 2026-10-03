@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="en" data-ground="graphite" data-view="public">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Veil — merchant ledger</title>
+<meta name="description" content="Private settlement for x402 agent payments. Amounts encrypted, counterparties unlinkable, the ledger still reconciles to the cent.">
+<!-- Every face is self-hosted (see assets/fonts.css). No font CDN at runtime. -->
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/app.css">
+</head>
+
+<body>
+<a class="skip" href="#ledger">Skip to the payment ledger</a>
+
+<header class="masthead">
+  <div class="wrap">
+    <a class="wordmark" href="index.html"><span class="v">V</span>EIL</a>
+    <div class="who">
+      <span>merchant <b>feedmarket.veil</b></span>
+      <span>mint <b>VeilUSD</b></span>
+      <span>key <b>v1</b></span>
+    </div>
+    <nav>
+      <a href="dashboard.html" aria-current="page">Ledger</a>
+      <a href="limits.html">Honest limits</a>
+      <a href="402.html">402 body</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap" id="top">
+
+  <h1>Ledger</h1>
+  <!-- veil:provenance -->
+  <p class="lede">Every row below came out of one run of the protocol against a real local HTTP server, with a real generated keypair behind each one-time address. This build reports its own settlement mode as <span class="mono">local-ledger-only</span> — this run broadcast nothing, so the amounts here are the merchant's own view of payments it priced, not figures read back off a chain. On chain those amounts are ciphertext. The addresses are not, and the ledger prints them. Live settlements with explorer links: <a href="index.html#live-solana">Live on Solana</a>.</p>
+      <!-- /veil:provenance -->
+
+  <!-- ── truth strip: two totals, never one ─────────────────────────────── -->
+  <section aria-labelledby="truth-h">
+    <h2 id="truth-h" class="sr-only">Totals and view</h2>
+    <div class="truth">
+      <!-- veil:totals -->
+      <div>
+        <div class="k">Settled</div>
+        <div class="total" data-pretext>$11.561</div>
+        <div class="sub">33 payments · 3 merchants · every address used once</div>
+      </div>
+      <div>
+        <div class="k">In flight</div>
+        <div class="total tertiary" data-pretext>6</div>
+        <div class="sub">reserved and quoted, not yet settled</div>
+      </div>
+      <div>
+        <div class="k">Refused</div>
+        <div class="total secondary" data-pretext>4</div>
+        <div class="sub" data-pretext>VEIL-CONF-003 · VEIL-CONF-004 · VEIL-CONF-005 · invalid-payment</div>
+      </div>
+      <div>
+        <div class="k">Confidentiality</div>
+        <a class="badge ok" href="limits.html"><span class="dot" aria-hidden="true"></span>enforcing</a>
+        <div class="sub" data-pretext>preconditions declared, not chain-read</div>
+      </div>
+      <div>
+        <div class="k">Pool</div>
+        <div class="total tertiary" data-pretext>48</div>
+        <div class="sub">one-time accounts · 0 reused</div>
+      </div>
+      <!-- /veil:totals -->
+      <div class="view">
+        <div class="k" id="view-label">View</div>
+        <div class="seg" role="group" aria-labelledby="view-label">
+          <button type="button" data-view-toggle="public" aria-pressed="true">Public</button>
+          <button type="button" data-view-toggle="auditor" aria-pressed="false">Auditor</button>
+        </div>
+      </div>
+    </div>
+    <p class="sr-only" id="view-status" aria-live="polite">Public view: every amount is redacted.</p>
+    <p class="note" style="margin-top:var(--s3)">Two totals, not one. A confidential transfer is not instantly spendable, so the settled figure and the figure still in flight are stated side by side and the delta is never hidden. <button type="button" class="btn secondary" data-ground-toggle style="margin-left:var(--s3)">Inspect on paper</button></p>
+  </section>
+
+  <!-- ── per-vendor breakdown: the merchant's business view ─────────────── -->
+  <section aria-labelledby="vendors-h">
+    <h2 id="vendors-h">Where the money came from</h2>
+    <table class="vendors">
+      <caption class="sr-only">Running total, payment count and last-seen per vendor alias</caption>
+      <thead>
+        <tr>
+          <th scope="col">Vendor</th>
+          <th scope="col" class="r">Received</th>
+          <th scope="col" class="r">Payments</th>
+          <th scope="col" class="r hide-sm">Last seen</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- veil:vendors -->
+        <tr>
+          <td>
+            <span class="alias">Tidewater Atlas</span>
+            <span class="note" data-pretext>Sea-state oracle. The buyer rotates its payment address per call, so no two of these are linkable.</span>
+          </td>
+          <td class="r"><span class="redact"><span class="amount-value">$0.539</span><span class="redaction-bar" aria-hidden="true"></span></span></td>
+          <td class="r mono">11</td>
+          <td class="r hide-sm mono">14:21:05</td>
+        </tr>
+        <tr>
+          <td>
+            <span class="alias">Feedmarket</span>
+            <span class="note" data-pretext>Market data feed. Highest call volume, smallest average ticket.</span>
+          </td>
+          <td class="r"><span class="redact"><span class="amount-value">$10.89</span><span class="redaction-bar" aria-hidden="true"></span></span></td>
+          <td class="r mono">11</td>
+          <td class="r hide-sm mono">14:21:05</td>
+        </tr>
+        <tr>
+          <td>
+            <span class="alias">Sensor Attest</span>
+            <span class="note" data-pretext>Provenance attestation. Its pool was drained on purpose to record a real VEIL-CONF-005 refusal.</span>
+          </td>
+          <td class="r"><span class="redact"><span class="amount-value">$0.132</span><span class="redaction-bar" aria-hidden="true"></span></span></td>
+          <td class="r mono">11</td>
+          <td class="r hide-sm mono">14:21:05</td>
+        </tr>
+      <!-- /veil:vendors -->
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ── the ledger ────────────────────────────────────────────────────── -->
+  <section id="ledger" aria-labelledby="ledger-h">
+    <h2 id="ledger-h">Payments</h2>
+    <table class="ledger">
+      <!-- veil:ledger-caption -->
+      <caption>Latest 10 of 43, newest first. A row carries an amount only if the payment settled; a refusal keeps its code and gains no figure.</caption>
+      <!-- /veil:ledger-caption -->
+      <thead>
+        <tr>
+          <th scope="col">Payment</th>
+          <th scope="col">Vendor</th>
+          <th scope="col" class="hide-sm">Time</th>
+          <th scope="col">State</th>
+          <th scope="col" class="r">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- veil:ledger-rows -->
+        <tr>
+          <td data-label="Payment"><span class="pay">—</span></td>
+          <td data-label="Vendor">Sensor Attest</td>
+          <td data-label="Time" class="hide-sm when">14:21:05</td>
+          <td data-label="State">
+            <span class="pill unreadable"><span class="dot" aria-hidden="true"></span>refused</span>
+            <span class="reason" data-pretext>VEIL-CONF-003 — Confidentiality cannot be guaranteed — refusing to serve</span>
+          </td>
+          <td data-label="Amount" class="r amount"><span class="cipher">no amount</span></td>
+        </tr>
+        <tr>
+          <td data-label="Payment"><span class="pay">—</span></td>
+          <td data-label="Vendor">Sensor Attest</td>
+          <td data-label="Time" class="hide-sm when">14:21:05</td>
+          <td data-label="State">
+            <span class="pill unreadable"><span class="dot" aria-hidden="true"></span>refused</span>
+            <span class="reason" data-pretext>VEIL-CONF-004 — Buyer spend cap exceeded</span>
+          </td>
+          <td data-label="Amount" class="r amount"><span class="cipher">no amount</span></td>
+        </tr>
+        <tr>
+          <td data-label="Payment"><span class="pay">—</span></td>
+          <td data-label="Vendor">Sensor Attest</td>
+          <td data-label="Time" class="hide-sm when">14:21:05</td>
+          <td data-label="State">
+            <span class="pill unreadable"><span class="dot" aria-hidden="true"></span>refused</span>
+            <span class="reason" data-pretext>VEIL-CONF-005 — One-time address pool exhausted</span>
+          </td>
+          <td data-label="Amount" class="r amount"><span class="cipher">no amount</span></td>
+        </tr>
+        <tr>
+          <td data-label="Payment"><span class="pay">—</span></td>
+          <td data-label="Vendor">Tidewater Atlas</td>
+          <td data-label="Time" class="hide-sm when">14:21:05</td>
+          <td data-label="State">
+            <span class="pill unreadable"><span class="dot" aria-hidden="true"></span>refused</span>
+            <span class="reason" data-pretext>invalid-payment — invalid-payment</span>
+          </td>
+          <td data-label="Amount" class="r amount"><span class="cipher">no amount</span></td>
+        </tr>
+        <tr>
+          <td data-label="Payment"><span class="pay">p_3929…47e</span></td>
+          <td data-label="Vendor">Sensor Attest</td>
+          <td data-label="Time" class="hide-sm when">14:21:05</td>
+          <td data-label="State">
+            <span class="pill verifying"><span class="dot" aria-hidden="true"></span>in flight</span>
+            <span class="reason" data-pretext>quoted and reserved at slot 8; counted separately, never as settled</span>
+          </td>
+          <td data-label="Amount" class="r amount"><span class="redact"><span class="amount-value">$0.012</span><span class="redaction-bar" aria-hidden="true"></span></span></td>
+        </tr>
+        <tr>
+          <td data-label="Payment"><span class="pay">p_bc01…51f</span></td>
+          <td data-label="Vendor">Sensor Attest</td>
+          <td data-label="Time" class="hide-sm when">14:21:05</td>
+          <td data-label="State">
+            <span class="pill verifying"><span class="dot" aria-hidden="true"></span>in flight</span>
+            <span class="reason" data-pretext>quoted and reserved at slot 7; counted separately, never as settled</span>
+          </td>
+          <td data-label="Amount" class="r amount"><span class="redact"><span class="amount-value">$0.012</span><span class="redaction-bar" aria-hidden="true"></span></span></td>
+        </tr>
+        <tr>
+          <td data-label="Payment"><span class="pay">p_a12f…e52</span></td>
+          <td data-label="Vendor">Feedmarket</td>
+          <td data-label="Time" class="hide-sm when">14:21:05</td>
+          <td data-label="State">
+            <span class="pill verifying"><span class="dot" aria-hidden="true"></span>in flight</span>
+            <span class="reason" data-pretext>quoted and reserved at slot 8; counted separately, never as settled</span>
+          </td>
+          <td data-label="Amount" class="r amount"><span class="redact"><span class="amount-value">$0.99</span><span class="redaction-bar" aria-hidden="true"></span></span></td>
+        </tr>
+        <tr>
+          <td data-label="Payment"><span class="pay">p_329e…00b</span></td>
+          <td data-label="Vendor">Feedmarket</td>
+          <td data-label="Time" class="hide-sm when">14:21:05</td>
+          <td data-label="State">
+            <span class="pill verifying"><span class="dot" aria-hidden="true"></span>in flight</span>
+            <span class="reason" data-pretext>quoted and reserved at slot 13; counted separately, never as settled</span>
+          </td>
+          <td data-label="Amount" class="r amount"><span class="redact"><span class="amount-value">$0.99</span><span class="redaction-bar" aria-hidden="true"></span></span></td>
+        </tr>
+        <tr>
+          <td data-label="Payment"><span class="pay">p_52c4…7c7</span></td>
+          <td data-label="Vendor">Tidewater Atlas</td>
+          <td data-label="Time" class="hide-sm when">14:21:05</td>
+          <td data-label="State">
+            <span class="pill verifying"><span class="dot" aria-hidden="true"></span>in flight</span>
+            <span class="reason" data-pretext>quoted and reserved at slot 10; counted separately, never as settled</span>
+          </td>
+          <td data-label="Amount" class="r amount"><span class="redact"><span class="amount-value">$0.049</span><span class="redaction-bar" aria-hidden="true"></span></span></td>
+        </tr>
+        <tr>
+          <td data-label="Payment"><span class="pay">p_ab14…480</span></td>
+          <td data-label="Vendor">Tidewater Atlas</td>
+          <td data-label="Time" class="hide-sm when">14:21:05</td>
+          <td data-label="State">
+            <span class="pill verifying"><span class="dot" aria-hidden="true"></span>in flight</span>
+            <span class="reason" data-pretext>quoted and reserved at slot 7; counted separately, never as settled</span>
+          </td>
+          <td data-label="Amount" class="r amount"><span class="redact"><span class="amount-value">$0.049</span><span class="redaction-bar" aria-hidden="true"></span></span></td>
+        </tr>
+      <!-- /veil:ledger-rows -->
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ── the assertion failing ─────────────────────────────────────────── -->
+  <section id="limits" aria-labelledby="limits-h">
+    <h2 id="limits-h">When the assertion fails</h2>
+    <div class="refuse-panel">
+      <p class="spec">refusing to settle</p>
+      <div class="obstacle-host" id="obstacle-host"
+           data-flow-text="The server will not offer a settlement it cannot make confidential. Before quoting a price it asks two questions: does the configured mint carry the confidential-transfer extension, and is the destination account configured to receive confidential credits. If either answer is no — or cannot be checked at all — it answers with a specific refusal code instead of a price, and the panel beside this text lists the refusals a real run of the protocol produced. The same rule governs the ledger up the page: a payment that was refused keeps its refusal code and never gains an amount it did not settle.">
+        <div class="obstacle" id="obstacle">
+          <!-- veil:checks -->
+          <ul class="checks">
+            <li>Mint carries the confidential extension<span class="verdict pass">declared, not chain-read</span></li>
+            <li>Destination accepts confidential credits<span class="verdict pass">from the pool ledger</span></li>
+            <li>Cannot verify at all → refuse<span class="verdict pass">VEIL-CONF-003 observed</span></li>
+          </ul>
+      <!-- /veil:checks -->
+        </div>
+        <p class="sr-only">Two assertions are checked before a price is offered. A refusal is shown here with the code a real run returned.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── states ────────────────────────────────────────────────────────── -->
+  <section aria-labelledby="states-h">
+    <h2 id="states-h">States, as the merchant actually sees them</h2>
+    <dl class="states">
+      <dt>loading</dt>
+      <dd data-pretext>Skeleton bars in place of each figure, with <span>reconciling · 6 RPC calls</span> beside them. The layout does not move when the numbers land.</dd>
+      <dt>empty</dt>
+      <dd data-pretext>&ldquo;No private payments yet.&rdquo; Plus one action that copies the alias and one link to the three-line integration. Never just &ldquo;No data&rdquo;.</dd>
+      <dt>rpc error</dt>
+      <dd data-pretext>&ldquo;Can&rsquo;t reach devnet. Showing the last-known ledger from 13:04 UTC.&rdquo; Never blank, never silent zeros, and the timestamp is never rounded away.</dd>
+      <dt>partial</dt>
+      <dd data-pretext>Ciphertext in the amount cell, an <span>unreadable · key v1≠v2</span> pill, and the row still counted settled. Hiding it would break the total; faking it would break the point.</dd>
+      <dt>refused</dt>
+      <dd data-pretext>A row that has a refusal code instead of an amount: <span>VEIL-CONF-005</span>, <span>VEIL-CONF-004</span>, <span>VEIL-CONF-003</span>. It keeps the code and never gains an amount it did not settle, which is why the ledger can be trusted to add up.</dd>
+      <dt class="last">export</dt>
+      <dd>Disabled with a tooltip while there are no rows. On failure it says why and produces no file &mdash; a partial CSV is worse than no CSV.</dd>
+    </dl>
+  </section>
+
+  <footer>
+    <div class="foot">
+      <!-- veil:footer -->
+      <span class="marker">local-ledger-only · chain not-executed · 33 payments · run <b>02 Oct · 14:21 UTC</b></span>
+      <!-- /veil:footer -->
+      <nav>
+        <a href="limits.html">Honest limits</a>
+        <a href="402.html">402 body</a>
+        <a href="index.html">Landing</a>
+      </nav>
+      <div class="row">
+        <button type="button" class="btn secondary" disabled title="No rows outside the current window">Export CSV</button>
+        <a class="btn primary" href="limits.html">Verify it yourself</a>
+      </div>
+    </div>
+  </footer>
+
+</main>
+
+<noscript><div class="wrap"><p class="lede">JavaScript is off, so every amount stays redacted. The page fails closed rather than revealing a value it cannot prove it should show.</p></div></noscript>
+
+<script src="assets/pretext.js"></script>
+<script src="assets/veil.js"></script>
+</body>
+</html>

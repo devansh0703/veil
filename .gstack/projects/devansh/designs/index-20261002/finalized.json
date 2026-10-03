@@ -1,0 +1,18 @@
+{
+  "source_mockup": null,
+  "source_plan": "docs/designs/veil-agent-payments.md",
+  "mode": "plan-driven",
+  "html_file": "web/index.html",
+  "pretext_tier": "content-heavy — prepareWithSegments() + layoutNextLine() for per-line widths, plus prepare() + layout() for exact block heights on resize",
+  "framework": "vanilla",
+  "iterations": 3,
+  "date": "2026-10-02T15:13:13+05:30",
+  "screen": "landing",
+  "branch": "main",
+  "snapshot": ".gstack/projects/devansh/designs/index-20261002/finalized.html",
+  "notes": [
+    "Plan-driven: no approved mockup exists, so the approved design doc supplied the content and DESIGN.md supplied the tokens.",
+    "The two-window demo is the hero asset, and its explorer pane carries real .redact bars so the Public/Auditor control has something to lift on this surface.",
+    "The price in the 402 offer is shown in the clear on purpose: x402 has to state it, and what Veil hides is the on-chain amount, not the quote."
+  ]
+}

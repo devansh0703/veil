@@ -1,0 +1,106 @@
+# gstack configuration — edit freely, changes take effect on next skill run.
+# Docs: https://github.com/garrytan/gstack
+#
+# ─── Behavior ────────────────────────────────────────────────────────
+# proactive: true           # Auto-invoke skills when your request matches one.
+#                           # Set to false to only run skills you type explicitly.
+#
+# routing_declined: false   # Set to true to skip the CLAUDE.md routing injection
+#                           # prompt. Set back to false to be asked again.
+#
+# ─── Telemetry ───────────────────────────────────────────────────────
+# telemetry: off            # off | anonymous | community
+#                           #   off       — no data sent, no local analytics (default)
+#                           #   anonymous — counter only, no device ID
+#                           #   community — usage data + stable device ID
+#
+# ─── Updates ─────────────────────────────────────────────────────────
+# auto_upgrade: false       # true = silently upgrade on session start
+# update_check: true        # false = suppress version check notifications
+#
+# ─── Skill naming ────────────────────────────────────────────────────
+# skill_prefix: false       # true = namespace skills as /gstack-qa, /gstack-ship
+#                           # false = short names /qa, /ship
+#
+# ─── Writing style (V1) ──────────────────────────────────────────────
+# explain_level: default    # default = jargon-glossed, outcome-framed prose
+#                           #           (V1 default — more accessible for everyone)
+#                           # terse   = V0 prose style, no glosses, no outcome-framing layer
+#                           #           (for power users who know the terms)
+#                           # Unknown values default to "default" with a warning.
+#                           # See docs/designs/PLAN_TUNING_V1.md for rationale.
+#
+# ─── Artifacts sync (renamed from gbrain_sync_mode in v1.27.0.0) ─────
+# artifacts_sync_mode: off  # off | artifacts-only | full
+#                           #   off            — no sync (default)
+#                           #   artifacts-only — sync plans/designs/retros/learnings only
+#                           #                    (skip behavioral data: question-log,
+#                           #                    developer-profile, timeline)
+#                           #   full           — sync everything allowlisted
+#                           # Set by the first-run privacy stop-gate. See docs/gbrain-sync.md.
+#
+# artifacts_sync_mode_prompted: false
+#                           # Set to true once the privacy gate has asked the user.
+#                           # Flip back to false to be re-prompted.
+#
+# ─── Timeline Stop hook ──────────────────────────────────────────────
+# timeline_stop_hook: yes   # Controls whether ./setup registers the timeline
+#                           #   Stop hook (closes dangling session entries).
+#                           #   yes — register on every setup (default)
+#                           #   no  — never register; setup also removes a
+#                           #         live registration (persistent opt-out;
+#                           #         --no-team stays a one-shot teardown, #2677)
+#
+# ─── Plan-tune hooks ─────────────────────────────────────────────────
+# plan_tune_hooks: prompt   # Controls whether ./setup installs the plan-tune
+#                           #   Claude Code hooks (PostToolUse capture +
+#                           #   PreToolUse preference enforcement).
+#                           #   prompt — ask on a real TTY, skip otherwise (default)
+#                           #   yes    — install non-interactively
+#                           #   no     — skip non-interactively
+#                           # Override per-run: ./setup --plan-tune-hooks /
+#                           #   --no-plan-tune-hooks, or env GSTACK_PLAN_TUNE_HOOKS.
+#
+# ─── Memorable recall bridge (opt-in, third party) ──────────────────
+# memorable_recall: off     # The gstack-side consent gate for the Memorable
+#                           #   UserPromptSubmit bridge (bin/gstack-memorable).
+#                           #   off — the hook does nothing, spawns nothing (default)
+#                           #   on  — the hook hands each prompt to the local
+#                           #         `memorable` CLI, receipted as memorable-recall
+#                           # Written by `gstack-memorable enable|disable`. An
+#                           # invalid value is REJECTED and the stored value kept:
+#                           # a typo must never flip a third-party consent.
+#                           # The vendor capture consent (`memorable enable`)
+#                           # is separate; gstack never sets it.
+#
+# ─── Advanced ────────────────────────────────────────────────────────
+# codex_reviews: enabled    # Workflow outside review (Codex or Claude Code by harness).
+#                           #   enabled: /review, /ship, /document-release, plan reviews,
+#                           #   and /autoplan use their existing external + fallback rules.
+#                           #   disabled: /review, /ship, /autoplan keep native passes;
+#                           #   plan/document reviews skip the entire extra review step.
+#                           #   Office hours/design/spec/manual wrappers keep their own
+#                           #   opt-in/skip controls. Invalid values preserve the old value.
+# design_detector_install_prompted: false
+#                           #   true once you answered the one-time offer from the
+#                           #   design skills to download the impeccable engine with
+#                           #   "never ask again"; flip back to false to be asked again.
+# design_detector: auto     # Deterministic design pre-pass through a user-installed
+#                           #   impeccable engine (/design-review, /review, /ship,
+#                           #   /design-html). auto = use the engine when the probe
+#                           #   finds one (gstack never installs or downloads it);
+#                           #   off = no probe, no scan, no hint, no /impeccable
+#                           #   handoff lines. An invalid value is REJECTED (existing
+#                           #   value preserved) so a typo cannot silently disable it.
+# gstack_contributor: false # true = file field reports when gstack misbehaves
+# skip_eng_review: false    # true = skip eng review gate in /ship (not recommended)
+#
+# ─── Workspace-aware ship ────────────────────────────────────────────
+# workspace_root: $HOME/conductor/workspaces  # Where /ship looks for sibling
+#                           # Conductor worktrees when picking a VERSION slot.
+#                           # Set to "null" to disable sibling scanning entirely.
+#                           # Non-Conductor users can point this at any directory
+#                           # that holds parallel worktrees of the same repo.
+#
+proactive: true
+cross_project_learnings: true

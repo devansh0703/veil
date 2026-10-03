@@ -1,0 +1,211 @@
+{
+  "mode": "local-ledger-only",
+  "chain": "not-executed",
+  "note": "Produced by npm run demo:local. Settlements here are accounting records from a real run of the protocol code against a real local server. No transaction was broadcast and no devnet account was touched.",
+  "producedAt": "2026-10-02T11:05:39.173Z",
+  "network": "solana:devnet",
+  "mint": "VeilUSD111111111111111111111111111111111111",
+  "decimals": 6,
+  "settled": [
+    {
+      "paymentId": "ce2386f67e2727faa83fa5bf3ae06f7ed6535cef4c3065bd89919ea3b8c30de0",
+      "alias": "oracle.tide",
+      "address": "9XQdan1HfLn6qQrtqpMnUeGwRhPf6cjVsKP3UugEmqRJ",
+      "amount": "49000",
+      "resource": "/v1/oracle/tide",
+      "at": "2026-10-02T11:05:39.141Z",
+      "signature": null
+    },
+    {
+      "paymentId": "ab5f5932ef9372c87d4d2e917d920a4eb8061dbd3e729806f8876f01615cd578",
+      "alias": "feedmarket",
+      "address": "3G2iP4aebsjbLNXrLDpe7GXokqzTmRtGpbm14QHZjDwm",
+      "amount": "990000",
+      "resource": "/v1/quote/feedmarket",
+      "at": "2026-10-02T11:05:39.146Z",
+      "signature": null
+    },
+    {
+      "paymentId": "bc750a4357e4af481d0bff89c9e48ffe204386eb8c019612659a644d81fa0c3f",
+      "alias": "sensor.attest",
+      "address": "FKnZXjpfUPbd4Z8pATHxcvhBLVdiptGtNDQGniY58guz",
+      "amount": "12000",
+      "resource": "/v1/attest/sensor",
+      "at": "2026-10-02T11:05:39.150Z",
+      "signature": null
+    }
+  ],
+  "pool": [
+    {
+      "consumedBy": "81c226a5000c0fe6afda0bd3ebdda368cda337ce6355e89d4c8819fec0258de3",
+      "slot": 0,
+      "address": "9rkLSL8JLMektaVkT3dBQ3NqXktg2BaZDK34Tb6jWAks",
+      "alias": "oracle.tide",
+      "armed": true
+    },
+    {
+      "consumedBy": null,
+      "slot": 1,
+      "address": "76kU3sZBgTrXSwJBMnUBQVJu6RG2crBDy1wdEwuwXVP2",
+      "alias": "oracle.tide",
+      "armed": true
+    },
+    {
+      "consumedBy": null,
+      "slot": 2,
+      "address": "4EHKyY1J64HvguyTUF92eRtnpM8LSxut8xNhhYeYjiMJ",
+      "alias": "oracle.tide",
+      "armed": true
+    },
+    {
+      "consumedBy": null,
+      "slot": 3,
+      "address": "7k8JfZkb2B8cJkYwXZ2VCiWPN8QFnkcsNzhbzzgWmEhV",
+      "alias": "oracle.tide",
+      "armed": true
+    },
+    {
+      "consumedBy": null,
+      "slot": 4,
+      "address": "CSVWhra5SZb5tLqQ1YuQzka6Dg7ok7QXpzAtysMTtfdA",
+      "alias": "oracle.tide",
+      "armed": true
+    },
+    {
+      "consumedBy": "81c226a5000c0fe6afda0bd3ebdda368cda337ce6355e89d4c8819fec0258de3",
+      "slot": 5,
+      "address": "6v1rrzkAwjZCjsmDqmm9SydQgDDZpr2ZDhYn7q3RN3cZ",
+      "alias": "oracle.tide",
+      "armed": true
+    },
+    {
+      "consumedBy": "ce2386f67e2727faa83fa5bf3ae06f7ed6535cef4c3065bd89919ea3b8c30de0",
+      "slot": 6,
+      "address": "9XQdan1HfLn6qQrtqpMnUeGwRhPf6cjVsKP3UugEmqRJ",
+      "alias": "oracle.tide",
+      "armed": true,
+      "settledAt": "2026-10-02T11:05:39.141Z"
+    },
+    {
+      "consumedBy": null,
+      "slot": 7,
+      "address": "7DUz3jCKzDRtAJEhPSYFnpyEtKFChB9tyxjBnFGtdw5n",
+      "alias": "oracle.tide",
+      "armed": true
+    },
+    {
+      "consumedBy": null,
+      "slot": 0,
+      "address": "CiNhpQVvaKnenAGfsmLCS5CJ7TZZ6fMZdQjaVBbgzdgE",
+      "alias": "feedmarket",
+      "armed": true
+    },
+    {
+      "consumedBy": null,
+      "slot": 1,
+      "address": "2qiSRup63fsZFxTmv6M6cL5kX82QnBzEABtAJiZdztZw",
+      "alias": "feedmarket",
+      "armed": true
+    },
+    {
+      "consumedBy": "ab5f5932ef9372c87d4d2e917d920a4eb8061dbd3e729806f8876f01615cd578",
+      "slot": 2,
+      "address": "3G2iP4aebsjbLNXrLDpe7GXokqzTmRtGpbm14QHZjDwm",
+      "alias": "feedmarket",
+      "armed": true,
+      "settledAt": "2026-10-02T11:05:39.146Z"
+    },
+    {
+      "consumedBy": null,
+      "slot": 3,
+      "address": "CA6wGScPoCwb4cKSRXgCvzAAyxuUo4eXKMyP8L1MSMbK",
+      "alias": "feedmarket",
+      "armed": true
+    },
+    {
+      "consumedBy": null,
+      "slot": 4,
+      "address": "5M5qiG8Dg1sbvTLEedtZgWMtpxrc6fu2VArfkBwFW741",
+      "alias": "feedmarket",
+      "armed": true
+    },
+    {
+      "consumedBy": null,
+      "slot": 5,
+      "address": "Exmwxy2FDADwaLPkeBawPoN3ueiUtgtTpv1wHPJ3g3Pb",
+      "alias": "feedmarket",
+      "armed": true
+    },
+    {
+      "consumedBy": null,
+      "slot": 6,
+      "address": "HD82soi2YkdSMCLrCNrBRNPXGoaCGS1xF2yuBWeJZmwT",
+      "alias": "feedmarket",
+      "armed": true
+    },
+    {
+      "consumedBy": null,
+      "slot": 7,
+      "address": "BnULPPoo1tmfgrVw1MT6jiAUEv15tMn8cHes37s3o8ey",
+      "alias": "feedmarket",
+      "armed": true
+    },
+    {
+      "consumedBy": "7ebdfbfbebc2b75c9da573a23984ef87db4ea5fdfb6c218f6891a219a1614f80",
+      "slot": 0,
+      "address": "2ygNPmFSnTUasdXppLy9QhPyoxZv6XEfb9QQTDDJ84AV",
+      "alias": "sensor.attest",
+      "armed": true
+    },
+    {
+      "consumedBy": "1ebb2fa1cd5c8bcba3c729ce564cf2ed90c637463a0f2f6c83e75b8c42f95dff",
+      "slot": 1,
+      "address": "HRi4CeL7JBKocdmFpQHmahA3xJaqx4bXjhf781RRQcE8",
+      "alias": "sensor.attest",
+      "armed": true
+    },
+    {
+      "consumedBy": "5f7091ff81ad5624573c9b16dfe2797760ad653f6bc972048dcb8115f15d79d1",
+      "slot": 2,
+      "address": "4wCbEpkdfdbm49oJE4m3evrH2r59ibUko37fyQD1C4PZ",
+      "alias": "sensor.attest",
+      "armed": true
+    },
+    {
+      "consumedBy": "bc750a4357e4af481d0bff89c9e48ffe204386eb8c019612659a644d81fa0c3f",
+      "slot": 3,
+      "address": "FKnZXjpfUPbd4Z8pATHxcvhBLVdiptGtNDQGniY58guz",
+      "alias": "sensor.attest",
+      "armed": true,
+      "settledAt": "2026-10-02T11:05:39.150Z"
+    },
+    {
+      "consumedBy": "ed95533441448da5337d255036cd1de7e7f6745aa806566add887aaaa2b20711",
+      "slot": 4,
+      "address": "Fp7BL8Q7YghE97pDqhgudWFM9n1WyY3z9cnK8heA6R2s",
+      "alias": "sensor.attest",
+      "armed": true
+    },
+    {
+      "consumedBy": "349e5e85aa561b40b52f6dd0d893f3216494bc796fdb27a312608cc340fade4d",
+      "slot": 5,
+      "address": "2CpgotM3qK3Tde8xNdFgvfMGDiizDYRFqu9DxDsngD8T",
+      "alias": "sensor.attest",
+      "armed": true
+    },
+    {
+      "consumedBy": "ba5466aee2829c7e395eb39a117b753bd353e9d16ff7880db079cbe40d95a79e",
+      "slot": 6,
+      "address": "GmvXLYoGNyW7SVXGGTDRHJunsVNvjH11VXCL4uPZvYQ5",
+      "alias": "sensor.attest",
+      "armed": true
+    },
+    {
+      "consumedBy": "e83ef43fbb383e429e950b673b38d5c6042d4171f0f9fbb1efdfbf7e9fc6ff01",
+      "slot": 7,
+      "address": "HB51i851GhXi1gWHKphiJMpdLop7kFGUW3NWxn4DVCVe",
+      "alias": "sensor.attest",
+      "armed": true
+    }
+  ]
+}

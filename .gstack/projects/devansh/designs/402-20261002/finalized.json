@@ -1,0 +1,18 @@
+{
+  "source_mockup": null,
+  "source_plan": "docs/designs/veil-agent-payments.md",
+  "mode": "plan-driven",
+  "html_file": "web/402.html",
+  "pretext_tier": "prepare() + layout() — exact block heights for dense mono payloads on resize; no obstacle flow on this surface",
+  "framework": "vanilla",
+  "iterations": 2,
+  "date": "2026-10-02T15:13:13+05:30",
+  "screen": "facilitator-402",
+  "branch": "main",
+  "snapshot": ".gstack/projects/devansh/designs/402-20261002/finalized.html",
+  "notes": [
+    "Machine-legible and human-legible at once: the verbatim JSON body for a client, the same fields laid out for a reader.",
+    "Five refusal codes, each with cause and the action the agent should take — a facilitator that fails opaquely invites a retry that downgrades to a public settlement.",
+    "The surface is graphite because it is read at a desk beside a terminal, matching the dashboard rather than the landing."
+  ]
+}

@@ -1,0 +1,51 @@
+# Key material. Never commit these.
+#
+# `.keys/mint.json` and `.keys/payer.json` hold secret keys. A devnet key has no
+# value today, which is exactly why it is easy to lose track of one — and the
+# habit is what matters when the same tree is pointed at a funded cluster. The
+# bootstrap script writes here by default; if you change that path, add it here.
+.keys/
+*.keypair.json
+*.keypair
+
+# Local environment. RPC endpoints and any future API keys live here, not in the
+# repo. See README "Honest limits" for what VEIL_RPC_URL changes.
+.env
+.env.*
+!.env.example
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# Playwright / browser verification artifacts, outside the committed shots dir
+playwright-report/
+test-results/
+
+# The browser prover's build outputs. `npm run build:proofs` writes these from
+# packages/onchain/src/proofs.ts and the WASM @solana/zk-sdk ships. Committing
+# them would let the served prover drift from the source the test suite
+# exercises, which is the one thing this build exists to prevent — so they are
+# generated, and `npm run prove:browser` fails with a rebuild instruction when
+# they are stale rather than running against a stale binary.
+web/assets/veil-proofs.js
+web/assets/veil-proofs.json
+web/assets/index_bg.wasm
+
+# Scratch used while debugging; never part of a claim.
+.dbg/
+.chrome.log
+
+# Editor and OS noise
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# TypeScript incremental state
+*.tsbuildinfo
+.vercel
+.env*

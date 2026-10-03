@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Veil — design system preview</title>
+<link rel="preconnect" href="https://api.fontshare.com">
+<link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@700,500,400&f[]=general-sans@400,500,600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F2F2F0; --ink:#17161A; --muted:#6B6862; --rule:#D5D5D1;
+    --surface:#F2F2F0; --raise:#FFFFFF; --text:var(--ink); --text-muted:var(--muted);
+    --redact:#B4341F; --success:#2C7755; --warning:#8A611E; --error:#B8402A; --redact-fill:#B4341F;
+    --font-display:"Cabinet Grotesk",system-ui,sans-serif;
+    --font-body:"General Sans",system-ui,sans-serif;
+    --font-mono:"JetBrains Mono",ui-monospace,monospace;
+    --sp-1:4px;--sp-2:8px;--sp-3:12px;--sp-4:16px;--sp-6:24px;--sp-8:32px;--sp-12:48px;
+    --r-sm:2px;--r-md:3px;--r-lg:4px;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  html[data-theme="dark"]{
+    --surface:#101114; --raise:#17181C; --text:#E8E6E1; --text-muted:#8A8C93;
+    --rule:#2A2C31; --redact:#DE523C; --success:#3E9C6B; --warning:#C99A3B; --error:#DE523C; --redact-fill:#B4341F;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--surface);color:var(--text);font-family:var(--font-body);font-size:16px;line-height:1.55}
+  .wrap{max-width:1120px;margin:0 auto;padding:var(--sp-8) var(--sp-6) var(--sp-12)}
+  .top{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--rule);padding-bottom:var(--sp-4);margin-bottom:var(--sp-8);position:sticky;top:0;background:var(--surface);z-index:5}
+  .wordmark{font-family:var(--font-display);font-weight:700;font-size:20px;letter-spacing:-.02em}
+  .wordmark .v{color:var(--redact)}
+  .toggle-btn{font-family:var(--font-body);font-weight:600;font-size:13px;padding:9px 14px;min-height:44px;background:transparent;color:var(--text);border:1px solid var(--rule);border-radius:var(--r-sm);cursor:pointer}
+  h2.sec{font-family:var(--font-body);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--rule);padding-bottom:var(--sp-2);margin:var(--sp-12) 0 var(--sp-6)}
+  /* specimen */
+  .spec{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:var(--r-md);overflow:hidden}
+  .spec > div{background:var(--raise);padding:var(--sp-6)}
+  .rolename{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:var(--sp-3)}
+  .disp{font-family:var(--font-display);font-weight:700;font-size:clamp(2.75rem,5vw,4.25rem);letter-spacing:-.02em;line-height:1.02}
+  .bodyx{font-family:var(--font-body);font-size:16px}
+  .monox{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:26px;font-weight:600}
+  .lbl{font-family:var(--font-body);font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+  /* swatches */
+  .swatches{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--sp-4)}
+  .sw{border:1px solid var(--rule);border-radius:var(--r-md);overflow:hidden}
+  .sw .chip{height:64px}
+  .sw .meta{padding:var(--sp-3);font-family:var(--font-mono);font-size:12px}
+  .sw .meta b{display:block;font-family:var(--font-body);font-weight:600;font-size:13px;margin-bottom:2px}
+  /* buttons */
+  .row{display:flex;gap:var(--sp-3);flex-wrap:wrap;align-items:center}
+  .btn{font-family:var(--font-body);font-weight:600;font-size:14px;padding:11px 16px;min-height:44px;border-radius:var(--r-sm);cursor:pointer;border:1px solid transparent}
+  .btn.primary{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+  html[data-theme="dark"] .btn.primary{background:var(--text);color:#0E0F12;border-color:var(--text)}
+  .btn.secondary{background:transparent;color:var(--text);border-color:var(--rule)}
+  .btn.ghost{background:transparent;color:var(--text);border-color:transparent;text-decoration:underline;text-underline-offset:3px}
+  .btn[disabled]{opacity:.45;cursor:not-allowed}
+  input{font-family:var(--font-body);font-size:16px;padding:11px 12px;min-height:44px;border:1px solid var(--rule);border-radius:var(--r-sm);background:var(--raise);color:var(--text);width:100%}
+  .field{margin-bottom:var(--sp-4)}
+  .field label{display:block;font-size:13px;font-weight:600;margin-bottom:var(--sp-2)}
+  .field .help{font-size:13px;color:var(--text-muted);margin-top:var(--sp-1)}
+  .alert{display:flex;gap:var(--sp-3);border:1px solid var(--rule);border-radius:var(--r-sm);padding:var(--sp-3) var(--sp-4);margin-bottom:var(--sp-3);font-size:14px;background:var(--raise)}
+  .alert.ok{background:color-mix(in srgb,var(--success) 9%,var(--raise));border-color:color-mix(in srgb,var(--success) 34%,var(--rule))}
+  .alert.warn{background:color-mix(in srgb,var(--warning) 10%,var(--raise));border-color:color-mix(in srgb,var(--warning) 34%,var(--rule))}
+  .alert.err{background:color-mix(in srgb,var(--error) 9%,var(--raise));border-color:color-mix(in srgb,var(--error) 38%,var(--rule))}
+  .alert b{font-family:var(--font-mono);font-size:13px}
+  /* pills */
+  .pill{display:inline-flex;align-items:center;gap:5px;font-family:var(--font-mono);font-size:12px;padding:3px 8px;border:1px solid var(--rule);border-radius:var(--r-sm);color:var(--text-muted)}
+  .pill.settled{color:var(--success);border-color:color-mix(in srgb,var(--success) 45%,var(--rule))}
+  .pill.verify{border-style:dashed}
+  .pill.err{color:var(--error);border-color:color-mix(in srgb,var(--error) 55%,var(--rule))}
+  .dot{width:7px;height:7px;border-radius:9999px;background:currentColor;display:inline-block}
+  /* dashboard mockup */
+  .stage{background:var(--surface);border:1px solid var(--rule);border-radius:var(--r-lg);overflow:hidden}
+  .truth{display:grid;grid-template-columns:1.3fr 1fr 1fr auto;gap:var(--sp-6);padding:var(--sp-6);border-bottom:1px solid var(--rule);align-items:end}
+  .k{font-family:var(--font-body);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:var(--sp-1)}
+  .total{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:44px;font-weight:600;letter-spacing:-.02em;line-height:1}
+  .seg{display:inline-flex;border:1px solid var(--rule);border-radius:var(--r-sm);overflow:hidden}
+  .seg button{font-family:var(--font-body);font-size:13px;font-weight:600;padding:10px 14px;min-height:44px;background:transparent;color:var(--text-muted);border:0;cursor:pointer}
+  .seg button[aria-pressed="true"]{background:var(--redact-fill);color:#fff}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);font-weight:600;padding:var(--sp-3) var(--sp-6);border-bottom:1px solid var(--rule)}
+  th.r,td.r{text-align:right}
+  td{padding:11px var(--sp-6);border-bottom:1px solid var(--rule)}
+  tr:last-child td{border-bottom:0}
+  .addr{font-family:var(--font-mono);color:var(--text-muted)}
+  .amount{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-weight:600;display:inline-flex;justify-content:flex-end;min-width:90px}
+  .redacted{display:inline-block;background:var(--redact);color:transparent;border-radius:1px;user-select:none;position:relative}
+  .redacted::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,rgba(0,0,0,.3) 0 6px,transparent 6px 11px)}
+  .reveal .redacted{background:transparent;color:var(--text)} .reveal .redacted::after{display:none}
+  /* marketing */
+  .hero{display:grid;grid-template-columns:1.05fr .95fr;gap:var(--sp-12);padding:var(--sp-12) var(--sp-8);align-items:center}
+  .h1{font-family:var(--font-display);font-weight:700;font-size:clamp(2.5rem,5vw,4rem);letter-spacing:-.02em;line-height:1.03;margin:var(--sp-6) 0 var(--sp-4)}
+  .lead{font-size:18px;color:var(--text-muted);max-width:34ch;margin:0 0 var(--sp-6)}
+  .demo{background:#0E0F12;border:1px solid #2A2C31;border-radius:var(--r-md);overflow:hidden;color:#9DA0A8;font-family:var(--font-mono);font-size:11.5px;line-height:1.7}
+  .demo .split{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#2A2C31}
+  .demo .cell{background:#121317;padding:var(--sp-4);min-height:180px}
+  .demo .cell b{color:#E8E6E1;font-weight:600}
+  .demo .strip{border-top:1px solid #2A2C31;padding:10px var(--sp-4);display:flex;justify-content:space-between;color:#E8E6E1}
+  @media(max-width:800px){.hero{grid-template-columns:1fr;padding:var(--sp-8) var(--sp-4)}.truth{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="wordmark"><span class="v">V</span>EIL</div>
+    <button class="toggle-btn" id="themeBtn">Dark surface</button>
+  </div>
+
+  <p style="color:var(--text-muted);font-size:14px;margin:0 0 var(--sp-8)">Design system preview · Cabinet Grotesk + General Sans + JetBrains Mono · one red, three treatments</p>
+
+  <h2 class="sec">Type specimen — real product content</h2>
+  <div class="spec">
+    <div>
+      <div class="rolename">Display · Cabinet Grotesk 700</div>
+      <div class="disp">The amounts<br>stop being<br>readable.</div>
+    </div>
+    <div>
+      <div class="rolename">Body · General Sans 400</div>
+      <div class="bodyx">Your x402 handler charges per call. Every one of those payments is a permanent public record of who paid whom, how much, and how often. Veil encrypts the amount and breaks the payer-to-payee link, and your ledger still reconciles to the cent.</div>
+    </div>
+    <div>
+      <div class="rolename">Mono · JetBrains Mono 600 · tnum</div>
+      <div class="monox">$247.80</div>
+      <div class="addr" style="font-size:13px;margin-top:8px">9xK4…4tR · key v1 · slot 289,441,002</div>
+      <div class="lbl" style="margin-top:16px;font-size:13px;color:var(--text-muted)">Label · General Sans 600</div>
+    </div>
+  </div>
+
+  <h2 class="sec">Colour — restrained, one meaning per colour</h2>
+  <div class="swatches">
+    <div class="sw"><div class="chip" style="background:var(--redact)"></div><div class="meta"><b>redact</b>#B4341F / #DE523C<div style="color:var(--text-muted)">redaction bar · errors · never body text</div></div></div>
+    <div class="sw"><div class="chip" style="background:var(--success)"></div><div class="meta"><b>reconciled</b>#2C7755 / #3E9C6B<div style="color:var(--text-muted)">only used for reconciled/settled</div></div></div>
+    <div class="sw"><div class="chip" style="background:var(--warning)"></div><div class="meta"><b>warning</b>#8A611E / #C99A3B<div style="color:var(--text-muted)">needs attention, not an error</div></div></div>
+    <div class="sw"><div class="chip" style="background:var(--ink)"></div><div class="meta"><b>ink / text</b>#17161A / #E8E6E1</div></div>
+    <div class="sw"><div class="chip" style="background:var(--paper);border-bottom:1px solid var(--rule)"></div><div class="meta"><b>paper / surface</b>#F2F2F0 / #101114</div></div>
+    <div class="sw"><div class="chip" style="background:var(--rule)"></div><div class="meta"><b>rule</b>#D5D5D1 / #2A2C31</div></div>
+  </div>
+
+  <h2 class="sec">Controls &amp; states</h2>
+  <div class="row" style="margin-bottom:var(--sp-6)">
+    <button class="btn primary">Add your handler</button>
+    <button class="btn secondary">Verify it yourself</button>
+    <button class="btn ghost">Read the limits</button>
+    <button class="btn secondary" disabled>Export CSV</button>
+    <span class="pill settled"><span class="dot"></span>settled</span>
+    <span class="pill verify">verifying</span>
+    <span class="pill err">unreadable · key v1≠v2</span>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-6)">
+    <div>
+      <div class="field"><label for="m">Merchant alias</label><input id="m" value="feedmarket.veil"><div class="help">Short handle your buyers pay to. Never a wallet address.</div></div>
+      <div class="field"><label for="e">Facilitator</label><input id="e" value="https://facilitator.veil.dev" aria-invalid="true" style="border-color:var(--error)"><div class="help" style="color:var(--error)">Unreachable. Check the URL or use the sandbox.</div></div>
+    </div>
+    <div>
+      <div class="alert ok"><b>VEIL-OK</b><span>Account configured. Non-confidential credits disabled.</span></div>
+      <div class="alert warn"><b>VEIL-WRN-004</b><span>Budget at 82%. The agent will stop before it overspends.</span></div>
+      <div class="alert err"><b>VEIL-CONF-003</b><span>Confidentiality assertion failed. Refusing to serve rather than settle in public.</span></div>
+    </div>
+  </div>
+
+  <h2 class="sec">Mockup 1 — merchant dashboard (Operate, dark surface)</h2>
+  <div class="stage reveal">
+    <div class="truth">
+      <div><div class="k">Settled on-chain</div><div class="total">$247.80</div><div class="addr" style="font-size:12px;margin-top:8px">mint VeilUSD · key v1 · 50 payments · 2 vendors</div></div>
+      <div><div class="k">Available</div><div class="total" style="font-size:28px">$240.10</div><div class="addr" style="font-size:12px;margin-top:8px">3 in flight · $7.70</div></div>
+      <div><div class="k">Confidentiality</div><span class="pill settled"><span class="dot"></span>enforced</span><div class="addr" style="font-size:12px;margin-top:8px">ext present · non-conf off</div></div>
+      <div><div class="k">View</div><div class="seg"><button aria-pressed="false">Public</button><button aria-pressed="true">Auditor</button></div></div>
+    </div>
+    <table>
+      <thead><tr><th>Payment</th><th>Vendor</th><th>State</th><th class="r">Amount</th></tr></thead>
+      <tbody>
+        <tr><td class="addr">p_7f3a…c21</td><td>Feedmarket</td><td><span class="pill settled">settled</span></td><td class="r amount">$4.90</td></tr>
+        <tr><td class="addr">p_2b91…e07</td><td>Oracle Tide</td><td><span class="pill settled">settled</span></td><td class="r amount">$5.10</td></tr>
+        <tr><td class="addr">p_9c04…77a</td><td>Feedmarket</td><td><span class="pill verify">verifying</span></td><td class="r amount">$3.80</td></tr>
+        <tr><td class="addr">p_5a72…f13</td><td>Feedmarket</td><td><span class="pill err">unreadable · v1≠v2</span></td><td class="r amount">—</td></tr>
+      </tbody>
+    </table>
+    <div style="display:flex;justify-content:space-between;padding:var(--sp-3) var(--sp-6);border-top:1px solid var(--rule)">
+      <span class="addr" style="font-size:12px">reconciled ✓ against slot 289,441,002</span>
+      <button class="btn secondary">Export CSV</button>
+    </div>
+  </div>
+
+  <h2 class="sec">Mockup 2 — landing hero (Persuade, paper surface)</h2>
+  <div class="hero" style="border:1px solid var(--rule);border-radius:var(--r-lg)">
+    <div>
+      <div class="h1">The agent payment graph is public.<br>Yours doesn't have to be.</div>
+      <p class="lead">Private settlement for x402 on Solana. Amounts encrypted, counterparties unlinkable, ledger still reconciles to the cent.</p>
+      <div class="row"><button class="btn primary">See it run on devnet</button><button class="btn ghost">Verify it yourself ↗</button></div>
+    </div>
+    <div class="demo">
+      <div class="split">
+        <div class="cell"><b>agent</b> → feedmarket.402<br><span style="color:#3E9C6B">200</span> resource served<br>tx <b>4sG…Kq</b> confidential<br>amount <span style="color:#DE523C">██████</span><br>to <b>9xK…4tR</b> (fresh)<br><span style="color:#3E9C6B">● live 037/050</span></div>
+        <div class="cell">explorer · merchant wallet<br>transfers <b>50</b><br>amounts <span style="color:#DE523C">unreadable</span><br>repeated counterparty <span style="color:#3E9C6B">none</span><br>every link <b>real devnet</b></div>
+      </div>
+      <div class="strip"><span>two windows, one gap</span><span>devnet · live</span></div>
+    </div>
+  </div>
+
+  <p style="color:var(--text-muted);font-size:13px;margin-top:var(--sp-6)">Light or dark is not a taste dial here: the landing is read in daylight on a phone, the dashboard is watched beside a terminal for long stretches. Same system, two surfaces.</p>
+</div>
+<script>
+  var btn=document.getElementById('themeBtn');
+  btn.addEventListener('click',function(){
+    var h=document.documentElement, dark=h.getAttribute('data-theme')==='dark';
+    h.setAttribute('data-theme', dark?'light':'dark');
+    btn.textContent = dark ? 'Dark surface' : 'Light surface';
+  });
+</script>
+</body>
+</html>

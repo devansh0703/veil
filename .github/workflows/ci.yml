@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    name: typecheck + tests + api bundles
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck + 115 tests
+        run: npm run verify
+
+      # api/*.js are committed build artifacts (Vercel's file tracer does not
+      # follow NodeNext .ts-extension imports). If they drift from api-src/,
+      # the deployed rail silently runs old code — so CI rebuilds and diffs.
+      - name: Bundles match api-src/
+        run: |
+          npm run build:api
+          git diff --exit-code -- api/ \
+            || { echo "::error::api/*.js is stale — run 'npm run build:api' and commit the result"; exit 1; }
+
+      - name: Page generator runs against a real run
+        run: npm run pages && git diff --exit-code -- web/
+
+  browser:
+    name: browser prover + UI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Build the browser prover artifact
+        run: npm run build:proofs
+
+      - name: Prove in a real browser
+        run: npm run prove:browser
+
+      - name: UI checks in a real browser
+        run: |
+          npm run web > /tmp/veil-web.log 2>&1 &
+          sleep 4
+          npm run check:ui

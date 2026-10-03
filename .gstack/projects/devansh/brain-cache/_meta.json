@@ -1,0 +1,11 @@
+{
+  "schema_version": "1.0.0",
+  "endpoint_hash": "local",
+  "last_refresh": {},
+  "last_attempt": {
+    "product": 1790928403385,
+    "developer-persona": 1790928403405,
+    "recent-decisions": 1790928403428,
+    "competitive-intel": 1790928403448
+  }
+}

@@ -1,0 +1,14 @@
+# Never ship private keys to a hosted deployment — the fee key arrives via
+# the VEIL_PAYER_SECRET environment variable instead (encrypted project env).
+.keys
+
+# Local-only state and tooling; not needed by the deployed rail.
+.gstack
+.impeccable
+.git
+node_modules
+
+# Demo/fixture run records; the deployed rail reads data/pool-ledger.json only
+# (seeded into /tmp at cold start — see scripts/hosted.ts).
+data/demo
+data/fixtures

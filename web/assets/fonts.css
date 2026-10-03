@@ -1,0 +1,45 @@
+/* Self-hosted display + body faces.
+   Fontshare serves protocol-relative CDN URLs, so over plain http the
+   page fell back to Georgia; these are local so the poster headline is
+   deterministic. Blocks are matched on the CSS font-family descriptor,
+   because Fontshare appends its own default family (Satoshi) to a
+   response — a weight-only filter downloads the wrong face — and it
+   obfuscates the hosted file's internal names to "false".
+   Cabinet Grotesk and General Sans: Fontshare free licence.
+   JetBrains Mono stays on Google Fonts: its URLs are absolute https. */
+
+@font-face{
+  font-family:'Cabinet Grotesk';
+  font-style:normal;
+  font-weight:700;
+  font-display:block;
+  src:url('fonts/cabinet-grotesk-700.woff2') format('woff2');
+}
+@font-face{
+  font-family:'General Sans';
+  font-style:normal;
+  font-weight:400;
+  font-display:block;
+  src:url('fonts/general-sans-400.woff2') format('woff2');
+}
+@font-face{
+  font-family:'General Sans';
+  font-style:normal;
+  font-weight:500;
+  font-display:block;
+  src:url('fonts/general-sans-500.woff2') format('woff2');
+}
+@font-face{
+  font-family:'General Sans';
+  font-style:normal;
+  font-weight:600;
+  font-display:block;
+  src:url('fonts/general-sans-600.woff2') format('woff2');
+}
+@font-face{
+  font-family:'JetBrains Mono';
+  font-style:normal;
+  font-weight:400 800;   /* variable: one file, every weight */
+  font-display:block;
+  src:url('fonts/jetbrains-mono-var.woff2') format('woff2');
+}

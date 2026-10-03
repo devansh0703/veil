@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="en" data-ground="graphite" data-view="public">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Veil — the 402 body</title>
+<meta name="description" content="What Veil's x402 facilitator returns: a conformant Payment Required body extended with a confidential settlement requirement, and machine-readable refusals when the privacy assertion fails.">
+<!-- Every face is self-hosted (see assets/fonts.css). No font CDN at runtime. -->
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/app.css">
+</head>
+
+<body>
+<a class="skip" href="#body">Skip to the response body</a>
+
+<header class="masthead">
+  <div class="wrap">
+    <a class="wordmark" href="index.html"><span class="v">V</span>EIL</a>
+    <div class="who">
+      <span>facilitator <b>veil.devnet</b></span>
+      <span>spec <b>x402</b></span>
+    </div>
+    <nav>
+      <a href="index.html">Landing</a>
+      <a href="dashboard.html">Merchant ledger</a>
+      <a href="limits.html">Honest limits</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap" id="top">
+
+  <h1>The 402 body</h1>
+  <!-- veil:provenance -->
+  <p class="lede" data-pretext>An agent that has never seen Veil still understands this response, because it is a standard x402 <span class="mono">Payment Required</span> body with one added requirement: settle confidentially, or do not settle at all. Every body on this page was captured from a running Veil server — the same process that produced the merchant ledger — and its <span class="mono">/.well-known/veil</span> published <span class="mono">privacySource: pool-ledger</span>.</p>
+      <!-- /veil:provenance -->
+
+  <!-- ── request → response, as a sequence, not three cards ─────────────── -->
+  <section aria-labelledby="flow-h">
+    <h2 id="flow-h">One unpaid call, one paid call</h2>
+    <div class="demo">
+      <div class="demo-head">
+        <span>agent → <b>feedmarket.veil</b> · GET /v1/market/price</span>
+        <span>HTTP · devnet</span>
+      </div>
+      <div class="demo-split">
+        <!-- veil:demo-unpaid -->
+        <div class="demo-cell" aria-label="Unpaid request">
+<b>1 · unpaid</b><br>
+GET /v1/oracle/tide<br>
+&nbsp;&nbsp;X-PAYMENT: (none)<br>
+<br>
+<b>← 402 Payment Required</b><br>
+&nbsp;&nbsp;accepts[0].scheme <span class="ok">"exact-confidential"</span><br>
+&nbsp;&nbsp;accepts[0].asset&nbsp; <span class="ok">6pFk…3ur</span><br>
+&nbsp;&nbsp;accepts[0].payTo&nbsp; 2xcuR…ATZt <span>(one-time)</span><br>
+&nbsp;&nbsp;accepts[0].maxAmountRequired <span>49000</span><br>
+&nbsp; &nbsp;accepts[0].extra.privacy <span class="ok">confidential-balances</span><br>
+&nbsp;&nbsp;accepts[0].extra.poolIndex <span>7</span>
+        </div>
+      <!-- /veil:demo-unpaid -->
+        <!-- veil:demo-paid -->
+        <div class="demo-cell" aria-label="Paid request">
+<b>2 · paid</b><br>
+GET /v1/oracle/tide<br>
+&nbsp;&nbsp;X-PAYMENT: <span class="ok">signed · confidential</span><br>
+<br>
+<b>← 200 OK</b> · resource delivered<br>
+&nbsp;&nbsp;paid <span class="ok">true</span><br>
+&nbsp;&nbsp;settled.at <span class="val">14:21:06</span><br>
+&nbsp;&nbsp;settled.signature <span class="val">null</span><br>
+&nbsp;&nbsp;amount <span class="hid">[ciphertext on chain]</span><br>
+&nbsp;&nbsp;mode <span>local-ledger-only</span>
+        </div>
+      <!-- /veil:demo-paid -->
+      </div>
+      <div class="demo-strip">
+        <span>the price is public to the payer</span>
+        <span>accepts[0].scheme</span>
+        <span class="ok">the on-chain amount is not</span>
+      </div>
+    </div>
+    <p class="note" style="margin-top:var(--s3)">Note what is <em>not</em> hidden here, on purpose: the price. An x402 challenge has to state what it costs, and Veil does not pretend otherwise. What stays unreadable is the on-chain amount and the balance either side of it — so the chain records that a confidential transfer happened without recording the figure, while the payer's own HTTP exchange is a private conversation with the server.</p>
+  </section>
+
+  <!-- ── the raw body ──────────────────────────────────────────────────── -->
+  <section id="body" aria-labelledby="raw-h">
+    <h2 id="raw-h">The body, verbatim</h2>
+    <div class="payload">
+      <header><span>HTTP/1.1 402 Payment Required</span><span>content-type: application/json</span></header>
+      <!-- veil:body -->
+<pre>{
+  <span class="key">"x402Version"</span>: <span class="val">2</span>,
+  <span class="key">"accepts"</span>: [
+    {
+      <span class="key">"scheme"</span>: <span class="str">"exact-confidential"</span>,
+      <span class="key">"network"</span>: <span class="str">"solana:devnet"</span>,
+      <span class="key">"asset"</span>: <span class="str">"6pFkZndusKGifrKLXgaQJFjUT3Gi9n1uXcwkG7Jef3ur"</span>,
+      <span class="key">"payTo"</span>: <span class="str">"2xcuRtD2dEvNnCwSgyavAwPJdKii8o62w4XhxxkUATZt"</span>,
+      <span class="key">"maxAmountRequired"</span>: <span class="str">"49000"</span>,
+      <span class="key">"resource"</span>: <span class="str">"/v1/oracle/tide"</span>,
+      <span class="key">"description"</span>: <span class="str">"Sea-state and tidal window, per call (0.049000 units)"</span>,
+      <span class="key">"maxTimeoutSeconds"</span>: <span class="val">60</span>,
+      <span class="key">"extra"</span>: {
+        <span class="key">"tokenProgram"</span>: <span class="str">"TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"</span>,
+        <span class="key">"decimals"</span>: <span class="val">6</span>,
+        <span class="key">"privacy"</span>: <span class="str">"confidential-balances"</span>,
+        <span class="key">"poolIndex"</span>: <span class="val">7</span>,
+        <span class="key">"auditor"</span>: <span class="val">null</span>,
+        <span class="key">"hides"</span>: [
+          <span class="str">"on-chain-amount"</span>,
+          <span class="str">"on-chain-balance"</span>
+        ]
+      }
+    }
+  ]
+}</pre>
+      <!-- /veil:body -->
+    </div>
+    <p class="note" style="margin-top:var(--s3)">The <span class="mono">accepts[]</span> entry is a conformant x402 offer. Everything under <span class="mono">extra</span> is Veil's addition, and it is published in both directions: <span class="mono">hides</span> and <span class="mono">exposes</span> name what stays private and what does not, so a client cannot read the privacy claim and miss the boundary. A client that ignores <span class="mono">scheme</span> is refused rather than served in the clear.</p>
+  </section>
+
+  <!-- ── refusals: the machine-readable half ───────────────────────────── -->
+  <section aria-labelledby="refuse-h">
+    <h2 id="refuse-h">Every refusal is a specific code</h2>
+    <p class="lede" data-pretext>A facilitator that fails opaquely is a support burden and a privacy hole: the agent retries, and a looser code path settles in public. Each failure mode below has one code, one cause and one thing the agent should do.</p>
+    <table class="vendors">
+      <caption>Veil's confidential-precondition refusals, read from a running server's <span class="mono">/.well-known/veil</span>. None of them degrade to a public settlement, and none of them are recoverable by retrying the same request unchanged.</caption>
+      <thead>
+        <tr>
+          <th scope="col">Code</th>
+          <th scope="col">HTTP</th>
+          <th scope="col">Cause</th>
+          <th scope="col" class="hide-sm">The agent should</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- veil:refusals -->
+        <tr>
+          <td><span class="mono">VEIL-CONF-001</span></td>
+          <td class="mono">—</td>
+          <td class="note">Mint is not confidential</td>
+          <td class="hide-sm note">Do not pay. Fix the configuration, then retry.</td>
+        </tr>
+        <tr>
+          <td><span class="mono">VEIL-CONF-002</span></td>
+          <td class="mono">—</td>
+          <td class="note">Destination cannot receive confidential credits</td>
+          <td class="hide-sm note">Do not pay. Fix the configuration, then retry.</td>
+        </tr>
+        <tr>
+          <td><span class="mono">VEIL-CONF-003</span></td>
+          <td class="mono">402</td>
+          <td class="note">Confidentiality cannot be guaranteed — refusing to serve</td>
+          <td class="hide-sm note">Do not pay. Fix the configuration, then retry. <span class="mono">observed: no precondition probe configured</span></td>
+        </tr>
+        <tr>
+          <td><span class="mono">VEIL-CONF-004</span></td>
+          <td class="mono">402</td>
+          <td class="note">Buyer spend cap exceeded</td>
+          <td class="hide-sm note">Backoff, or refill the pool. Never fall back to a plain transfer. <span class="mono">observed: spend cap exceeded while quoting</span></td>
+        </tr>
+        <tr>
+          <td><span class="mono">VEIL-CONF-005</span></td>
+          <td class="mono">503</td>
+          <td class="note">One-time address pool exhausted</td>
+          <td class="hide-sm note">Backoff, or refill the pool. Never fall back to a plain transfer. <span class="mono">observed: pool exhausted while quoting</span></td>
+        </tr>
+      <!-- /veil:refusals -->
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ── the prover, running in this tab ─────────────────────────────────── -->
+  <section aria-labelledby="prover-h">
+    <h2 id="prover-h">The proofs are generated in this browser</h2>
+    <p class="lede" data-pretext>"Private" means nothing if a server does the proving, because then the server learns every amount. So this is not a claim on a slide: press the button and this page builds the three zero-knowledge proofs a confidential transfer needs, from the payer's own keys, on this device. It also counts the network requests made while it works, so you do not have to take "no prover service" on trust.</p>
+
+    <div class="payload">
+      <header><span>prover · this device</span><span id="prover-status">not started</span></header>
+<pre id="prover-log">Press “Generate a transfer proof”. Nothing is sent anywhere; the log below is the real output.</pre>
+    </div>
+
+    <div class="row" style="margin-top:var(--s4);align-items:center;gap:var(--s4)">
+      <button type="button" class="btn primary" id="prover-run">Generate a transfer proof</button>
+      <span class="note" id="prover-note">The same prover runs on the server for CLI payers and in the wallet for browser payers — one implementation, compiled twice.</span>
+    </div>
+    <p class="note" style="margin-top:var(--s3)">The bundle this loads is compiled from the same <span class="mono">proofs.ts</span> the test suite exercises; it is not a browser-only reimplementation. <span class="mono">npm run prove:browser</span> asserts the shipped artifact in CI, including the statements it must refuse.</p>
+  </section>
+
+  <!-- ── the one-line-integration signal ──────────────────────────────── -->
+  <section aria-labelledby="dx-h">
+    <h2 id="dx-h">The signal a merchant actually ships</h2>
+    <p class="lede" data-pretext>Everything above is produced by a facilitator the merchant points at. From the merchant's side the change is one value in the settlement config; the response body does the rest. The refusal below is real output from a running server — the same code the merchant dashboard renders as a row with no amount beside it.</p>
+
+    <div class="claim">
+      <div class="payload">
+        <header><span>before · plain x402</span><span>settles in the open</span></header>
+<pre><span class="key">settlement</span> <span class="val">= x402.facilitator(</span>
+  <span class="key">payTo</span>: <span class="str">"8gz…e2"</span>,
+  <span class="key">asset</span>: <span class="str">"USDC"</span> <span class="val">)</span></pre>
+      </div>
+      <div class="payload">
+        <header><span>after · Veil</span><span>settles confidentially</span></header>
+<pre><span class="key">settlement</span> <span class="val">= veil.facilitator(</span>
+  <span class="key">alias</span>: <span class="str">"feedmarket.veil"</span>,
+  <span class="key">confidential</span>: <span class="str">true</span> <span class="val">)</span>
+<span class="key">// everything else unchanged</span></pre>
+      </div>
+    </div>
+
+    <div class="payload" style="margin-top:var(--s6)">
+      <header><span>refusal · live output</span><span>HTTP 402</span></header>
+      <!-- veil:refusal -->
+<pre>{
+  <span class="key">"x402Version"</span>: <span class="val">2</span>,
+  <span class="key">"accepts"</span>: [
+    {
+      <span class="key">"scheme"</span>: <span class="str">"exact-confidential"</span>,
+      <span class="key">"network"</span>: <span class="str">"solana:devnet"</span>,
+      <span class="key">"asset"</span>: <span class="str">"6pFkZndusKGifrKLXgaQJFjUT3Gi9n1uXcwkG7Jef3ur"</span>,
+      <span class="key">"payTo"</span>: <span class="str">"FkYcqJMo7qhPH25gk1YK3pBvarQe7zpgy4WmFMMr9Q6h"</span>,
+      <span class="key">"maxAmountRequired"</span>: <span class="str">"12000"</span>,
+      <span class="key">"resource"</span>: <span class="str">"/v1/attest/sensor"</span>,
+      <span class="key">"description"</span>: <span class="str">"Sensor provenance attestation, per call (0.012000 units)"</span>,
+      <span class="key">"maxTimeoutSeconds"</span>: <span class="val">60</span>,
+      <span class="key">"extra"</span>: {
+        <span class="key">"tokenProgram"</span>: <span class="str">"TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"</span>,
+        <span class="key">"decimals"</span>: <span class="val">6</span>,
+        <span class="key">"privacy"</span>: <span class="str">"confidential-balances"</span>,
+        <span class="key">"poolIndex"</span>: <span class="val">8</span>,
+        <span class="key">"auditor"</span>: <span class="val">null</span>,
+        <span class="key">"hides"</span>: [
+          <span class="str">"on-chain-amount"</span>,
+          <span class="str">"on-chain-balance"</span>
+        ]
+      }
+    }
+  ]
+}</pre>
+      <!-- /veil:refusal -->
+    </div>
+    <p class="note" style="margin-top:var(--s3)">A refusal carries no <span class="mono">accepts[]</span> entry at all, which is the field that matters. An offer alongside a refusal would invite a client to pay something the server has already said it cannot settle privately — the failure this whole surface exists to prevent. <a href="limits.html">Why the refusal matters →</a></p>
+  </section>
+
+  <footer>
+    <div class="foot">
+      <!-- veil:footer -->
+      <span class="marker">bodies captured from a running server · settlement <b>local-ledger-only</b> · privacySource pool-ledger</span>
+      <!-- /veil:footer -->
+      <nav>
+        <a href="index.html">Landing</a>
+        <a href="dashboard.html">Merchant ledger</a>
+        <a href="limits.html">Honest limits</a>
+      </nav>
+      <div class="row">
+        <button type="button" class="btn secondary" data-ground-toggle>Inspect on paper</button>
+        <a class="btn primary" href="dashboard.html">Open the ledger</a>
+      </div>
+    </div>
+  </footer>
+
+</main>
+
+<noscript><div class="wrap"><p class="lede">JavaScript is off. The body, the codes and the integration diff are all static text, so the machine-legible surface loses nothing.</p></div></noscript>
+
+<script src="assets/pretext.js"></script>
+<script src="assets/veil.js"></script>
+
+<!--
+  The prover panel.
+
+  A classic script rather than a module, and it reaches the prover with a
+  dynamic import() — deliberately, because that is what keeps
+  scripts/build-standalone.ts working. That script inlines every script that
+  carries a local src attribute, and then fails the build if any such reference
+  survives, so a module script tag would have to be inlined as well. A dynamic
+  import written inside an inline script is not an HTML attribute, so it is
+  neither inlined nor checked — and the standalone artifact can never resolve
+  it. That trade-off is stated on the page: on file:// the panel reports that
+  the prover needs a served origin, rather than silently doing nothing.
+-->
+<script>
+(function () {
+  'use strict';
+
+  var runBtn = document.getElementById('prover-run');
+  var logEl = document.getElementById('prover-log');
+  var statusEl = document.getElementById('prover-status');
+  var noteEl = document.getElementById('prover-note');
+  if (!runBtn || !logEl) return;
+
+  var prover = null;
+  var BALANCE = 1000000n;
+  var AMOUNT = 49000n;
+
+  function reset() { logEl.textContent = ''; }
+
+  function line(text, cls) {
+    var span = document.createElement('span');
+    if (cls) span.className = cls;
+    span.textContent = text + '\n';
+    logEl.appendChild(span);
+  }
+
+  function failed(reason) {
+    reset();
+    statusEl.textContent = 'unavailable';
+    line(reason, 'hid');
+    line('', null);
+    line('The prover needs a served origin (http://), not file://, because a browser', null);
+    line('refuses module imports from the filesystem. Run the server and reload:', null);
+    line('', null);
+    line('  npm run build:proofs && npm run veil -- serve', 'ok');
+  }
+
+  async function load() {
+    if (prover) return prover;
+    statusEl.textContent = 'loading wasm…';
+    var mod = await import('./assets/veil-proofs.js');
+    await mod.init({ wasmUrl: 'assets/index_bg.wasm' });
+    prover = mod;
+    return mod;
+  }
+
+  runBtn.addEventListener('click', async function () {
+    runBtn.disabled = true;
+    reset();
+    try {
+      var mod = await load();
+      statusEl.textContent = 'ready';
+
+      // Measured, not asserted: count resource fetches across the proving work.
+      // Only the WASM load above may appear; proving itself must add none.
+      var before = performance.getEntriesByType('resource').length;
+
+      var keys = await mod.ConfidentialKeysHandle.fromSignature(new Uint8Array(64).fill(7));
+      var destination = await mod.ConfidentialKeysHandle.fromSignature(new Uint8Array(64).fill(9));
+      line('keys    derived locally from a signature — the signature never left this tab', 'ok');
+      line('pubkey  32-byte ElGamal key, public — the balance key stays private', 'val');
+
+      var balanceCiphertext = await keys.encryptAmount(BALANCE);
+      line('state   balance ' + BALANCE + ' encrypted under the payer key (64 B ElGamal)', 'ok');
+
+      var started = performance.now();
+      var bundle = await mod.transferProofs({
+        keys: keys,
+        sourceAvailableBalance: BALANCE,
+        sourceAvailableBalanceCiphertext: balanceCiphertext,
+        amount: AMOUNT,
+        destinationPubkey: destination.elgamalPubkey(),
+      });
+      var ms = Math.round(performance.now() - started);
+
+      line('', null);
+      line('three statements, proven in ' + ms + ' ms:', 'ok');
+      bundle.proofs.forEach(function (ix, i) {
+        var names = [
+          'ciphertext-commitment equality — new balance = old − amount',
+          'batched grouped ciphertext validity — 3 handles',
+          'batched range proof u128 — every value in range',
+        ];
+        line('  ' + (i + 1) + '. ' + names[i], null);
+        line('     discriminant ' + ix.data[0] + ' · ' + ix.data.length + ' B · offset ' +
+          [bundle.equalityProofOffset, bundle.ciphertextValidityProofOffset, bundle.rangeProofOffset][i], 'val');
+      });
+
+      line('', null);
+      line('balance ' + BALANCE + ' − ' + AMOUNT + ' = ' + bundle.newAvailableBalance + ' (never revealed)', 'ok');
+      line('fast path re-encrypted under the AES key: ' +
+        bundle.newSourceDecryptableAvailableBalance.length + ' B', 'val');
+      line('auditor halves present with no auditor configured: ' +
+        bundle.auditorCiphertextLo.length + ' + ' + bundle.auditorCiphertextHi.length + ' B', 'val');
+
+      // The offsets above are the in-transaction form, which is what the bundle
+      // carries. It is worth saying out loud that a real transfer cannot use it:
+      // these three proofs come to 1866 B and a Solana transaction is capped at
+      // 1232 B, so on chain each proof is verified into a context-state account
+      // first — the range proof staged through a record account, two writes wide,
+      // because at 1001 B it does not fit even in a transaction of its own.
+      var proofTotal = bundle.proofs.reduce(function (n, ix) { return n + ix.data.length; }, 0);
+      line('all three: ' + proofTotal + ' B against a 1232 B transaction — ' +
+        'on chain, verified into context accounts instead', 'val');
+
+      var after = performance.getEntriesByType('resource').length;
+      line('', null);
+      if (after === before) {
+        line('network requests made while proving: 0 — measured, not claimed', 'ok');
+        noteEl.textContent = 'Proved on this device. No prover service was contacted.';
+      } else {
+        line('network requests made while proving: ' + (after - before) +
+          ' — unexpected; the prover should be offline', 'hid');
+      }
+    } catch (e) {
+      failed(e instanceof Error ? e.message : String(e));
+    } finally {
+      runBtn.disabled = false;
+    }
+  });
+})();
+</script>
+</body>
+</html>

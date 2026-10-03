@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "tight-leading",
+        "value": "*",
+        "files": [
+          "web/index.html"
+        ],
+        "createdAt": "2026-10-02T09:39:03.421Z",
+        "reason": "Poster display headline: 1.03 leading is deliberate at 64px. The 1.3 floor targets body text; display type tightens as it grows. Body copy stays 1.55."
+      }
+    ]
+  }
+}

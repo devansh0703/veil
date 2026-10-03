@@ -1,0 +1,23 @@
+[
+  {
+    "consumedBy": null,
+    "slot": 0,
+    "address": "8NzXxVqLGMnVxtG7iXQGs9rMe3W6xCVjBaAV1kiV4cV9",
+    "alias": "oracle.tide",
+    "armed": true
+  },
+  {
+    "consumedBy": null,
+    "slot": 0,
+    "address": "H6Hm6TXydvh6aMW5QSpa3cggkSfEgKS6ooquRxuRkuX5",
+    "alias": "feedmarket",
+    "armed": true
+  },
+  {
+    "consumedBy": null,
+    "slot": 0,
+    "address": "4sCsYfcmkYjVLj2JPN66L5XftTS5uGsWwdYmptPyivuX",
+    "alias": "sensor.attest",
+    "armed": true
+  }
+]

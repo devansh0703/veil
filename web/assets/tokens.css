@@ -1,0 +1,87 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Veil design tokens
+   Source of truth: /DESIGN.md at the repo root. Every value here is a token
+   from that file; every text/ground pair clears 4.5:1 for small text.
+   Re-measure with a contrast sweep after any change — a hue swap does not
+   preserve the ratio, and a lifted accent that passes as text fails as a fill.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+:root{
+  /* palette */
+  /* The paper ground is a deliberately neutral document stock, not a warm
+     cream: warm off-white is the reflex "tasteful" backdrop, and a redacted
+     statement reads as printed paper without it. Cooling the ground also
+     widens the headroom on every light-side ratio (measured below). */
+  --paper:#F2F2F0;            /* landing ground */
+  --ink:#17161A;
+  --muted:#6B6862;            /* 4.95:1 on paper */
+  --rule:#D5D5D1;
+  --tint:#E8E8E4;             /* row hover, one step off the ground */
+  --graphite:#101114;         /* dashboard ground */
+  --raise:#17181C;
+  --fg:#E8E6E1;               /* 15.14:1 on graphite */
+  --muted-dark:#8A8C93;       /* 5.62:1 on graphite */
+  --rule-dark:#2A2C31;
+  --tint-dark:#1D1F24;
+
+  /* one red, three treatments */
+  --redact:#B4341F;           /* redaction ink on paper, 5.43:1 */
+  --redact-dark:#DE523C;      /* lifted red on graphite, 4.84:1 as text */
+  --redact-fill:#B4341F;      /* the ONLY red a white label may sit on, 6.08:1 */
+  --on-redact:#FFFFFF;
+  --hatch:#10111438;          /* the bar's repeating hatch */
+
+  /* semantic, measured per ground: 4.83 / 4.92 / 4.92 light, 5.55 / 7.34 /
+     4.84 dark */
+  --success:#2C7755;   --success-dark:#3E9C6B;
+  --warning:#8A611E;   --warning-dark:#C99A3B;
+  --error:#B8402A;     --error-dark:#DE523C;
+
+  /* type: the seven documented steps, 12/13/14/16/20/28/44 */
+  --font-display:"Cabinet Grotesk",ui-sans-serif,"Helvetica Neue",Arial,sans-serif;
+  --font-body:"General Sans","Helvetica Neue",Arial,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --t-small:0.75rem;     /* 12 */
+  --t-label:0.8125rem;   /* 13 */
+  --t-ui:0.875rem;       /* 14 */
+  --t-body:1rem;         /* 16 */
+  --t-h2:1.25rem;        /* 20 */
+  --t-h1:1.75rem;        /* 28 */
+  --t-figure:2.75rem;    /* 44 */
+  --t-display:clamp(2.5rem,5vw,4.25rem);
+
+  /* space: 4/8/12/16/24/32/48 */
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s6:24px; --s8:32px; --s12:48px;
+
+  /* prefers-contrast:more overrides, documented in DESIGN.md. Same roles,
+     pushed further from their ground; unreachable outside the media query. */
+  --muted-contrast:#4F4D49;
+  --muted-contrast-dark:#B4B6BB;
+  --rule-contrast:#B6AF9F;
+  --rule-contrast-dark:#3C3F46;
+
+  /* shapes: 2/3/4, full reserved for the status dot */
+  --r-sm:2px; --r-md:3px; --r-lg:4px;
+
+  /* motion: one authored moment, the redaction lift */
+  --ease:cubic-bezier(.22,1,.36,1);
+  --dur-micro:80ms; --dur-short:200ms; --dur-medium:320ms; --dur-long:560ms;
+  --stagger:45ms;
+}
+
+/* Light or dark comes from the use scene, not from a category or a preference:
+   the landing is read in daylight on a phone, the dashboard is watched at a
+   desk beside a terminal. Each ground is composed for itself, never inverted. */
+[data-ground="paper"]{
+  --surface:var(--paper); --surface-raise:#FFFFFF;
+  /* measured: ink 16.07:1, muted 4.95:1, redact 5.43:1 on the paper ground */
+  --text:var(--ink); --text-muted:var(--muted); --border:var(--rule);
+  --accent:var(--redact); --redact-bar:var(--redact); --chip-bg:var(--tint);
+  --ok:var(--success); --warn:var(--warning); --err:var(--error);
+}
+[data-ground="graphite"]{
+  --surface:var(--graphite); --surface-raise:var(--raise);
+  --text:var(--fg); --text-muted:var(--muted-dark); --border:var(--rule-dark);
+  --accent:var(--redact-dark); --redact-bar:var(--redact-dark); --chip-bg:var(--tint-dark);
+  --ok:var(--success-dark); --warn:var(--warning-dark); --err:var(--error-dark);
+}

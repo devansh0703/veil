@@ -1,0 +1,218 @@
+{
+  "index-375": {
+    "overflow": 0,
+    "ground": "paper",
+    "ground_ok": true,
+    "pretext": true,
+    "redact_fill": "#B4341F",
+    "faces": {
+      "display": true,
+      "body": true,
+      "semibold": true,
+      "mono": true
+    },
+    "fonts_loaded": 0,
+    "bars": 1,
+    "flow_lines": 0,
+    "page_errors": [],
+    "console": []
+  },
+  "index-768": {
+    "overflow": 0,
+    "ground": "paper",
+    "ground_ok": true,
+    "pretext": true,
+    "redact_fill": "#B4341F",
+    "faces": {
+      "display": true,
+      "body": true,
+      "semibold": true,
+      "mono": true
+    },
+    "fonts_loaded": 0,
+    "bars": 1,
+    "flow_lines": 0,
+    "page_errors": [],
+    "console": []
+  },
+  "index-1440": {
+    "overflow": 0,
+    "ground": "paper",
+    "ground_ok": true,
+    "pretext": true,
+    "redact_fill": "#B4341F",
+    "faces": {
+      "display": true,
+      "body": true,
+      "semibold": true,
+      "mono": true
+    },
+    "fonts_loaded": 0,
+    "bars": 1,
+    "flow_lines": 0,
+    "page_errors": [],
+    "console": []
+  },
+  "dashboard-375": {
+    "overflow": 0,
+    "ground": "graphite",
+    "ground_ok": true,
+    "pretext": true,
+    "redact_fill": "#B4341F",
+    "faces": {
+      "display": true,
+      "body": true,
+      "semibold": true,
+      "mono": true
+    },
+    "fonts_loaded": 0,
+    "bars": 9,
+    "flow_lines": 16,
+    "page_errors": [],
+    "console": []
+  },
+  "dashboard-768": {
+    "overflow": 0,
+    "ground": "graphite",
+    "ground_ok": true,
+    "pretext": true,
+    "redact_fill": "#B4341F",
+    "faces": {
+      "display": true,
+      "body": true,
+      "semibold": true,
+      "mono": true
+    },
+    "fonts_loaded": 0,
+    "bars": 9,
+    "flow_lines": 7,
+    "page_errors": [],
+    "console": []
+  },
+  "dashboard-1440": {
+    "overflow": 0,
+    "ground": "graphite",
+    "ground_ok": true,
+    "pretext": true,
+    "redact_fill": "#B4341F",
+    "faces": {
+      "display": true,
+      "body": true,
+      "semibold": true,
+      "mono": true
+    },
+    "fonts_loaded": 0,
+    "bars": 9,
+    "flow_lines": 7,
+    "page_errors": [],
+    "console": []
+  },
+  "limits-375": {
+    "overflow": 0,
+    "ground": "paper",
+    "ground_ok": true,
+    "pretext": true,
+    "redact_fill": "#B4341F",
+    "faces": {
+      "display": true,
+      "body": true,
+      "semibold": true,
+      "mono": true
+    },
+    "fonts_loaded": 0,
+    "bars": 1,
+    "flow_lines": 22,
+    "page_errors": [],
+    "console": []
+  },
+  "limits-768": {
+    "overflow": 0,
+    "ground": "paper",
+    "ground_ok": true,
+    "pretext": true,
+    "redact_fill": "#B4341F",
+    "faces": {
+      "display": true,
+      "body": true,
+      "semibold": true,
+      "mono": true
+    },
+    "fonts_loaded": 0,
+    "bars": 1,
+    "flow_lines": 9,
+    "page_errors": [],
+    "console": []
+  },
+  "limits-1440": {
+    "overflow": 0,
+    "ground": "paper",
+    "ground_ok": true,
+    "pretext": true,
+    "redact_fill": "#B4341F",
+    "faces": {
+      "display": true,
+      "body": true,
+      "semibold": true,
+      "mono": true
+    },
+    "fonts_loaded": 0,
+    "bars": 1,
+    "flow_lines": 9,
+    "page_errors": [],
+    "console": []
+  },
+  "402-375": {
+    "overflow": 0,
+    "ground": "graphite",
+    "ground_ok": true,
+    "pretext": true,
+    "redact_fill": "#B4341F",
+    "faces": {
+      "display": true,
+      "body": true,
+      "semibold": true,
+      "mono": true
+    },
+    "fonts_loaded": 0,
+    "bars": 0,
+    "flow_lines": 0,
+    "page_errors": [],
+    "console": []
+  },
+  "402-768": {
+    "overflow": 0,
+    "ground": "graphite",
+    "ground_ok": true,
+    "pretext": true,
+    "redact_fill": "#B4341F",
+    "faces": {
+      "display": true,
+      "body": true,
+      "semibold": true,
+      "mono": true
+    },
+    "fonts_loaded": 0,
+    "bars": 0,
+    "flow_lines": 0,
+    "page_errors": [],
+    "console": []
+  },
+  "402-1440": {
+    "overflow": 0,
+    "ground": "graphite",
+    "ground_ok": true,
+    "pretext": true,
+    "redact_fill": "#B4341F",
+    "faces": {
+      "display": true,
+      "body": true,
+      "semibold": true,
+      "mono": true
+    },
+    "fonts_loaded": 0,
+    "bars": 0,
+    "flow_lines": 0,
+    "page_errors": [],
+    "console": []
+  }
+}

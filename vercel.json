@@ -1,0 +1,14 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "buildCommand": "node scripts/build-api.mjs",
+  "outputDirectory": "web",
+  "rewrites": [
+    { "source": "/verify", "destination": "/api/facilitator?route=/verify" },
+    { "source": "/settle", "destination": "/api/facilitator?route=/settle" },
+    { "source": "/supported", "destination": "/api/facilitator?route=/supported" },
+    { "source": "/facilitator", "destination": "/api/facilitator?route=/facilitator" },
+    { "source": "/facilitator/:path*", "destination": "/api/facilitator?route=/facilitator/:path*" },
+    { "source": "/v1/:path*", "destination": "/api/veil?route=/v1/:path*" }
+  ]
+}

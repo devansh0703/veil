@@ -1,0 +1,17 @@
+{
+  "mint": "H1WQvSNbaRrJrfRME8vrRdMgCvQGEpfzDwUYZmApCA7p",
+  "network": "solana:4uhcVJyU9pJkvQyS88uRDiswHXSCkY3z",
+  "rpcUrl": "https://api.testnet.solana.com",
+  "confidentialExtension": true,
+  "verifiedAt": "2026-10-03T16:18:51.541Z",
+  "verifiedFrom": "chain",
+  "payer": "3RWhpyX2JaE89UWqxM8LRsB3xykSVwHyEvBmgdo9N1FJ",
+  "poolSize": 8,
+  "poolCreated": true,
+  "configured": true,
+  "poolAccounts": 24,
+  "ledger": "data/pool-ledger.json",
+  "outstanding": [],
+  "sent": [],
+  "created": []
+}
