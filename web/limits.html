@@ -9,6 +9,18 @@
 <link rel="stylesheet" href="assets/fonts.css">
 <link rel="stylesheet" href="assets/tokens.css">
 <link rel="stylesheet" href="assets/app.css">
+<script>
+/* The saved ground, applied before first paint so the page never flashes the
+   one the reader did not ask for. Same key veil.js reads later. */
+(function () {
+  try {
+    var g = localStorage.getItem("veil:ground");
+    if (g === "graphite" || g === "paper") {
+      document.documentElement.setAttribute("data-ground", g);
+    }
+  } catch (e) {}
+})();
+</script>
 </head>
 
 <body>
@@ -21,11 +33,16 @@
       <span>network <b>testnet + devnet</b></span>
       <span>mint <b>VeilUSD</b></span>
     </div>
-    <nav>
+    <div class="tail">
+      <nav>
       <a href="index.html">Landing</a>
       <a href="dashboard.html">Merchant ledger</a>
+      <a href="docs/">Docs</a>
       <a href="402.html">402 body</a>
-    </nav>
+      </nav>
+      <button type="button" class="btn secondary theme" data-theme-toggle
+            aria-pressed="false" aria-label="Switch the site to the graphite ground">Graphite</button>
+    </div>
   </div>
 </header>
 
@@ -34,7 +51,7 @@
   <h1 id="limits">What Veil hides, and what it does not</h1>
   <p class="lede" data-pretext>Privacy products earn trust in the exact place they are tempted to be vague. So this page is not a footnote. It is a surface, linked from the top of every other one, and it makes three claims without hedging: what is hidden, what stays public, and what a determined observer can still infer.</p>
   <!-- veil:provenance -->
-  <p class="note" style="margin-top:var(--s4)">Provenance of this build: one run on <b>02 Oct · 14:21 UTC</b>, settlement mode <span class="mono">local-ledger-only</span>, chain <span class="mono">not-executed</span>. The confidential preconditions were <span class="mono">declared, not chain-read</span> and published as <span class="mono">privacySource: pool-ledger</span>. This run broadcast nothing — but broadcasting is not hypothetical: the same transfers have been confirmed on Solana testnet and devnet with these proofs, linked from <a href="index.html#live-solana">Live on Solana</a>. The limits below describe what the code does and where it has been demonstrated.</p>
+  <p class="note" style="margin-top:var(--s4)">Provenance of this build: one run on <b>03 Oct · 17:10 UTC</b>, settlement mode <span class="mono">local-ledger-only</span>, chain <span class="mono">not-executed</span>. The confidential preconditions were <span class="mono">declared, not chain-read</span> and published as <span class="mono">privacySource: pool-ledger</span>. This run broadcast nothing — but broadcasting is not hypothetical: the same transfers have been confirmed on Solana testnet and devnet with these proofs, linked from <a href="index.html#live-solana">Live on Solana</a>. The limits below describe what the code does and where it has been demonstrated.</p>
       <!-- /veil:provenance -->
 
   <!-- ── the three claims, verbatim ─────────────────────────────────────── -->
@@ -124,7 +141,7 @@
     <dl class="states">
       <dt>chain execution: demonstrated on both clusters</dt>
       <dd>The figures on these pages come from a local run that reports its own settlement mode as <span class="mono">local-ledger-only</span> — but broadcasting is not hypothetical. Confidential transfers have been confirmed on Solana <b>testnet</b> and <b>devnet</b>, both from the operator's end-to-end run and from an independent payer through the x402 facilitator, with the three zero-knowledge proofs generated locally each time.
-        <span class="note">All four transactions are linked from <a href="index.html#live-solana">Live on Solana</a>. The checkout is no longer local-only: <span class="mono">serve</span> and the facilitator are also deployed at <span class="mono">veil-sable-five.vercel.app</span>, and a payment settled through the hosted facilitator on testnet. What hosting does not fix is the rate-limited public RPC — a busy rail still needs a paid endpoint, and the hosted ledger is per-instance.</span></dd>
+        <span class="note">All four transactions are linked from <a href="index.html#live-solana">Live on Solana</a>. The checkout is no longer local-only: <span class="mono">serve</span> and the facilitator are also deployed at <span class="mono">veil-devnet.vercel.app</span>, and a payment settled through the hosted facilitator on devnet. What hosting does not fix is the rate-limited public RPC — a busy rail still needs a paid endpoint, and the hosted ledger is per-instance.</span></dd>
       <dt>where the proofs come from</dt>
       <dd>The proofs are generated <em>on the payer's own machine</em>, by WASM shipped inside the <span class="mono">@solana/zk-sdk</span> package. There is no prover service, no RPC round trip, and no fee: a transfer's three proofs build in about 50&nbsp;ms in Node and run identically in a browser, because it is the same WASM. Nothing about the amount leaves the client to make them — the only inputs are the payer's own key material, the amount, and the destination's <em>public</em> key. That is what makes the client side of this real rather than a promise.</dd>
       <dt>not audited</dt>
@@ -145,11 +162,12 @@
   <footer>
     <div class="foot">
       <!-- veil:footer -->
-      <span class="marker">claims checked against <b>local-ledger-only</b> · 4 refusals observed · run 02 Oct · 14:21 UTC</span>
+      <span class="marker">claims checked against <b>local-ledger-only</b> · 4 refusals observed · run 03 Oct · 17:10 UTC · hosted rail: <b>veil-devnet.vercel.app</b></span>
       <!-- /veil:footer -->
       <nav>
         <a href="index.html">Landing</a>
         <a href="dashboard.html">Merchant ledger</a>
+        <a href="docs/">Docs</a>
         <a href="402.html">402 body</a>
       </nav>
       <div class="row">

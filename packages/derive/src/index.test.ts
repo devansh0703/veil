@@ -114,6 +114,40 @@ describe('pool ledger', () => {
     }
   });
 
+  test('an exhausted pool still returns the seat its own payment already holds', () => {
+    const l = ledgerOf(1);
+    const id = { resource: '/r', payer: 'B', nonce: 3 };
+    const only = l.reserve('merchant.tide', id);
+    assert.throws(
+      () => l.reserve('merchant.tide', { ...id, nonce: 4 }),
+      PoolExhaustedError,
+    );
+    // Re-quoting the payment that holds the last seat is not a new payment:
+    // it must get its own account back rather than a VEIL-CONF-005 refusal.
+    const retry = l.reserve('merchant.tide', id);
+    assert.equal(retry.address, only.address);
+    assert.equal(l.armedFor('merchant.tide').length, 0, 'no second seat was burned');
+  });
+
+  test('entryFor reports the seat an identity holds, before and after settle', () => {
+    const l = ledgerOf(2);
+    const id = { resource: '/r', payer: 'B', nonce: 0 };
+    assert.equal(l.entryFor('merchant.tide', id), null, 'nothing before a reservation');
+    const held = l.reserve('merchant.tide', id);
+    const found = l.entryFor('merchant.tide', id);
+    assert.equal(found?.address, held.address);
+    assert.equal(found?.settledAt, undefined);
+    l.settle(held.address, derivePaymentId(id), '2026-01-01T00:00:00Z');
+    assert.equal(
+      l.entryFor('merchant.tide', id)?.settledAt,
+      '2026-01-01T00:00:00Z',
+      'a caller must be able to tell a spent identity from a free pool',
+    );
+    // Read-only: the lookup cannot consume a seat for a payment that never
+    // reserved one.
+    assert.equal(l.entryFor('merchant.tide', { ...id, nonce: 9 }), null);
+  });
+
   test('rejects a duplicate address, which would make two aliases linkable', () => {
     const l = PoolLedger.empty();
     l.register({ slot: 0, address: 'same', alias: 'a', armed: true });
@@ -199,5 +233,37 @@ describe('pool ledger', () => {
     // that is what makes check-before-broadcast safe to do.
     l.settleable(entry.address, derivePaymentId(id));
     assert.equal(l.resolve(entry.address)!.settledAt, undefined);
+  });
+
+  test('claim adopts a free seat so a hosted settle that missed the quote still lands', () => {
+    // The quote ran on one instance and reserved nothing this one can see; the
+    // payment then arrives here. The seat is still free, so it may be claimed —
+    // otherwise the rail would take the money and record nothing.
+    const l = ledgerOf(2);
+    l.claim('acct1', 'payment-from-another-instance');
+    assert.equal(l.resolve('acct1')!.consumedBy, 'payment-from-another-instance');
+    // Claiming is idempotent for the payment that owns the seat.
+    l.claim('acct1', 'payment-from-another-instance');
+    assert.equal(l.resolve('acct1')!.consumedBy, 'payment-from-another-instance');
+  });
+
+  test('claim refuses a seat a different payment already owns', () => {
+    // Two payments into one one-time address is the relinking the pool exists to
+    // prevent, so this is the one case where refusing is the right answer.
+    const l = ledgerOf(2);
+    const id = { resource: '/r', payer: 'B', nonce: 1 };
+    const entry = l.reserve('merchant.tide', id);
+    assert.throws(
+      () => l.claim(entry.address, 'a-second-payment'),
+      /was consumed by/,
+    );
+    assert.equal(l.resolve(entry.address)!.consumedBy, derivePaymentId(id));
+  });
+
+  test('claim refuses an unarmed seat rather than quietly handing it out', () => {
+    const l = PoolLedger.empty();
+    l.register({ slot: 0, address: 'acct0', alias: 'merchant.tide', armed: false });
+    assert.throws(() => l.claim('acct0', 'somepayment'), /not armed/);
+    assert.equal(l.resolve('acct0')!.consumedBy, null);
   });
 });

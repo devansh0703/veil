@@ -151,23 +151,115 @@
     setView(root.getAttribute('data-view') || 'public');
   }
 
-  /* ── ground: seeded from the use scene, toggle for inspection ─────────── */
-  function initGround() {
-    var toggle = document.querySelector('[data-ground-toggle]');
-    if (!toggle) return;
-    /* The ground is fixed by the use scene, not by prefers-color-scheme —
-       DESIGN.md rejects inverting a surface for a platform preference. This
-       control exists so a reviewer can see both grounds, nothing more. */
-    function label() {
-      toggle.textContent = root.getAttribute('data-ground') === 'graphite'
-        ? 'Inspect on paper' : 'Inspect on graphite';
+  /* ── ground: paper by default, graphite on request, remembered ────────────
+
+     The site is read in daylight, so paper is the default on every page and
+     the choice is the reader's to make rather than the platform's — a theme
+     switch follows the person, not `prefers-color-scheme`, and each ground
+     keeps the composition it was designed with. Both are full token sets
+     (see tokens.css); nothing here inverts a surface.
+
+     Two controls share one setter: `data-theme-toggle` in the masthead is the
+     standing switch (short label — it is chrome), `data-ground-toggle` in the
+     flow is the inline "inspect on the other ground" affordance. */
+  var GROUND_KEY = 'veil:ground';
+
+  function storedGround() {
+    try {
+      var value = window.localStorage.getItem(GROUND_KEY);
+      return value === 'graphite' || value === 'paper' ? value : null;
+    } catch (error) {
+      /* Private mode and file:// can refuse storage; the default stands. */
+      return null;
     }
-    label();
-    toggle.addEventListener('click', function () {
-      root.setAttribute('data-ground',
-        root.getAttribute('data-ground') === 'graphite' ? 'paper' : 'graphite');
-      label();
-      requestAnimationFrame(relayout);
+  }
+
+  function setGround(next) {
+    root.setAttribute('data-ground', next);
+    try {
+      window.localStorage.setItem(GROUND_KEY, next);
+    } catch (error) {
+      /* The switch still works for this page even when it cannot persist. */
+    }
+    var other = next === 'graphite' ? 'paper' : 'graphite';
+    var label = other.charAt(0).toUpperCase() + other.slice(1);
+    document.querySelectorAll('[data-theme-toggle]').forEach(function (button) {
+      button.textContent = label;
+      button.setAttribute('aria-pressed', next === 'graphite' ? 'true' : 'false');
+      button.setAttribute('aria-label', 'Switch the site to the ' + other + ' ground');
+    });
+    document.querySelectorAll('[data-ground-toggle]').forEach(function (button) {
+      button.textContent = 'Inspect on ' + other;
+    });
+    requestAnimationFrame(relayout);
+  }
+
+  function initGround() {
+    if (!document.querySelector('[data-theme-toggle],[data-ground-toggle]')) return;
+    var saved = storedGround();
+    var initial = saved || root.getAttribute('data-ground') || 'paper';
+    setGround(initial);
+    document.querySelectorAll('[data-theme-toggle],[data-ground-toggle]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        setGround(root.getAttribute('data-ground') === 'graphite' ? 'paper' : 'graphite');
+      });
+    });
+  }
+
+  /* ── export: the rows on screen, and nothing the view is hiding ─────────── */
+  function csvCell(value) {
+    var s = String(value == null ? '' : value);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+
+  function initExport() {
+    var button = document.querySelector('[data-export-ledger]');
+    var table = document.querySelector('table.ledger');
+    if (!button || !table) return;
+    var rows = Array.prototype.slice.call(table.querySelectorAll('tbody tr'));
+    if (!rows.length) return;
+
+    button.disabled = false;
+    button.title = 'Download the rows on screen as CSV';
+
+    button.addEventListener('click', function () {
+      try {
+        /* The export follows the view. In public view the amount cell holds its
+           real value in the DOM behind a redaction bar, so exporting it raw
+           would hand back exactly the number the page is hiding. */
+        var auditor = root.getAttribute('data-view') === 'auditor';
+        var cell = function (tr, sel) {
+          var el = tr.querySelector(sel);
+          return el ? el.textContent.trim() : '';
+        };
+        var lines = [['payment', 'vendor', 'time', 'state', 'reason', 'amount'].join(',')];
+        rows.forEach(function (tr) {
+          var amountValue = cell(tr, '.amount-value');
+          var amount = amountValue
+            ? (auditor ? amountValue : 'redacted')
+            : (cell(tr, '.cipher') || '');
+          lines.push([
+            csvCell(cell(tr, '.pay')),
+            csvCell(cell(tr, 'td:nth-child(2)')),
+            csvCell(cell(tr, '.when')),
+            csvCell(cell(tr, '.pill')),
+            csvCell(cell(tr, '.reason')),
+            csvCell(amount),
+          ].join(','));
+        });
+        var blob = new Blob([lines.join('\n') + '\n'], { type: 'text/csv;charset=utf-8' });
+        var href = URL.createObjectURL(blob);
+        var link = document.createElement('a');
+        link.href = href;
+        link.download = 'veil-ledger.csv';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(href);
+      } catch (e) {
+        button.title = 'Export failed: ' + (e && e.message ? e.message : e) +
+          ' — nothing was written';
+      }
     });
   }
 
@@ -185,6 +277,7 @@
 
   initView();
   initGround();
+  initExport();
 
   if (!P) {
     /* Fail closed: amounts stay redacted, the page still reads, it just cannot

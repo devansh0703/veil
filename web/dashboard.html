@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-ground="graphite" data-view="public">
+<html lang="en" data-ground="paper" data-view="public">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -9,6 +9,18 @@
 <link rel="stylesheet" href="assets/fonts.css">
 <link rel="stylesheet" href="assets/tokens.css">
 <link rel="stylesheet" href="assets/app.css">
+<script>
+/* The saved ground, applied before first paint so the page never flashes the
+   one the reader did not ask for. Same key veil.js reads later. */
+(function () {
+  try {
+    var g = localStorage.getItem("veil:ground");
+    if (g === "graphite" || g === "paper") {
+      document.documentElement.setAttribute("data-ground", g);
+    }
+  } catch (e) {}
+})();
+</script>
 </head>
 
 <body>
@@ -22,11 +34,16 @@
       <span>mint <b>VeilUSD</b></span>
       <span>key <b>v1</b></span>
     </div>
-    <nav>
+    <div class="tail">
+      <nav>
       <a href="dashboard.html" aria-current="page">Ledger</a>
+      <a href="docs/">Docs</a>
       <a href="limits.html">Honest limits</a>
       <a href="402.html">402 body</a>
-    </nav>
+      </nav>
+      <button type="button" class="btn secondary theme" data-theme-toggle
+            aria-pressed="false" aria-label="Switch the site to the graphite ground">Graphite</button>
+    </div>
   </div>
 </header>
 
@@ -102,7 +119,7 @@
           </td>
           <td class="r"><span class="redact"><span class="amount-value">$0.539</span><span class="redaction-bar" aria-hidden="true"></span></span></td>
           <td class="r mono">11</td>
-          <td class="r hide-sm mono">14:21:05</td>
+          <td class="r hide-sm mono">17:10:57</td>
         </tr>
         <tr>
           <td>
@@ -111,7 +128,7 @@
           </td>
           <td class="r"><span class="redact"><span class="amount-value">$10.89</span><span class="redaction-bar" aria-hidden="true"></span></span></td>
           <td class="r mono">11</td>
-          <td class="r hide-sm mono">14:21:05</td>
+          <td class="r hide-sm mono">17:10:57</td>
         </tr>
         <tr>
           <td>
@@ -120,7 +137,7 @@
           </td>
           <td class="r"><span class="redact"><span class="amount-value">$0.132</span><span class="redaction-bar" aria-hidden="true"></span></span></td>
           <td class="r mono">11</td>
-          <td class="r hide-sm mono">14:21:05</td>
+          <td class="r hide-sm mono">17:10:57</td>
         </tr>
       <!-- /veil:vendors -->
       </tbody>
@@ -148,7 +165,7 @@
         <tr>
           <td data-label="Payment"><span class="pay">—</span></td>
           <td data-label="Vendor">Sensor Attest</td>
-          <td data-label="Time" class="hide-sm when">14:21:05</td>
+          <td data-label="Time" class="hide-sm when">17:10:57</td>
           <td data-label="State">
             <span class="pill unreadable"><span class="dot" aria-hidden="true"></span>refused</span>
             <span class="reason" data-pretext>VEIL-CONF-003 — Confidentiality cannot be guaranteed — refusing to serve</span>
@@ -158,7 +175,7 @@
         <tr>
           <td data-label="Payment"><span class="pay">—</span></td>
           <td data-label="Vendor">Sensor Attest</td>
-          <td data-label="Time" class="hide-sm when">14:21:05</td>
+          <td data-label="Time" class="hide-sm when">17:10:57</td>
           <td data-label="State">
             <span class="pill unreadable"><span class="dot" aria-hidden="true"></span>refused</span>
             <span class="reason" data-pretext>VEIL-CONF-004 — Buyer spend cap exceeded</span>
@@ -168,7 +185,7 @@
         <tr>
           <td data-label="Payment"><span class="pay">—</span></td>
           <td data-label="Vendor">Sensor Attest</td>
-          <td data-label="Time" class="hide-sm when">14:21:05</td>
+          <td data-label="Time" class="hide-sm when">17:10:57</td>
           <td data-label="State">
             <span class="pill unreadable"><span class="dot" aria-hidden="true"></span>refused</span>
             <span class="reason" data-pretext>VEIL-CONF-005 — One-time address pool exhausted</span>
@@ -178,7 +195,7 @@
         <tr>
           <td data-label="Payment"><span class="pay">—</span></td>
           <td data-label="Vendor">Tidewater Atlas</td>
-          <td data-label="Time" class="hide-sm when">14:21:05</td>
+          <td data-label="Time" class="hide-sm when">17:10:57</td>
           <td data-label="State">
             <span class="pill unreadable"><span class="dot" aria-hidden="true"></span>refused</span>
             <span class="reason" data-pretext>invalid-payment — invalid-payment</span>
@@ -188,7 +205,7 @@
         <tr>
           <td data-label="Payment"><span class="pay">p_3929…47e</span></td>
           <td data-label="Vendor">Sensor Attest</td>
-          <td data-label="Time" class="hide-sm when">14:21:05</td>
+          <td data-label="Time" class="hide-sm when">17:10:57</td>
           <td data-label="State">
             <span class="pill verifying"><span class="dot" aria-hidden="true"></span>in flight</span>
             <span class="reason" data-pretext>quoted and reserved at slot 8; counted separately, never as settled</span>
@@ -198,7 +215,7 @@
         <tr>
           <td data-label="Payment"><span class="pay">p_bc01…51f</span></td>
           <td data-label="Vendor">Sensor Attest</td>
-          <td data-label="Time" class="hide-sm when">14:21:05</td>
+          <td data-label="Time" class="hide-sm when">17:10:57</td>
           <td data-label="State">
             <span class="pill verifying"><span class="dot" aria-hidden="true"></span>in flight</span>
             <span class="reason" data-pretext>quoted and reserved at slot 7; counted separately, never as settled</span>
@@ -208,7 +225,7 @@
         <tr>
           <td data-label="Payment"><span class="pay">p_a12f…e52</span></td>
           <td data-label="Vendor">Feedmarket</td>
-          <td data-label="Time" class="hide-sm when">14:21:05</td>
+          <td data-label="Time" class="hide-sm when">17:10:57</td>
           <td data-label="State">
             <span class="pill verifying"><span class="dot" aria-hidden="true"></span>in flight</span>
             <span class="reason" data-pretext>quoted and reserved at slot 8; counted separately, never as settled</span>
@@ -218,7 +235,7 @@
         <tr>
           <td data-label="Payment"><span class="pay">p_329e…00b</span></td>
           <td data-label="Vendor">Feedmarket</td>
-          <td data-label="Time" class="hide-sm when">14:21:05</td>
+          <td data-label="Time" class="hide-sm when">17:10:57</td>
           <td data-label="State">
             <span class="pill verifying"><span class="dot" aria-hidden="true"></span>in flight</span>
             <span class="reason" data-pretext>quoted and reserved at slot 13; counted separately, never as settled</span>
@@ -228,7 +245,7 @@
         <tr>
           <td data-label="Payment"><span class="pay">p_52c4…7c7</span></td>
           <td data-label="Vendor">Tidewater Atlas</td>
-          <td data-label="Time" class="hide-sm when">14:21:05</td>
+          <td data-label="Time" class="hide-sm when">17:10:57</td>
           <td data-label="State">
             <span class="pill verifying"><span class="dot" aria-hidden="true"></span>in flight</span>
             <span class="reason" data-pretext>quoted and reserved at slot 10; counted separately, never as settled</span>
@@ -238,7 +255,7 @@
         <tr>
           <td data-label="Payment"><span class="pay">p_ab14…480</span></td>
           <td data-label="Vendor">Tidewater Atlas</td>
-          <td data-label="Time" class="hide-sm when">14:21:05</td>
+          <td data-label="Time" class="hide-sm when">17:10:57</td>
           <td data-label="State">
             <span class="pill verifying"><span class="dot" aria-hidden="true"></span>in flight</span>
             <span class="reason" data-pretext>quoted and reserved at slot 7; counted separately, never as settled</span>
@@ -286,22 +303,23 @@
       <dt>refused</dt>
       <dd data-pretext>A row that has a refusal code instead of an amount: <span>VEIL-CONF-005</span>, <span>VEIL-CONF-004</span>, <span>VEIL-CONF-003</span>. It keeps the code and never gains an amount it did not settle, which is why the ledger can be trusted to add up.</dd>
       <dt class="last">export</dt>
-      <dd>Disabled with a tooltip while there are no rows. On failure it says why and produces no file &mdash; a partial CSV is worse than no CSV.</dd>
+      <dd>Enabled the moment the ledger has rows; disabled, with the reason in its tooltip, when it does not. The download writes exactly the rows on screen and respects the current view &mdash; in public view the amount column exports as <span class="mono">redacted</span>, never the ciphertext it is hiding. On failure it says why and produces no file: a partial CSV is worse than no CSV.</dd>
     </dl>
   </section>
 
   <footer>
     <div class="foot">
       <!-- veil:footer -->
-      <span class="marker">local-ledger-only · chain not-executed · 33 payments · run <b>02 Oct · 14:21 UTC</b></span>
+      <span class="marker">local-ledger-only · chain not-executed · 33 payments · run <b>03 Oct · 17:10 UTC</b></span>
       <!-- /veil:footer -->
       <nav>
         <a href="limits.html">Honest limits</a>
         <a href="402.html">402 body</a>
+        <a href="docs/">Docs</a>
         <a href="index.html">Landing</a>
       </nav>
       <div class="row">
-        <button type="button" class="btn secondary" disabled title="No rows outside the current window">Export CSV</button>
+        <button type="button" class="btn secondary" data-export-ledger disabled title="Export turns on once the ledger has rows">Export CSV</button>
         <a class="btn primary" href="limits.html">Verify it yourself</a>
       </div>
     </div>

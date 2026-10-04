@@ -1,17 +1,12 @@
 name: Deploy hosted rail
 
+# Pushes to `main` deploy through Vercel's Git integration, which is why this
+# workflow no longer runs on push: it deployed with a `VERCEL_TOKEN` secret that
+# only lives as long as a CLI session token, so on push it went red while Vercel
+# shipped the change anyway. `ci.yml` still gates every push; this file stays for
+# a deliberate manual deploy, and needs a durable token (Vercel dashboard →
+# Account → Tokens) in the `VERCEL_TOKEN` secret to succeed.
 on:
-  push:
-    branches: [main]
-    paths:
-      - "api/**"
-      - "api-src/**"
-      - "scripts/**"
-      - "web/**"
-      - "vercel.json"
-      - "package.json"
-      - "package-lock.json"
-      - ".github/workflows/deploy.yml"
   workflow_dispatch:
 
 concurrency:
@@ -45,4 +40,4 @@ jobs:
           VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
           VERCEL_CLI_VERSION: latest
-        run: npx vercel@latest deploy --prod --yes --token "$VERCEL_TOKEN"
+        run: npx vercel@latest deploy --prod --yes --scope devansh-raulos-projects --token "$VERCEL_TOKEN"

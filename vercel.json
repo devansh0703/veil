@@ -3,12 +3,21 @@
   "framework": null,
   "buildCommand": "node scripts/build-api.mjs",
   "outputDirectory": "web",
+  "redirects": [
+    { "source": "/docs", "destination": "/docs/", "permanent": false }
+  ],
   "rewrites": [
+    {
+      "source": "/.well-known/veil",
+      "destination": "/api/veil?route=/.well-known/veil"
+    },
     { "source": "/verify", "destination": "/api/facilitator?route=/verify" },
     { "source": "/settle", "destination": "/api/facilitator?route=/settle" },
     { "source": "/supported", "destination": "/api/facilitator?route=/supported" },
     { "source": "/facilitator", "destination": "/api/facilitator?route=/facilitator" },
     { "source": "/facilitator/:path*", "destination": "/api/facilitator?route=/facilitator/:path*" },
-    { "source": "/v1/:path*", "destination": "/api/veil?route=/v1/:path*" }
+    { "source": "/v1/:path*", "destination": "/api/veil?route=/v1/:path*" },
+    { "source": "/docs/", "destination": "/docs/index.html" },
+    { "source": "/docs/:page", "destination": "/docs/:page.html" }
   ]
 }

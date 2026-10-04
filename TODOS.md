@@ -61,18 +61,33 @@ see T-2. Design artifacts (self-contained offline snapshots + metadata) live und
 
 ---
 
-## T-6 — Demonstrate on-chain execution on a funded devnet keypair
+## T-6 — Demonstrate on-chain execution on a funded devnet keypair — ✅ DONE 2026-10-03
 
 **What:** Run the real confidential transfer path end to end: fund a devnet keypair, initialise the mint with the confidential-transfer extension, create and arm a pool, then broadcast a genuine private payment and read the ciphertext back.
+**Outcome:** Closed on both clusters, not just devnet. The devnet pool is 3/3 armed (`data/pool-ledger.devnet.json`) and the testnet pool 24/24 (`data/pool-ledger.json`); `npm run status --chain` reports "A server may report privacySource: chain" for each, from a bare command, because the default ledger is now cluster-aware. A real payment settled through the **hosted** facilitator on testnet — [3L47ttQ…](https://explorer.solana.com/tx/3L47ttQouoXWxu8Y7AZcKPH6FX6T6tvhG9upj5yRQK84PrqEf8HuKMrWa3BcEbNkuoAcuTfeFJ83h4ToxZ6AXKoy?cluster=testnet) — with four earlier devnet/testnet transfers recorded in README. The funding blocker this item named turned out to be solvable with a faucet or transferred lamports; the proving routine was never the constraint.
+**Effort:** human: S (fund one address) / CC: M
+**Priority:** closed
+**Depends on:** nothing
+
+<details><summary>Original blocked statement, kept for the record</summary>
+
 **Why:** This is the one gap this build could not close, and it is the gap a judge is most likely to probe. The instruction layer, the refusal policy and the facilitator are all verified; the broadcast is not.
 **Pros:** Turns the strongest claim ("every number traces to a live devnet transaction") from *architected* into *demonstrated*, and closes CEO gap A1 and eng AR1/AR2.
 **Cons:** Blocked by a concrete environment fact rather than by effort — devnet's faucet requires GitHub authentication, no funded keypair exists on this machine, and each pool account needs rent. Needs either a human to fund one address, or a paid-RPC-free funding route.
 **Context:** `npm run status -- --chain` already reads devnet for real and prints the four conditions and which is unmet (`mint exists on devnet: false`, `accounts that can read confidentially: 0`). That command is the acceptance test for this item: it should report `true`/non-zero when it is done.
 
 **Corrected 2026-10-02:** this item previously claimed the proving routines live in the Rust prover and that the JS toolchain could only verify. That was wrong. `npm run prove:check` demonstrates 13 measured facts including real proof generation: `new PubkeyValidityProofData(kp)` yields a 96-byte proof and `new ZeroCiphertextProofData(kp, ct)` a 192-byte one, both self-verifying on construction, both surviving a byte round-trip, and both correctly *rejecting* the inputs they must reject. Decryption is confirmed too — own key reads the amount exactly, a foreign key is refused outright. So the on-chain path is implementable end to end from Node, and the only blocker is lamports for fees and rent. The obstacle is funding, not capability, which is a materially different and much smaller problem.
-**Effort:** human: S (fund one address) / CC: M
-**Priority:** P0 — highest-value remaining item before submission
-**Depends on:** a funded devnet keypair
+</details>
+
+---
+
+## T-8 — Per-instance pool memory on the hosted rail — **CLOSED**
+
+**What:** Give the hosted rail one durable ledger instead of a per-instance `/tmp` copy seeded from the bundle.
+**Why:** Each warm instance re-seeds from the inlined ledger, so a consumed seat is remembered only by the instance that consumed it, and a deliberate caller can walk a pool to exhaustion per instance (readme documents both). Chain balances are unaffected — this is accounting memory, not money — but "already settled" and "which seats are spent" answers differ depending on which instance answers.
+**Done:** `scripts/ledger-store.ts` keeps the ledger in Upstash Redis over its HTTP REST API (one key per cluster, `veil:pool-ledger:v1[.devnet|.mainnet]`), with a merge + compare-and-set write so two instances settling at once lose no seat. `loadLedgerFor` merges the store's consumption over the bundle's structure, so a redeploy that armed new seats grows the pool rather than shrinking back to the first write, and the request path reads through (`facilitator.refresh()`) before every quote and settlement so a reservation made by one instance is visible to the next. `flush()` writes to the store when configured and the file when not, and `/v1/health` reports `durable-store` vs `local-file` so the difference is visible rather than silent. Verified against the real Upstash account (GET/SET/EVAL incl. the CAS) and covered by tests that stand a Redis stub in front of the store to force a lost race on demand.
+**Also:** A settlement may now adopt a seat that is still free when the instance answering the payment never saw the quote's reservation — refusing there would take a real payment into the merchant's own account and record nothing. A seat a *different* payment already owns is still refused, which is the relinking the pool exists to prevent.
+**Remaining (not needed for the above):** a truly simultaneous quote racing on the same free seat is still decided by whichever instance writes last; closing it means an atomic reserve in the store rather than an atomic save.
 
 ---
 
@@ -99,3 +114,18 @@ see T-2. Design artifacts (self-contained offline snapshots + metadata) live und
 **Effort:** human: M / CC: S
 **Priority:** P3
 **Depends on:** real settled volume existing
+
+---
+
+## 2026-10-05 — Batched confidential x402 plan (design: docs/designs/veil-2026-batched-confidential.md)
+
+Deferred from the /office-hours 2026 session. Full plan in the design doc; nothing here changes existing features. Order is fixed: deliverables (1-10) → 2026 features (F1-F6) → further user ideas.
+
+- **D-1..D-9 (P1):** remaining deliverables on the stable rail — verify-integration, rpc-budget doc, replay command, structured logs + assertion counter, 50-payment smoke, hostile-QA test, glossary, runbooks, dashboard pending column.
+- **D-10 (P1, last):** demo video, recorded after D-1..D-9 land.
+- **F1 (P1):** `batch-confidential` scheme — session escrow + signed cumulative vouchers + one confidential settlement per session into a pooled seat. Headline feature; stock batch settlement is public-chain-only, this composition is novel.
+- **F2 (P1):** txv1 (SIMD-0385) single-transaction confidential settlement path; legacy multi-tx flow kept as fallback. Gate verified ACTIVE on devnet (slot 493,742,080).
+- **F3 (P2):** x402 V2 header support (PAYMENT-SIGNATURE / PAYMENT-REQUIRED / PAYMENT-RESPONSE) alongside V1 X-PAYMENT, negotiated per request.
+- **F4 (P2):** name the moat in docs: stock facilitators structurally cannot verify confidential transfers (published Sep 2026 audit); Veil's verifier asserts proof inclusion + merchant-only decryption.
+- **F5 (P2):** `docs/notes/confidential-liquidity-2026.md` — PYUSD/USDG auto_approve=false, USDC/USDT/EURC not extension-capable, wrap-mint route; feeds T-4 mint-topology inputs.
+- **F6 (P2):** session receipts — per-session reconciliation artifact (voucher head, merchant-decrypted total, settled seat).

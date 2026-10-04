@@ -1,8 +1,8 @@
 {
-  "capturedAt": "2026-10-02T14:21:06.207Z",
+  "capturedAt": "2026-10-04T22:39:12.130Z",
   "wellKnown": {
     "scheme": "exact-confidential",
-    "network": "solana:devnet",
+    "network": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
     "mint": "6pFkZndusKGifrKLXgaQJFjUT3Gi9n1uXcwkG7Jef3ur",
     "decimals": 6,
     "privacy": "confidential-balances",
@@ -18,17 +18,25 @@
     "resources": [
       {
         "path": "/v1/oracle/tide",
+        "url": "https://veil-devnet.vercel.app/v1/oracle/tide",
         "base": "0.049"
       },
       {
         "path": "/v1/quote/feedmarket",
+        "url": "https://veil-devnet.vercel.app/v1/quote/feedmarket",
         "base": "0.000",
         "perUnit": "0.0011",
         "units": 900
       },
       {
         "path": "/v1/attest/sensor",
+        "url": "https://veil-devnet.vercel.app/v1/attest/sensor",
         "base": "0.012"
+      },
+      {
+        "path": "/v1/payee/test",
+        "url": "https://veil-devnet.vercel.app/v1/payee/test",
+        "base": "0.001"
       }
     ],
     "privacySource": "pool-ledger",
@@ -75,14 +83,20 @@
   },
   "offer": {
     "x402Version": 2,
+    "resource": {
+      "url": "https://veil-devnet.vercel.app/v1/oracle/tide",
+      "description": "Sea-state and tidal window, per call (0.049000 units)",
+      "mimeType": "application/json"
+    },
     "accepts": [
       {
         "scheme": "exact-confidential",
-        "network": "solana:devnet",
+        "network": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
         "asset": "6pFkZndusKGifrKLXgaQJFjUT3Gi9n1uXcwkG7Jef3ur",
-        "payTo": "2xcuRtD2dEvNnCwSgyavAwPJdKii8o62w4XhxxkUATZt",
+        "payTo": "Ghmg5ChYw63TWuNrFASTSu38oCokx6xLLM9x2P8A9d1w",
         "maxAmountRequired": "49000",
-        "resource": "/v1/oracle/tide",
+        "amount": "49000",
+        "resource": "https://veil-devnet.vercel.app/v1/oracle/tide",
         "description": "Sea-state and tidal window, per call (0.049000 units)",
         "maxTimeoutSeconds": 60,
         "extra": {
@@ -104,7 +118,7 @@
     "settled": {
       "signature": null,
       "amount": "49000",
-      "at": "2026-10-02T14:21:06.198Z",
+      "at": "2026-10-04T22:39:12.123Z",
       "confid": "amount hidden on chain by Token-2022 confidential balances"
     },
     "data": {
@@ -116,14 +130,20 @@
   },
   "refusal": {
     "x402Version": 2,
+    "resource": {
+      "url": "https://veil-devnet.vercel.app/v1/attest/sensor",
+      "description": "Sensor provenance attestation, per call (0.012000 units)",
+      "mimeType": "application/json"
+    },
     "accepts": [
       {
         "scheme": "exact-confidential",
-        "network": "solana:devnet",
+        "network": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
         "asset": "6pFkZndusKGifrKLXgaQJFjUT3Gi9n1uXcwkG7Jef3ur",
-        "payTo": "FkYcqJMo7qhPH25gk1YK3pBvarQe7zpgy4WmFMMr9Q6h",
+        "payTo": "C4Jqv2NMPv49QWjyW2B7eJaVgTeP6naC8BzKRWqqp8Sx",
         "maxAmountRequired": "12000",
-        "resource": "/v1/attest/sensor",
+        "amount": "12000",
+        "resource": "https://veil-devnet.vercel.app/v1/attest/sensor",
         "description": "Sensor provenance attestation, per call (0.012000 units)",
         "maxTimeoutSeconds": 60,
         "extra": {

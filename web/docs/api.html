@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en" data-ground="paper">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>API reference — Veil docs</title>
+<meta name="description" content="Every export is TypeScript-typed and every failure is a structured VeilError (see Errors). There are three surfaces: the merchant flip, the agent fetch, and…">
+<!-- Every face is self-hosted (see assets/fonts.css). No font CDN at runtime. -->
+<link rel="stylesheet" href="../assets/fonts.css">
+<link rel="stylesheet" href="../assets/tokens.css">
+<link rel="stylesheet" href="../assets/app.css">
+<link rel="stylesheet" href="../assets/docs.css">
+<script>
+/* The saved ground, applied before first paint so the page never flashes the
+   one the reader did not ask for. Same key veil.js reads later. */
+(function () {
+  try {
+    var g = localStorage.getItem("veil:ground");
+    if (g === "graphite" || g === "paper") {
+      document.documentElement.setAttribute("data-ground", g);
+    }
+  } catch (e) {}
+})();
+</script>
+</head>
+
+<body>
+<a class="skip" href="#doc">Skip to the documentation</a>
+
+<header class="masthead">
+  <div class="wrap">
+    <a class="wordmark" href="../index.html"><span class="v">V</span>EIL</a>
+    <div class="who">
+      <span>docs <b>v1</b></span>
+      <span>rail <b>x402</b></span>
+    </div>
+    <div class="tail">
+      <nav>
+        <a href="../index.html">Landing</a>
+        <a href="./" aria-current="page">Docs</a>
+        <a href="../dashboard.html">Ledger</a>
+        <a href="../limits.html">Limits</a>
+      </nav>
+      <button type="button" class="btn secondary theme" data-theme-toggle
+              aria-pressed="false" aria-label="Switch the site to the graphite ground">Graphite</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap doc-layout">
+  <aside class="doc-nav" aria-label="Documentation">
+      <div class="doc-group">
+        <p class="k">Getting started</p>
+        <ul>
+          <li><a href="./">Introduction</a></li>
+          <li><a href="./quickstart">Quickstart</a></li>
+        </ul>
+      </div>
+      <div class="doc-group">
+        <p class="k">Core concepts</p>
+        <ul>
+          <li><a href="./concepts">Concepts</a></li>
+        </ul>
+      </div>
+      <div class="doc-group">
+        <p class="k">Reference</p>
+        <ul>
+          <li><a href="./api" aria-current="page">API reference</a></li>
+          <li><a href="./troubleshooting">Troubleshooting</a></li>
+        </ul>
+      </div>
+      <div class="doc-group">
+        <p class="k">Prove it</p>
+        <ul>
+          <li><a href="./verify-it-yourself">Verify it yourself</a></li>
+        </ul>
+      </div>
+    </aside>
+
+  <main class="doc-body" id="doc">
+    <p class="doc-crumb"><a href="./">Docs</a> / API reference</p>
+    <h1 class="doc-title">API reference</h1>
+    <p class="lede">Every export is TypeScript-typed and every failure is a structured VeilError (see Errors). There are three surfaces: the merchant flip, the agent fetch, and the raw HTTP protocol for developers who will not take an SDK.</p>
+    <hr>
+<h2 id="merchant-veil-options">Merchant — <code>veil(options)</code></h2>
+<pre class="code"><code class="language-ts">import { veil } from 'veil-x402';
+
+const merchant = await veil({
+  payTo: 'YourWalletAddress',   // required
+  price: '0.05',                // decimal units, default '0.05'
+  path: '/',                    // default '/'
+  description: 'Paid resource at /',
+  produce: ({ paid }) =&gt; ({ ... }),
+  // network, asset, decimals   → default to the hosted rail's mint
+  ledgerPath: 'data/pool-ledger.&lt;slug&gt;.json',
+  spendCap: '5.00',             // per-session; null disables
+  privacy: PrivacyProbe,        // precondition probe; defaults to the pool ledger
+  poolSize: 8,                  // one-time accounts provisioned on first run
+});</code></pre>
+<div class="table-wrap"><table><thead><tr><th>Option</th><th>Type</th><th>Default</th><th>Notes</th></tr></thead><tbody><tr><td class="k"><code>payTo</code></td><td><code>string</code></td><td>—</td><td><strong>Required.</strong> The wallet you are paid at. Used as the alias.</td></tr><tr><td class="k"><code>price</code></td><td><code>string</code></td><td><code>'0.05'</code></td><td>Flat price per call, decimal units.</td></tr><tr><td class="k"><code>path</code></td><td><code>string</code></td><td><code>'/'</code></td><td>The path you serve.</td></tr><tr><td class="k"><code>description</code></td><td><code>string</code></td><td><code>Paid resource at &lt;path&gt;</code></td><td>Human label for the resource, shown in the 402 offer.</td></tr><tr><td class="k"><code>produce</code></td><td><code>(ctx) =&gt; unknown</code></td><td><code>{ paid: true }</code></td><td>Runs only for a paid caller.</td></tr><tr><td class="k"><code>network</code></td><td><code>Network</code></td><td>hosted rail's network</td><td>The cluster (<code>solana:testnet</code> by default).</td></tr><tr><td class="k"><code>asset</code></td><td><code>string</code></td><td>hosted rail's mint</td><td>The payment mint. Must carry the confidential extension.</td></tr><tr><td class="k"><code>decimals</code></td><td><code>number</code></td><td><code>6</code></td><td>Must match the mint.</td></tr><tr><td class="k"><code>ledgerPath</code></td><td><code>string</code></td><td><code>data/pool-ledger.&lt;slug&gt;.json</code></td><td>Where this merchant's pool is persisted.</td></tr><tr><td class="k"><code>spendCap</code></td><td><code>string | null</code></td><td><code>'5.00'</code></td><td>Enforced <strong>per payer</strong>. <code>null</code> disables.</td></tr><tr><td class="k"><code>privacy</code></td><td><code>PrivacyProbe</code></td><td>the pool ledger this call wrote</td><td>Answers the confidential preconditions; <code>'unknown'</code> is not a pass.</td></tr><tr><td class="k"><code>poolSize</code></td><td><code>number</code></td><td><code>8</code></td><td>Provisioned on first run, then loaded from disk.</td></tr></tbody></table></div>
+<p>Returns <code>VeilMerchant</code>: <code>{ server, handler, config, facilitator, ledger, provisioned }</code>.</p>
+<ul><li><code>handler</code> is a <code>(req, res)</code> function — assign it to any route.</li><li><code>server</code> is a <code>createServer(handler)</code> for <code>server.listen(port)</code>.</li><li><code>ledger.allFor(alias)</code> is what a dashboard reads: seats, which are consumed.</li><li><code>provisioned</code> is how many accounts this call created (<code>0</code> on later runs).</li></ul>
+<p><strong>Errors.</strong> <code>veil()</code> throws <code>TypeError</code> if <code>payTo</code> is missing. A resource the rail will not serve is a refusal, not a throw: the response carries <code>veil: { refused, message, remedy }</code>.</p>
+<hr>
+<h2 id="agent-veilfetch-url-input">Agent — <code>veilFetch(url, input)</code></h2>
+<pre class="code"><code class="language-ts">import { veilFetch } from 'veil-x402/client';
+
+const result = await veilFetch('https://rail/v1/resource', {
+  payerSigner,        // required — signs proofs and the payment
+  keys,               // required — the payer's ConfidentialKeys
+  rpcUrl,             // required
+  budget: '0.10',     // decimal units; enforced before signing
+  nonce: 1,
+  payer: 'my-agent',  // X-Payer; defaults to the signer address
+  decimals: 6,
+  maxRetries: 1,      // retries a non-final 402, never a refusal
+  onStep, onPayment,
+});</code></pre>
+<p>Returns <code>VeilFetchResult</code>:</p>
+<pre class="code"><code class="language-ts">{ status: 200, data, paid: true, spent: 1000n, payment: { signature, amount, payTo } }</code></pre>
+<ul><li><code>spent</code> is atomic units <strong>including this call</strong> — thread it into the next call</li><li>to enforce a cumulative budget.</li><li><code>paid</code> is <code>false</code> when the resource was already free or already served.</li></ul>
+<p><strong>The budget is checked before anything is signed.</strong> A price that does not fit raises <code>VEIL-BUDGET-002</code> and no payment is attempted. There is deliberately no fallback to a public payment.</p>
+<h2 id="agent-createveilagent-options">Agent — <code>createVeilAgent(options)</code></h2>
+<p>A stateful wrapper for an agent that makes many calls.</p>
+<pre class="code"><code class="language-ts">const agent = createVeilAgent({ payerSigner, keys, rpcUrl, budget: '1.00' });
+await agent.fetch(url1);
+await agent.fetch(url2);
+agent.spent; // running total</code></pre>
+<p>It owns the nonce (a fresh one per call — reusing a nonce is a <code>409</code>), and the running spend.</p>
+<hr>
+<h2 id="low-level-helpers">Low-level helpers</h2>
+<div class="table-wrap"><table><thead><tr><th>Export</th><th>Signature</th><th>Use</th></tr></thead><tbody><tr><td class="k"><code>payVeilResource</code></td><td><code>(input) =&gt; Promise&lt;PayVeilResult&gt;</code></td><td>The payment itself, without the fetch loop.</td></tr><tr><td class="k"><code>feePayerOf</code></td><td><code>(rail, fetchImpl?) =&gt; Promise&lt;Address&gt;</code></td><td>Reads <code>/supported</code> for <code>kinds[0].extra.feePayer</code>.</td></tr><tr><td class="k"><code>readTokenAccount</code></td><td><code>(rpc, address, keys) =&gt; Promise&lt;VeilTokenAccount&gt;</code></td><td>Decrypts <code>{ available, pending }</code>.</td></tr><tr><td class="k"><code>findTokenAccount</code></td><td><code>(rpc, owner, mint) =&gt; Promise&lt;Address | null&gt;</code></td><td>Locates the owner's account for a mint.</td></tr><tr><td class="k"><code>applyPending</code></td><td><code>(rpc, account, owner, keys) =&gt; Promise&lt;signature&gt;</code></td><td>Pending → spendable.</td></tr></tbody></table></div>
+<p><code>VeilTokenAccount</code> is <code>{ available, pending, expectedPending, publicBalance }</code> (all <code>bigint</code>) plus the raw <code>decoded</code> token account and the still-encrypted <code>balanceCiphertext</code>. <code>available</code> is spendable now; <code>pending</code> needs <code>applyPending</code>. The account address is the argument you passed in, not a field.</p>
+<p>A merchant's money is spread across its one-time seats, so read <em>all</em> of them rather than "the" account for a mint — the one-shot lookup returns whichever account the RPC lists first, which after a few payments is often an empty seat.</p>
+<hr>
+<h2 id="errors">Errors</h2>
+<p>Every failure is a <code>VeilError</code> whose <code>toEnvelope()</code> gives the DX spec's shape:</p>
+<pre class="code"><code class="language-ts">{ type, code, message, param?, cause?, fix, doc_url }</code></pre>
+<p><code>type</code> is one of <code>veil_refusal</code> (the rail declined by policy — final), <code>veil_client_error</code>, <code>veil_rail_error</code>, <code>veil_budget_error</code> (your own limit).</p>
+<div class="table-wrap"><table><thead><tr><th>Code</th><th>Type</th><th>Meaning</th></tr></thead><tbody><tr><td class="k"><code>VEIL-ACC-001</code></td><td>refusal</td><td>Destination cannot receive confidential credits.</td></tr><tr><td class="k"><code>VEIL-BUDGET-002</code></td><td>budget</td><td>Would exceed your budget. Nothing is signed.</td></tr><tr><td class="k"><code>VEIL-CONF-003</code></td><td>refusal</td><td>Confidentiality cannot be guaranteed — <strong>refuses to pay</strong>.</td></tr><tr><td class="k"><code>VEIL-OFFER-004</code></td><td>rail</td><td>The 402 was not a usable Veil offer.</td></tr><tr><td class="k"><code>VEIL-POOL-005</code></td><td>refusal</td><td>Merchant has no unconsumed seat left.</td></tr><tr><td class="k"><code>VEIL-PAY-006</code></td><td>rail</td><td>Built but did not settle; <code>cause</code> carries the detail.</td></tr><tr><td class="k"><code>VEIL-CONTEND-008</code></td><td>refusal</td><td>The rail could not claim an address before another instance took the ones it could offer. Retry.</td></tr><tr><td class="k"><code>VEIL-RAIL-007</code></td><td>rail</td><td>The rail could not be reached.</td></tr></tbody></table></div>
+<p><code>isVeilError(value)</code> narrows. <code>VEIL-CONF-003</code> is load-bearing: a downgrade to a public payment is the worst bug this product could ship, so it is an error the caller cannot swallow by accident.</p>
+<hr>
+<h2 id="http-protocol">HTTP protocol</h2>
+<p>For a client that will not take an SDK.</p>
+<p><strong>Ask.</strong> <code>GET &lt;resource&gt;?nonce=&lt;n&gt;</code> with <code>X-Payer: &lt;name&gt;</code>. An unpaid ask gets <code>402</code>:</p>
+<pre class="code"><code class="language-json">{
+  "x402Version": 2,
+  "accepts": [{
+    "scheme": "exact-confidential",
+    "network": "solana:testnet",
+    "asset": "&lt;mint&gt;", "amount": "1000", "payTo": "&lt;one-time account&gt;",
+    "resource": "https://&lt;host&gt;/&lt;resource&gt;",
+    "extra": { "tokenProgram": "…", "decimals": 6, "poolIndex": 0, "privacy": "…" }
+  }]
+}</code></pre>
+<p><strong>Pay.</strong> Send <code>X-PAYMENT: base64(JSON)</code> where the JSON carries <strong>top-level</strong> <code>x402Version</code>, <code>scheme</code>, <code>network</code> and the signed transaction. This is the rail's native payload — the hoisted x402 v2 form, which nests <code>scheme</code>/<code>network</code> under <code>accepted</code>, will be rejected with <code>scheme must be exact-confidential</code>.</p>
+<p><strong>Answers.</strong> <code>200</code> with the resource · <code>402</code> re-offer (retry) · <code>409</code> <code>payment-already-settled</code> with <code>settledAt</code> · <code>5xx</code> structured refusal.</p>
+<p><strong>Preflight.</strong> The rail answers <code>OPTIONS</code> for <code>content-type, x-payer, x-payment</code>.</p>
+<h3 id="rail-endpoints">Rail endpoints</h3>
+<div class="table-wrap"><table><thead><tr><th>Path</th><th>What</th></tr></thead><tbody><tr><td class="k"><code>GET /</code> · <code>/dashboard.html</code> · <code>/limits.html</code> · <code>/402.html</code></td><td>Human surfaces.</td></tr><tr><td class="k"><code>GET /.well-known/veil</code></td><td>Discovery.</td></tr><tr><td class="k"><code>GET /v1/health</code></td><td>Pool size, settled count, RPC.</td></tr><tr><td class="k"><code>GET /supported</code></td><td>x402 <code>kinds[]</code>, including the fee payer.</td></tr><tr><td class="k"><code>GET /facilitator/health</code></td><td>The facilitator's own health.</td></tr></tbody></table></div>
+    <nav class="doc-pager" aria-label="Documentation pages">
+        <a class="pager prev" href="./concepts"><span class="k">Previous</span>Concepts</a>
+        <a class="pager next" href="./troubleshooting"><span class="k">Next</span>Troubleshooting</a>
+      </nav>
+  </main>
+
+  <nav class="doc-toc" aria-label="On this page">
+        <p class="k">On this page</p>
+        <ul>
+          <li><a href="#merchant-veil-options">Merchant — veil(options)</a></li>
+          <li><a href="#agent-veilfetch-url-input">Agent — veilFetch(url, input)</a></li>
+          <li><a href="#agent-createveilagent-options">Agent — createVeilAgent(options)</a></li>
+          <li><a href="#low-level-helpers">Low-level helpers</a></li>
+          <li><a href="#errors">Errors</a></li>
+          <li><a href="#http-protocol">HTTP protocol</a></li>
+        </ul>
+      </nav>
+</div>
+
+<footer>
+  <div class="foot">
+    <span class="marker">docs built from <b>docs/*.md</b> · hosted rail: <b>veil-devnet.vercel.app</b></span>
+    <nav>
+      <a href="../index.html">Landing</a>
+      <a href="../dashboard.html">Merchant ledger</a>
+      <a href="../limits.html">Honest limits</a>
+      <a href="../402.html">402 body</a>
+    </nav>
+    <div class="row">
+      <a class="btn primary" href="./quickstart">Quickstart</a>
+      <a class="btn secondary" href="../index.html">Home</a>
+    </div>
+  </div>
+</footer>
+
+<script src="../assets/pretext.js"></script>
+<script src="../assets/veil.js"></script>
+</body>
+</html>

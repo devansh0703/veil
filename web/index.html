@@ -6,10 +6,23 @@
 <title>Veil — private payment rails for the agent economy</title>
 <meta name="description" content="x402 lets agents pay for APIs. Veil makes those payments private on Solana: amounts encrypted with Token-2022 Confidential Balances, counterparties unlinkable through one-time addresses, and a ledger that still reconciles to the cent.">
 <!-- Every face is self-hosted (see assets/fonts.css). No font CDN at runtime,
-     so the page renders the same offline, in a submission zip, or from file:// -->
+     so the page renders the same offline, in a submission zip, or from any
+     static host. -->
 <link rel="stylesheet" href="assets/fonts.css">
 <link rel="stylesheet" href="assets/tokens.css">
 <link rel="stylesheet" href="assets/app.css">
+<script>
+/* The saved ground, applied before first paint so the page never flashes the
+   one the reader did not ask for. Same key veil.js reads later. */
+(function () {
+  try {
+    var g = localStorage.getItem("veil:ground");
+    if (g === "graphite" || g === "paper") {
+      document.documentElement.setAttribute("data-ground", g);
+    }
+  } catch (e) {}
+})();
+</script>
 </head>
 
 <body>
@@ -22,11 +35,17 @@
       <span>network <b>testnet + devnet</b></span>
       <span>rail <b>x402</b></span>
     </div>
-    <nav>
+    <div class="tail">
+      <nav>
+      <a href="#use-it">Use it</a>
       <a href="dashboard.html">Merchant ledger</a>
+      <a href="docs/">Docs</a>
       <a href="limits.html">Honest limits</a>
       <a href="402.html">402 body</a>
-    </nav>
+      </nav>
+      <button type="button" class="btn secondary theme" data-theme-toggle
+            aria-pressed="false" aria-label="Switch the site to the graphite ground">Graphite</button>
+    </div>
   </div>
 </header>
 
@@ -75,17 +94,17 @@
         <div class="demo-cell" aria-label="Agent log">
 <b>→ GET</b> /v1/oracle/tide  <b>402 Payment Required</b><br>
 ← offer: $0.049 · mint 6pFk…3ur · x402 v2<br>
-<b>→ pay</b> to 7VMqy…Bu5w (one-time) <b>· confidential</b><br>
-<span class="ok">✓ settled 14:21:05</span> · slot 6<br>
+<b>→ pay</b> to 78EVk…65jJ (one-time) <b>· confidential</b><br>
+<span class="ok">✓ settled 17:10:57</span> · slot 6<br>
 <b>→ retry</b> /v1/oracle/tide  <b>200 OK</b><br>
 <span class="ok">✓ resource delivered</span><br>
-<span class="ok">✓ next call → 8VNza…Vy3 (unlinkable)</span>
+<span class="ok">✓ next call → Czjgn…Jr3 (unlinkable)</span>
         </div>
       <!-- /veil:demo-agent -->
 
         <!-- veil:demo-public -->
         <div class="demo-cell" aria-label="What a public observer holds">
-<b>account</b> 7VMqy…Bu5w — receiving, slot 6<br>
+<b>account</b> 78EVk…65jJ — receiving, slot 6<br>
 <b>extensions</b><br>
 &nbsp;&nbsp;ConfidentialTransferAccount <span class="ok">expected</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;allow_confidential_credits <span class="ok">required</span><br>
@@ -94,7 +113,7 @@
 &nbsp;&nbsp;VEIL-CONF-003<br>
 <b>the amount</b><br>
 &nbsp;&nbsp;amount <span class="redact"><span class="amount-value">$0.049</span><span class="redaction-bar" aria-hidden="true"></span></span><br>
-&nbsp;&nbsp;destination 7VMqy…Bu5w <span>← public, and Veil says so</span><br>
+&nbsp;&nbsp;destination 78EVk…65jJ <span>← public, and Veil says so</span><br>
 &nbsp;&nbsp;settlement mode <span>local-ledger-only <span>← published, not implied</span></span>
         </div>
       <!-- /veil:demo-public -->
@@ -178,37 +197,119 @@
     <p class="note" style="margin-top:var(--s4)">Refusing is a feature. A facilitator that accepts a non-confidential account still "works" and silently leaks the amount it promised to hide — which is worse than failing. <a href="402.html">Read the full 402 body →</a></p>
   </section>
 
+  <!-- ── use it: the rail is public and x402-native ─────────────────────── -->
+  <section id="use-it" aria-labelledby="use-h">
+    <h2 id="use-h">Call it in two requests</h2>
+    <p class="lede" data-pretext>The hosted rail is a normal x402 resource server. Ask without paying and you get a standard <span class="mono">402 Payment Required</span> carrying a one-time account and a price. Settle a confidential transfer into that account, retry the same URL with <span class="mono">X-PAYMENT</span>, and the resource is yours. No account, no API key, no dashboard.</p>
+
+    <table class="vendors">
+      <caption>Every price the hosted rail charges, rendered from the same resource table the server serves. Amounts are in VeilUSD at six decimals; the figure that reaches the chain is encrypted at transfer time.</caption>
+      <thead>
+        <tr><th scope="col">Endpoint</th><th scope="col">Returns</th><th scope="col" class="r">Per call</th></tr>
+      </thead>
+      <tbody>
+        <!-- veil:quickstart-endpoints -->
+        <tr>
+          <td><span class="mono">/v1/oracle/tide</span></td>
+          <td class="note">Sea-state and tidal window, per call</td>
+          <td class="r mono">0.049 <span class="note">VeilUSD</span></td>
+        </tr>
+        <tr>
+          <td><span class="mono">/v1/quote/feedmarket</span></td>
+          <td class="note">Feed commodity quote, per 1k bushels</td>
+          <td class="r mono">0.99 <span class="note">VeilUSD</span></td>
+        </tr>
+        <tr>
+          <td><span class="mono">/v1/attest/sensor</span></td>
+          <td class="note">Sensor provenance attestation, per call</td>
+          <td class="r mono">0.012 <span class="note">VeilUSD</span></td>
+        </tr>
+        <tr>
+          <td><span class="mono">/v1/payee/test</span></td>
+          <td class="note">Reference payee — the seat the end-to-end check pays</td>
+          <td class="r mono">0.001 <span class="note">VeilUSD</span></td>
+        </tr>
+      <!-- /veil:quickstart-endpoints -->
+      </tbody>
+    </table>
+
+    <div class="claim">
+      <div class="payload">
+        <header><span>1 · ask, unpaid</span><span>curl</span></header>
+<pre><span class="key">$</span> curl -i <span class="str">"https://veil-devnet.vercel.app/v1/oracle/tide?nonce=1"</span> \
+    -H <span class="str">"X-Payer: my-agent"</span>
+
+<span class="val">HTTP/1.1 402 Payment Required</span>
+  accepts[0].payTo              <span class="hid">one-time account</span>
+  accepts[0].maxAmountRequired  <span class="val">49000</span>
+  accepts[0].extra.privacy      <span class="ok">confidential-balances</span></pre>
+      </div>
+      <div class="payload">
+        <header><span>2 · retry, paid</span><span>the same URL</span></header>
+<pre><span class="key">$</span> curl -i <span class="str">"https://veil-devnet.vercel.app/v1/oracle/tide?nonce=1"</span> \
+    -H <span class="str">"X-Payer: my-agent"</span> \
+    -H <span class="str">"X-PAYMENT: &lt;base64 x402 v2 payload&gt;"</span>
+
+<span class="val">HTTP/1.1 200 OK</span>
+  settled.signature  <span class="val">&lt;testnet tx&gt;</span>
+  data               <span class="ok">the resource</span></pre>
+      </div>
+    </div>
+
+    <div class="payload" style="margin-top:var(--s4)">
+      <header><span>the same dance, in a client</span><span>@x402/core + @x402/svm</span></header>
+<pre><span class="key">const</span> url = <span class="str">"https://veil-devnet.vercel.app/v1/oracle/tide?nonce="</span> + Date.now();
+<span class="key">const</span> payer = <span class="str">"my-agent"</span>;                 <span class="hid">// any stable buyer id</span>
+
+<span class="key">const</span> ask = <span class="key">await</span> fetch(url, { headers: { <span class="str">"X-Payer"</span>: payer } });
+<span class="key">const</span> offer = <span class="key">await</span> ask.json();          <span class="hid">// a standard x402 402</span>
+<span class="key">const</span> terms = offer.accepts[<span class="val">0</span>];          <span class="hid">// payTo, amount, mint, extra.privacy</span>
+
+<span class="hid">// build one confidential transfer to terms.payTo (@x402/svm + @solana/zk-sdk),</span>
+<span class="hid">// sign it, then hand the payload back as X-PAYMENT:</span>
+<span class="key">const</span> paid = <span class="key">await</span> fetch(url, {
+  headers: { <span class="str">"X-Payer"</span>: payer, <span class="str">"X-PAYMENT"</span>: xPayment },
+});</pre>
+    </div>
+
+    <p class="note" style="margin-top:var(--s4)"><span class="mono">?nonce=</span> identifies one payment. Keep it unique per payment — a retry of a settled nonce returns <span class="mono">409 payment-already-settled</span> rather than taking the money again, and a nonce that is not a non-negative integer is refused with <span class="mono">400 invalid-nonce</span>. <span class="mono">X-Payer</span> names the buyer so a retry gets its own seat back instead of burning a second one. Both headers are allowed cross-origin, so a browser can drive the rail directly.</p>
+
+    <p class="note" style="margin-top:var(--s4)">Discovery is the same document the server publishes to agents: <a href="https://veil-devnet.vercel.app/.well-known/veil"><span class="mono">/.well-known/veil</span></a> lists every resource, its price, and whether the confidentiality preconditions were read from chain or declared from the pool ledger. <a href="402.html">The full 402 body →</a></p>
+  </section>
+
   <!-- ── the deployment: both clusters, every claim linked ──────────────── -->
   <section id="live-solana" aria-labelledby="live-h">
     <h2 id="live-h">Live on Solana — testnet and devnet</h2>
     <p class="lede" data-pretext>The rail is deployed, not diagrammed. The mint, the one-time pool and two complete payment flows are confirmed on both clusters, and every row below links to the transaction that proves it — the operator's own end-to-end run, and an independent payer holding nothing but its own key.</p>
     <dl class="spec-rows">
       <dt>Testnet · the pool is open</dt>
-      <dd>Mint <span class="mono">H1WQvSNb…CA7p</span> and 24 one-time seats — all 24 approved by the mint authority and able to receive confidential credits today. <span class="note">A fresh payer can settle into a new seat without touching anything of the deployer's.</span> <a href="https://explorer.solana.com/tx/38FFhzJGbY4Rdt52fFgHujf5aymk8NRiGdbANbX3YmmeF4sbb6ByGBcKJqfzNbaMRqygSNxc8wziZCjC4tZc17tt?cluster=testnet">operator's confidential transfer →</a></dd>
+      <dd>Mint <span class="mono">H1WQvSNb…CA7p</span> and 28 one-time seats — all 28 armed by the mint authority and able to receive confidential credits today, 4 already spent by past settlements. <span class="note">A fresh payer can settle into a new seat without touching anything of the deployer's.</span> <a href="https://explorer.solana.com/tx/38FFhzJGbY4Rdt52fFgHujf5aymk8NRiGdbANbX3YmmeF4sbb6ByGBcKJqfzNbaMRqygSNxc8wziZCjC4tZc17tt?cluster=testnet">operator's confidential transfer →</a></dd>
       <dt>Testnet · an independent payer</dt>
       <dd>A fresh keypair that has never seen the deployer's seed signed only its own half of a 636-byte transaction; the facilitator co-signed the fee. <span class="note">/verify valid in 233 ms → /settle confirmed in 919 ms; the merchant alone decrypted 49000 available, 0 pending.</span> <a href="https://explorer.solana.com/tx/64pgyaE6WPsrNueCKt788w81yBafB5WPmu55AbQykBzp9zwjF5XFXpW4dDBnAFfuSCT6qHFj67A5Y7kEE7MahsUQ?cluster=testnet">the settlement →</a></dd>
       <dt>Devnet · the same, from a cold start</dt>
-      <dd>Mint and pool created in one session from an untouched 5 SOL for 0.011 SOL, then both flows ran end to end. <span class="note">/verify 260 ms → /settle 916 ms, and the merchant seat decrypted 49000 with the merchant key alone.</span> <a href="https://explorer.solana.com/tx/4LqbC6UvJn6xzxN1tFktfpbVgjTiHz4RL5A1LEsoYQ9KVVXeEnmaBwSEvsGA9FXsf1HZhbPxdunV3kvuPT6asRUA?cluster=devnet">operator transfer →</a> · <a href="https://explorer.solana.com/tx/5ubbHpgE6kNbuWPzrSYX3HvksJzHarkgJVKhH9nAhUtm1Gnq5cv9ehaEkV9HUv3qCSABJuRHRwyhbNW4emcRfD8N?cluster=devnet">independent-payer settle →</a></dd>
+      <dd>Mint and pool created in one session from an untouched 5 SOL for 0.011 SOL, then both flows ran end to end; the pool is 8 one-time seats, 5 of them spent. <span class="note">/verify 260 ms → /settle 916 ms, and the merchant seat decrypted 49000 with the merchant key alone.</span> <a href="https://explorer.solana.com/tx/4LqbC6UvJn6xzxN1tFktfpbVgjTiHz4RL5A1LEsoYQ9KVVXeEnmaBwSEvsGA9FXsf1HZhbPxdunV3kvuPT6asRUA?cluster=devnet">operator transfer →</a> · <a href="https://explorer.solana.com/tx/5ubbHpgE6kNbuWPzrSYX3HvksJzHarkgJVKhH9nAhUtm1Gnq5cv9ehaEkV9HUv3qCSABJuRHRwyhbNW4emcRfD8N?cluster=devnet">independent-payer settle →</a></dd>
       <dt>Hosted — the rail in public</dt>
-      <dd>Merchant server and facilitator behind one HTTPS origin, free tier, no card: <span class="mono">veil-sable-five.vercel.app</span>. <span class="note">A payment settled through the hosted facilitator — /verify → /settle against the public URL, merchant decrypted 49000.</span> <a href="https://explorer.solana.com/tx/3L47ttQouoXWxu8Y7AZcKPH6FX6T6tvhG9upj5yRQK84PrqEf8HuKMrWa3BcEbNkuoAcuTfeFJ83h4ToxZ6AXKoy?cluster=testnet">hosted settlement →</a></dd>
+      <dd>Merchant server and facilitator behind one HTTPS origin, free tier, no card: <span class="mono">veil-devnet.vercel.app</span>. <span class="note">A payment settled through the hosted facilitator — /verify → /settle against the public URL on devnet, merchant decrypted 49000.</span> <a href="https://explorer.solana.com/tx/2kmv4tYaDGWt2AdEE7wd194R2Zd7AfP9iqgNuci7uVuXPV7ZeMGCHuir7Jm5foZEJFTUY9f7sTphDdMiv64thYRr?cluster=devnet">hosted settlement →</a></dd>
       <dt class="last">The deployer is not in a payment</dt>
-      <dd>Deployment paid the one-time rent; after that the deployer's key signs nothing. The payer signs its own transfer, the facilitator co-signs the fee, the merchant alone decrypts the amount. <span class="note">Reproduce either cluster with <span class="mono">npm run pay:live -- --apply</span> — the three proofs are generated on the machine that pays.</span></dd>
+      <dd>Deployment paid the one-time rent; after that the deployer's key signs nothing. The payer signs its own transfer, the facilitator co-signs the fee, the merchant alone decrypts the amount. <span class="note">Reproduce either cluster with <a href="docs/verify-it-yourself">Verify it yourself</a> — every step runs against the hosted rail, and the proofs are generated on the machine that pays.</span></dd>
     </dl>
   </section>
 
   <footer>
     <div class="foot">
       <!-- veil:footer -->
-      <span class="marker">local run behind these figures · settlement <b>local-ledger-only</b> · live transfers: <b>testnet + devnet</b> · hosted rail: <b>veil-sable-five.vercel.app</b></span>
+      <span class="marker">local run behind these figures · settlement <b>local-ledger-only</b> · live transfers: <b>testnet + devnet</b> · hosted rail: <b>veil-devnet.vercel.app</b></span>
       <!-- /veil:footer -->
       <nav>
+        <a href="#use-it">Use it</a>
         <a href="dashboard.html">Merchant ledger</a>
+        <a href="docs/">Docs</a>
         <a href="limits.html">Honest limits</a>
         <a href="402.html">402 body</a>
       </nav>
       <div class="row">
-        <a class="btn primary" href="dashboard.html">Open the ledger</a>
-        <a class="btn secondary" href="limits.html">What it does not hide</a>
+        <a class="btn primary" href="#use-it">Call the rail</a>
+        <a class="btn secondary" href="dashboard.html">Open the ledger</a>
       </div>
     </div>
   </footer>

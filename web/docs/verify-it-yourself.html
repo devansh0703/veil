@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en" data-ground="paper">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verify it yourself — Veil docs</title>
+<meta name="description" content="The claim is narrow and checkable: a payment settled, and its amount is not readable on the public chain. Here is the walk from a link to the check, with no…">
+<!-- Every face is self-hosted (see assets/fonts.css). No font CDN at runtime. -->
+<link rel="stylesheet" href="../assets/fonts.css">
+<link rel="stylesheet" href="../assets/tokens.css">
+<link rel="stylesheet" href="../assets/app.css">
+<link rel="stylesheet" href="../assets/docs.css">
+<script>
+/* The saved ground, applied before first paint so the page never flashes the
+   one the reader did not ask for. Same key veil.js reads later. */
+(function () {
+  try {
+    var g = localStorage.getItem("veil:ground");
+    if (g === "graphite" || g === "paper") {
+      document.documentElement.setAttribute("data-ground", g);
+    }
+  } catch (e) {}
+})();
+</script>
+</head>
+
+<body>
+<a class="skip" href="#doc">Skip to the documentation</a>
+
+<header class="masthead">
+  <div class="wrap">
+    <a class="wordmark" href="../index.html"><span class="v">V</span>EIL</a>
+    <div class="who">
+      <span>docs <b>v1</b></span>
+      <span>rail <b>x402</b></span>
+    </div>
+    <div class="tail">
+      <nav>
+        <a href="../index.html">Landing</a>
+        <a href="./" aria-current="page">Docs</a>
+        <a href="../dashboard.html">Ledger</a>
+        <a href="../limits.html">Limits</a>
+      </nav>
+      <button type="button" class="btn secondary theme" data-theme-toggle
+              aria-pressed="false" aria-label="Switch the site to the graphite ground">Graphite</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap doc-layout">
+  <aside class="doc-nav" aria-label="Documentation">
+      <div class="doc-group">
+        <p class="k">Getting started</p>
+        <ul>
+          <li><a href="./">Introduction</a></li>
+          <li><a href="./quickstart">Quickstart</a></li>
+        </ul>
+      </div>
+      <div class="doc-group">
+        <p class="k">Core concepts</p>
+        <ul>
+          <li><a href="./concepts">Concepts</a></li>
+        </ul>
+      </div>
+      <div class="doc-group">
+        <p class="k">Reference</p>
+        <ul>
+          <li><a href="./api">API reference</a></li>
+          <li><a href="./troubleshooting">Troubleshooting</a></li>
+        </ul>
+      </div>
+      <div class="doc-group">
+        <p class="k">Prove it</p>
+        <ul>
+          <li><a href="./verify-it-yourself" aria-current="page">Verify it yourself</a></li>
+        </ul>
+      </div>
+    </aside>
+
+  <main class="doc-body" id="doc">
+    <p class="doc-crumb"><a href="./">Docs</a> / Verify it yourself</p>
+    <h1 class="doc-title">Verify it yourself</h1>
+    <p class="lede">The claim is narrow and checkable: a payment settled, and its amount is not readable on the public chain. Here is the walk from a link to the check, with no step that asks you to trust the project's own summary.</p>
+    <p>You need Node 20+ and a clone of this repo. Nothing else — no wallet, no faucet, no account.</p>
+<hr>
+<h2 id="1-look-at-a-real-settlement">1. Look at a real settlement</h2>
+<p>A payment that already happened, testnet:</p>
+<pre class="code"><code>https://explorer.solana.com/tx/g9McSTZdxaucb1qDwNXG8UnwtMYXnhcc3MfnkkHzDMFXuc5FY8iMWiDvRBQ64rNrp8R1WvoBHdCRB23G4PU4RVk?cluster=testnet</code></pre>
+<p>What to look for, and what each thing means:</p>
+<ul><li><strong>The transaction succeeded.</strong> <code>err: null</code>, status success.</li><li><strong>Two signatures.</strong> The payer signed the money movement; the rail signed only</li><li>the network fee. The rail never held the payer's key.</li><li><strong>A <code>ConfidentialTransfer</code> instruction.</strong> A transfer happened.</li><li><strong>No readable number.</strong> The account state it touched holds ElGamal and AES</li><li>ciphertexts. This is the whole point — the explorer shows <em>that</em> money moved,</li><li>not <em>how much</em>.</li></ul>
+<p>If the explorer rate-limits you, read it from the RPC instead:</p>
+<pre class="code"><code class="language-bash">curl -s https://api.testnet.solana.com -X POST -H 'content-type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"getTransaction",
+       "params":["g9McSTZdxaucb1qDwNXG8UnwtMYXnhcc3MfnkkHzDMFXuc5FY8iMWiDvRBQ64rNrp8R1WvoBHdCRB23G4PU4RVk",
+                 {"encoding":"json","maxSupportedTransactionVersion":0}]}' \
+  | node -e 'let s="";process.stdin.on("data",d=&gt;s+=d).on("end",()=&gt;{const r=JSON.parse(s).result;console.log("slot",r.slot,"err",r.meta.err,"sigs",r.transaction.signatures.length);console.log(r.meta.logMessages.filter(l=&gt;l.includes("Confidential")));})'</code></pre>
+<p>That prints the slot, <code>err null</code>, the signature count and the confidential instruction logs — from the chain, not from us.</p>
+<hr>
+<h2 id="2-read-the-amount-back-with-the-right-key">2. Read the amount back with the right key</h2>
+<p>Now prove the ciphertext is real <em>and</em> that the merchant can read it. The payee's key is in <code>.keys/test-payee.json</code> in a full clone:</p>
+<pre class="code"><code class="language-bash">npm run cli -- balance --key .keys/test-payee.json --mint H1WQvSNbaRrJrfRME8vrRdMgCvQGEpfzDwUYZmApCA7p</code></pre>
+<pre class="code"><code>  owner     4R6xftHQu5P7BLa2eLxN6MjgbEk5ffdnETZMSYz5vQSq
+  account   6yLQjQH13ko6GxRCP5QCkuc7PMmZiKwGZ6bZ8N38JKXD
+  before    available 1000, pending 0</code></pre>
+<p>That <code>1000</code> is the amount that the explorer could not show you. The merchant's own key decrypts it. <strong>A different key does not</strong> — that is the other half of the claim, and you can check it by running the same command with any other key file and watching the decryption refuse.</p>
+<hr>
+<h2 id="3-make-a-fresh-payment-yourself">3. Make a fresh payment yourself</h2>
+<p>Do not take the recorded transaction as the only evidence. Make a new one.</p>
+<pre class="code"><code class="language-bash"># one command: key, SOL, confidential account, test dollars
+npm run sandbox -- --key .keys/verify.json
+
+# pay a real resource through the hosted rail
+npm run pay:agent -- --key .keys/verify.json \
+  --url https://veil-devnet.vercel.app/v1/payee/test \
+  --budget 0.10</code></pre>
+<p>You get an explorer link for a transaction that did not exist before you ran it.</p>
+<p>Then ask the same payment identity again, and watch it be refused:</p>
+<pre class="code"><code class="language-bash">curl -s -o /dev/null -w '%{http_code}\n' \
+  "https://veil-devnet.vercel.app/v1/payee/test?nonce=&lt;the nonce the pay command printed&gt;" \
+  -H 'X-Payer: &lt;its payer name&gt;'</code></pre>
+<p><code>409</code>, with <code>payment-already-settled</code> and the time. A settled identity is spent, not resold.</p>
+<hr>
+<h2 id="4-check-the-budget-actually-stops-the-agent">4. Check the budget actually stops the agent</h2>
+<p>Set a budget below the price and confirm the agent refuses rather than paying:</p>
+<pre class="code"><code class="language-bash">npm run pay:agent -- --key .keys/verify.json \
+  --url https://veil-devnet.vercel.app/v1/payee/test \
+  --budget 0.00001</code></pre>
+<p>You should get <code>VEIL-BUDGET-002</code>, <strong>no signature</strong>, and no transaction on chain. Check the explorer for the wallet's recent transactions — there should be none from this call. If the agent had "fallen back to a public payment", you would see one, and that would be the bug worth reporting. It does not fall back.</p>
+<hr>
+<h2 id="5-run-the-whole-suite">5. Run the whole suite</h2>
+<pre class="code"><code class="language-bash">npm run verify</code></pre>
+<p>This runs typecheck, the unit and protocol tests, and the hosted-rail tests against a locally-served instance of the same handler the deployment uses. It also fails if the committed <code>api/*.js</code> bundles drift from their sources, so a deployment that does not match the repo cannot pass.</p>
+<hr>
+<h2 id="what-this-does-not-prove">What this does not prove</h2>
+<p>Listed so the check is honest rather than complete-sounding:</p>
+<ul><li><strong>Not unlinkability.</strong> The graph is not correlated in these checks; at low</li><li>volume, timing still correlates. See <a href="./concepts#the-honest-limits">Concepts · the honest limits</a>.</li><li><strong>Not the hosted ledger's durability.</strong> <code>/v1/health</code> reports a <code>ledger</code> field</li><li>(<code>durable-store</code> or <code>local-file</code>) and a <code>settled</code> count. With the store</li><li>configured that count is read from the shared seat map, so it is the same on</li><li>every instance; without it, it is per-instance and a <code>settled: 0</code> may just</li><li>mean a different instance answered. The chain settlement is real either way.</li><li><strong>Not a browser wallet flow.</strong> The client is browser-safe and shares this code</li><li>path, but the checks above drive it from Node.</li></ul>
+    <nav class="doc-pager" aria-label="Documentation pages">
+        <a class="pager prev" href="./troubleshooting"><span class="k">Previous</span>Troubleshooting</a>
+        <span></span>
+      </nav>
+  </main>
+
+  <nav class="doc-toc" aria-label="On this page">
+        <p class="k">On this page</p>
+        <ul>
+          <li><a href="#1-look-at-a-real-settlement">1. Look at a real settlement</a></li>
+          <li><a href="#2-read-the-amount-back-with-the-right-key">2. Read the amount back with the right key</a></li>
+          <li><a href="#3-make-a-fresh-payment-yourself">3. Make a fresh payment yourself</a></li>
+          <li><a href="#4-check-the-budget-actually-stops-the-agent">4. Check the budget actually stops the agent</a></li>
+          <li><a href="#5-run-the-whole-suite">5. Run the whole suite</a></li>
+          <li><a href="#what-this-does-not-prove">What this does not prove</a></li>
+        </ul>
+      </nav>
+</div>
+
+<footer>
+  <div class="foot">
+    <span class="marker">docs built from <b>docs/*.md</b> · hosted rail: <b>veil-devnet.vercel.app</b></span>
+    <nav>
+      <a href="../index.html">Landing</a>
+      <a href="../dashboard.html">Merchant ledger</a>
+      <a href="../limits.html">Honest limits</a>
+      <a href="../402.html">402 body</a>
+    </nav>
+    <div class="row">
+      <a class="btn primary" href="./quickstart">Quickstart</a>
+      <a class="btn secondary" href="../index.html">Home</a>
+    </div>
+  </div>
+</footer>
+
+<script src="../assets/pretext.js"></script>
+<script src="../assets/veil.js"></script>
+</body>
+</html>

@@ -64,51 +64,117 @@ const TYPES: Record<string, string> = {
   '.txt': 'text/plain; charset=utf-8',
 };
 
-/** Resolve a request path to a file inside `web/`, or refuse. */
-function resolveRequest(pathname: string): string | null {
-  const decoded = decodeURIComponent(pathname.split('?')[0]!);
-  const relative = decoded === '/' ? 'index.html' : decoded.replace(/^\/+/, '');
-  const target = resolve(join(WEB, normalize(relative)));
-  // Traversal guard: a path that escapes `web/` is not served, however it was
-  // spelled. Compared against the resolved root plus a separator so that a
-  // sibling directory whose name merely starts with "web" cannot slip through.
-  if (target !== WEB && !target.startsWith(WEB + sep)) return null;
-  return target;
+/**
+ * Decode a request path, or report it undecodable.
+ *
+ * `decodeURIComponent` throws `URIError` on a malformed escape, and this handler
+ * is an async callback the HTTP server does not await — so a request like `/%`
+ * surfaced as an unhandled rejection and took the whole process down. A path we
+ * cannot decode is a 400, never a crash.
+ */
+function decodePath(rawPath: string): string | null {
+  try {
+    return decodeURIComponent(rawPath);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The files a request path may be served from, in priority order. Takes an
+ * already-decoded path (see `decodePath`), never a raw `req.url`.
+ *
+ * The docs section publishes clean URLs — `/docs/api`, not `/docs/api.html` —
+ * so an extensionless path is tried as itself, then as `<path>.html`, then as
+ * `<path>/index.html`. The literal `.html` URL keeps working, because every page
+ * links its neighbours by filename and a shared link must not rot. Vercel does
+ * the same through `rewrites`; this is the local half of it, so `npm run web`
+ * and the deployment agree on what a URL means.
+ *
+ * Returns `null` when any candidate escapes `web/`: a traversal attempt is
+ * refused however it was spelled. Compared against the resolved root plus a
+ * separator so a sibling directory whose name merely starts with "web" cannot
+ * slip through.
+ */
+function candidatePaths(pathname: string): string[] | null {
+  const trimmed = pathname.replace(/^\/+/, '').replace(/\/+$/, '');
+  const base = trimmed === '' ? 'index.html' : trimmed;
+  const names = extname(base) === '' ? [base, `${base}.html`, `${base}/index.html`] : [base];
+
+  const targets: string[] = [];
+  for (const name of names) {
+    const target = resolve(join(WEB, normalize(name)));
+    if (target !== WEB && !target.startsWith(WEB + sep)) return null;
+    targets.push(target);
+  }
+  return targets;
+}
+
+/** Is this request path a directory inside `web/`? Used only to add a slash. */
+async function isDirectory(pathname: string): Promise<boolean> {
+  const trimmed = pathname.replace(/^\/+/, '').replace(/\/+$/, '');
+  if (trimmed === '') return false;
+  const target = resolve(join(WEB, normalize(trimmed)));
+  if (target === WEB || !target.startsWith(WEB + sep)) return false;
+  try {
+    return (await stat(target)).isDirectory();
+  } catch {
+    return false;
+  }
 }
 
 const server = createServer(async (req, res) => {
-  const target = resolveRequest(req.url ?? '/');
-  if (target === null) {
+  const raw = req.url ?? '/';
+  const pathname = decodePath(raw.split('?')[0]!);
+  if (pathname === null) {
+    res.writeHead(400, { 'content-type': 'text/plain; charset=utf-8' });
+    res.end('bad request: malformed percent-encoding in the path\n');
+    return;
+  }
+  const targets = candidatePaths(pathname);
+  if (targets === null) {
     res.writeHead(403, { 'content-type': 'text/plain; charset=utf-8' });
     res.end('refused: that path is outside the served directory\n');
     return;
   }
 
-  try {
-    const info = await stat(target);
-    if (info.isDirectory()) {
-      res.writeHead(302, { location: `${req.url!.replace(/\/?$/, '')}/index.html` });
-      res.end();
-      return;
-    }
-    const body = await readFile(target);
-    const type = TYPES[extname(target).toLowerCase()] ?? 'application/octet-stream';
-    res.writeHead(200, {
-      'content-type': type,
-      'content-length': body.byteLength,
-      // The prover bundle and its WASM are build outputs, so they change
-      // whenever the build runs. `no-cache` revalidates instead of pinning a
-      // stale prover into a reviewer's browser for the rest of the session.
-      'cache-control': 'no-cache',
-      // Needed for SharedArrayBuffer in a browser that would otherwise isolate
-      // the page; harmless where it is not required.
-      'cross-origin-opener-policy': 'same-origin',
-    });
-    res.end(body);
-  } catch {
-    res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' });
-    res.end(`not found: ${req.url}\n`);
+  // A directory without its trailing slash resolves the page's relative links
+  // one level too high — from `/docs`, `./api` is `/api`, not `/docs/api` — so
+  // send it to the slashed form first, the same redirect Vercel applies to
+  // `/docs`. `/` is excluded: it is already slash-terminated.
+  if (!pathname.endsWith('/') && (await isDirectory(pathname))) {
+    const query = raw.includes('?') ? raw.slice(raw.indexOf('?')) : '';
+    res.writeHead(302, { location: `${pathname}/${query}` });
+    res.end();
+    return;
   }
+
+  for (const target of targets) {
+    try {
+      const info = await stat(target);
+      if (!info.isFile()) continue;
+      const body = await readFile(target);
+      const type = TYPES[extname(target).toLowerCase()] ?? 'application/octet-stream';
+      res.writeHead(200, {
+        'content-type': type,
+        'content-length': body.byteLength,
+        // The prover bundle and its WASM are build outputs, so they change
+        // whenever the build runs. `no-cache` revalidates instead of pinning a
+        // stale prover into a reviewer's browser for the rest of the session.
+        'cache-control': 'no-cache',
+        // Needed for SharedArrayBuffer in a browser that would otherwise isolate
+        // the page; harmless where it is not required.
+        'cross-origin-opener-policy': 'same-origin',
+      });
+      res.end(body);
+      return;
+    } catch {
+      // Not this candidate — the next one may still name a real file.
+    }
+  }
+
+  res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' });
+  res.end(`not found: ${req.url}\n`);
 });
 
 server.listen(PORT, HOST, () => {
@@ -119,6 +185,7 @@ server.listen(PORT, HOST, () => {
       'Veil — web surfaces',
       '',
       `  landing          ${base}/index.html`,
+      `  docs             ${base}/docs/`,
       `  merchant ledger  ${base}/dashboard.html`,
       `  the 402 body     ${base}/402.html`,
       `  honest limits    ${base}/limits.html`,

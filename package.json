@@ -8,17 +8,21 @@
   "engines": {
     "node": ">=22"
   },
+  "bin": {
+    "veil": "packages/cli/src/index.ts"
+  },
   "workspaces": [
     "packages/*"
   ],
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "node --test \"packages/**/*.test.ts\"",
+    "test": "node --test \"packages/**/*.test.ts\" \"scripts/**/*.test.ts\"",
     "verify": "npm run typecheck && npm test",
     "serve": "node scripts/serve.ts",
     "veil": "node scripts/serve.ts",
     "demo:local": "node scripts/demo-local.ts",
     "pages": "node scripts/build-pages.ts",
+    "docs": "node scripts/build-docs.ts",
     "standalone": "node scripts/build-standalone.ts",
     "build:api": "node scripts/build-api.mjs",
     "demo": "npm run demo:local && npm run pages",
@@ -29,10 +33,17 @@
     "facilitator": "node scripts/facilitator.ts",
     "go:live": "node scripts/go-live.ts",
     "pay:live": "node scripts/pay-live.ts",
+    "pay:rail": "node scripts/pay-rail.ts",
+    "pay:agent": "node scripts/veil-fetch.ts",
+    "sandbox": "node scripts/sandbox.ts",
+    "cli": "node packages/cli/src/index.ts",
+    "scaffold": "node scripts/create-merchant.mjs",
+    "apply:pending": "node scripts/apply-pending.ts",
     "build:proofs": "node scripts/build-proofs.ts",
     "prove:browser": "node scripts/prove-browser.ts",
     "web": "node scripts/serve-web.ts",
-    "check:ui": "node scripts/check-browser-ui.ts"
+    "check:ui": "node scripts/check-browser-ui.ts",
+    "check:refusal": "node scripts/refusal-check.ts"
   },
   "dependencies": {
     "@solana-program/system": "0.15.0",

@@ -14,6 +14,12 @@
 .env.*
 !.env.example
 
+# Pool ledgers provisioned by `veil()` / examples/merchant.ts, one per wallet.
+# They hold a merchant's own payment accounts, so they belong on the machine
+# that runs the merchant, not in the repo. The committed devnet demo pool stays.
+data/pool-ledger.*.json
+!data/pool-ledger.devnet.json
+
 # Node
 node_modules/
 npm-debug.log*
@@ -37,6 +43,10 @@ web/assets/index_bg.wasm
 .dbg/
 .chrome.log
 
+# graphify knowledge-graph output. Generated analysis cache, not source; stays
+# local so the repo ships without it.
+graphify-out/
+
 # Editor and OS noise
 .DS_Store
 Thumbs.db
@@ -49,3 +59,6 @@ Thumbs.db
 *.tsbuildinfo
 .vercel
 .env*
+# ...except the documented template. A later pattern wins in gitignore, so this
+# has to come after the ignore above and not only after the one near the top.
+!.env.example

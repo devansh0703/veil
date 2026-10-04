@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-ground="graphite" data-view="public">
+<html lang="en" data-ground="paper" data-view="public">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -9,6 +9,18 @@
 <link rel="stylesheet" href="assets/fonts.css">
 <link rel="stylesheet" href="assets/tokens.css">
 <link rel="stylesheet" href="assets/app.css">
+<script>
+/* The saved ground, applied before first paint so the page never flashes the
+   one the reader did not ask for. Same key veil.js reads later. */
+(function () {
+  try {
+    var g = localStorage.getItem("veil:ground");
+    if (g === "graphite" || g === "paper") {
+      document.documentElement.setAttribute("data-ground", g);
+    }
+  } catch (e) {}
+})();
+</script>
 </head>
 
 <body>
@@ -21,11 +33,16 @@
       <span>facilitator <b>veil.devnet</b></span>
       <span>spec <b>x402</b></span>
     </div>
-    <nav>
+    <div class="tail">
+      <nav>
       <a href="index.html">Landing</a>
       <a href="dashboard.html">Merchant ledger</a>
+      <a href="docs/">Docs</a>
       <a href="limits.html">Honest limits</a>
-    </nav>
+      </nav>
+      <button type="button" class="btn secondary theme" data-theme-toggle
+            aria-pressed="false" aria-label="Switch the site to the graphite ground">Graphite</button>
+    </div>
   </div>
 </header>
 
@@ -54,7 +71,7 @@ GET /v1/oracle/tide<br>
 <b>← 402 Payment Required</b><br>
 &nbsp;&nbsp;accepts[0].scheme <span class="ok">"exact-confidential"</span><br>
 &nbsp;&nbsp;accepts[0].asset&nbsp; <span class="ok">6pFk…3ur</span><br>
-&nbsp;&nbsp;accepts[0].payTo&nbsp; 2xcuR…ATZt <span>(one-time)</span><br>
+&nbsp;&nbsp;accepts[0].payTo&nbsp; Ghmg5…9d1w <span>(one-time)</span><br>
 &nbsp;&nbsp;accepts[0].maxAmountRequired <span>49000</span><br>
 &nbsp; &nbsp;accepts[0].extra.privacy <span class="ok">confidential-balances</span><br>
 &nbsp;&nbsp;accepts[0].extra.poolIndex <span>7</span>
@@ -68,7 +85,7 @@ GET /v1/oracle/tide<br>
 <br>
 <b>← 200 OK</b> · resource delivered<br>
 &nbsp;&nbsp;paid <span class="ok">true</span><br>
-&nbsp;&nbsp;settled.at <span class="val">14:21:06</span><br>
+&nbsp;&nbsp;settled.at <span class="val">22:39:12</span><br>
 &nbsp;&nbsp;settled.signature <span class="val">null</span><br>
 &nbsp;&nbsp;amount <span class="hid">[ciphertext on chain]</span><br>
 &nbsp;&nbsp;mode <span>local-ledger-only</span>
@@ -92,14 +109,20 @@ GET /v1/oracle/tide<br>
       <!-- veil:body -->
 <pre>{
   <span class="key">"x402Version"</span>: <span class="val">2</span>,
+  <span class="key">"resource"</span>: {
+    <span class="key">"url"</span>: <span class="str">"https://veil-devnet.vercel.app/v1/oracle/tide"</span>,
+    <span class="key">"description"</span>: <span class="str">"Sea-state and tidal window, per call (0.049000 units)"</span>,
+    <span class="key">"mimeType"</span>: <span class="str">"application/json"</span>
+  },
   <span class="key">"accepts"</span>: [
     {
       <span class="key">"scheme"</span>: <span class="str">"exact-confidential"</span>,
-      <span class="key">"network"</span>: <span class="str">"solana:devnet"</span>,
+      <span class="key">"network"</span>: <span class="str">"solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1"</span>,
       <span class="key">"asset"</span>: <span class="str">"6pFkZndusKGifrKLXgaQJFjUT3Gi9n1uXcwkG7Jef3ur"</span>,
-      <span class="key">"payTo"</span>: <span class="str">"2xcuRtD2dEvNnCwSgyavAwPJdKii8o62w4XhxxkUATZt"</span>,
+      <span class="key">"payTo"</span>: <span class="str">"Ghmg5ChYw63TWuNrFASTSu38oCokx6xLLM9x2P8A9d1w"</span>,
       <span class="key">"maxAmountRequired"</span>: <span class="str">"49000"</span>,
-      <span class="key">"resource"</span>: <span class="str">"/v1/oracle/tide"</span>,
+      <span class="key">"amount"</span>: <span class="str">"49000"</span>,
+      <span class="key">"resource"</span>: <span class="str">"https://veil-devnet.vercel.app/v1/oracle/tide"</span>,
       <span class="key">"description"</span>: <span class="str">"Sea-state and tidal window, per call (0.049000 units)"</span>,
       <span class="key">"maxTimeoutSeconds"</span>: <span class="val">60</span>,
       <span class="key">"extra"</span>: {
@@ -215,14 +238,20 @@ GET /v1/oracle/tide<br>
       <!-- veil:refusal -->
 <pre>{
   <span class="key">"x402Version"</span>: <span class="val">2</span>,
+  <span class="key">"resource"</span>: {
+    <span class="key">"url"</span>: <span class="str">"https://veil-devnet.vercel.app/v1/attest/sensor"</span>,
+    <span class="key">"description"</span>: <span class="str">"Sensor provenance attestation, per call (0.012000 units)"</span>,
+    <span class="key">"mimeType"</span>: <span class="str">"application/json"</span>
+  },
   <span class="key">"accepts"</span>: [
     {
       <span class="key">"scheme"</span>: <span class="str">"exact-confidential"</span>,
-      <span class="key">"network"</span>: <span class="str">"solana:devnet"</span>,
+      <span class="key">"network"</span>: <span class="str">"solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1"</span>,
       <span class="key">"asset"</span>: <span class="str">"6pFkZndusKGifrKLXgaQJFjUT3Gi9n1uXcwkG7Jef3ur"</span>,
-      <span class="key">"payTo"</span>: <span class="str">"FkYcqJMo7qhPH25gk1YK3pBvarQe7zpgy4WmFMMr9Q6h"</span>,
+      <span class="key">"payTo"</span>: <span class="str">"C4Jqv2NMPv49QWjyW2B7eJaVgTeP6naC8BzKRWqqp8Sx"</span>,
       <span class="key">"maxAmountRequired"</span>: <span class="str">"12000"</span>,
-      <span class="key">"resource"</span>: <span class="str">"/v1/attest/sensor"</span>,
+      <span class="key">"amount"</span>: <span class="str">"12000"</span>,
+      <span class="key">"resource"</span>: <span class="str">"https://veil-devnet.vercel.app/v1/attest/sensor"</span>,
       <span class="key">"description"</span>: <span class="str">"Sensor provenance attestation, per call (0.012000 units)"</span>,
       <span class="key">"maxTimeoutSeconds"</span>: <span class="val">60</span>,
       <span class="key">"extra"</span>: {
@@ -252,6 +281,7 @@ GET /v1/oracle/tide<br>
       <nav>
         <a href="index.html">Landing</a>
         <a href="dashboard.html">Merchant ledger</a>
+        <a href="docs/">Docs</a>
         <a href="limits.html">Honest limits</a>
       </nav>
       <div class="row">
@@ -309,10 +339,12 @@ GET /v1/oracle/tide<br>
     statusEl.textContent = 'unavailable';
     line(reason, 'hid');
     line('', null);
-    line('The prover needs a served origin (http://), not file://, because a browser', null);
-    line('refuses module imports from the filesystem. Run the server and reload:', null);
+    line('The prover needs a served origin (http://), not the filesystem, because', null);
+    line('a browser refuses module imports from a file. Open this page from the', null);
+    line('hosted site — https://veil-devnet.vercel.app/402.html — or serve the', null);
+    line('repo yourself:', null);
     line('', null);
-    line('  npm run build:proofs && npm run veil -- serve', 'ok');
+    line('  npm run build:proofs && npm run web', 'ok');
   }
 
   async function load() {

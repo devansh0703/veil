@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en" data-ground="paper">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Troubleshooting — Veil docs</title>
+<meta name="description" content="Every error Veil raises carries a code, a fix, and a link to this page. Find your code below. The fix on the error object is the authoritative one; this page…">
+<!-- Every face is self-hosted (see assets/fonts.css). No font CDN at runtime. -->
+<link rel="stylesheet" href="../assets/fonts.css">
+<link rel="stylesheet" href="../assets/tokens.css">
+<link rel="stylesheet" href="../assets/app.css">
+<link rel="stylesheet" href="../assets/docs.css">
+<script>
+/* The saved ground, applied before first paint so the page never flashes the
+   one the reader did not ask for. Same key veil.js reads later. */
+(function () {
+  try {
+    var g = localStorage.getItem("veil:ground");
+    if (g === "graphite" || g === "paper") {
+      document.documentElement.setAttribute("data-ground", g);
+    }
+  } catch (e) {}
+})();
+</script>
+</head>
+
+<body>
+<a class="skip" href="#doc">Skip to the documentation</a>
+
+<header class="masthead">
+  <div class="wrap">
+    <a class="wordmark" href="../index.html"><span class="v">V</span>EIL</a>
+    <div class="who">
+      <span>docs <b>v1</b></span>
+      <span>rail <b>x402</b></span>
+    </div>
+    <div class="tail">
+      <nav>
+        <a href="../index.html">Landing</a>
+        <a href="./" aria-current="page">Docs</a>
+        <a href="../dashboard.html">Ledger</a>
+        <a href="../limits.html">Limits</a>
+      </nav>
+      <button type="button" class="btn secondary theme" data-theme-toggle
+              aria-pressed="false" aria-label="Switch the site to the graphite ground">Graphite</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap doc-layout">
+  <aside class="doc-nav" aria-label="Documentation">
+      <div class="doc-group">
+        <p class="k">Getting started</p>
+        <ul>
+          <li><a href="./">Introduction</a></li>
+          <li><a href="./quickstart">Quickstart</a></li>
+        </ul>
+      </div>
+      <div class="doc-group">
+        <p class="k">Core concepts</p>
+        <ul>
+          <li><a href="./concepts">Concepts</a></li>
+        </ul>
+      </div>
+      <div class="doc-group">
+        <p class="k">Reference</p>
+        <ul>
+          <li><a href="./api">API reference</a></li>
+          <li><a href="./troubleshooting" aria-current="page">Troubleshooting</a></li>
+        </ul>
+      </div>
+      <div class="doc-group">
+        <p class="k">Prove it</p>
+        <ul>
+          <li><a href="./verify-it-yourself">Verify it yourself</a></li>
+        </ul>
+      </div>
+    </aside>
+
+  <main class="doc-body" id="doc">
+    <p class="doc-crumb"><a href="./">Docs</a> / Troubleshooting</p>
+    <h1 class="doc-title">Troubleshooting</h1>
+    <p class="lede">Every error Veil raises carries a code, a fix, and a link to this page. Find your code below. The fix on the error object is the authoritative one; this page explains why.</p>
+    <hr>
+<h2 id="veil-acc-001-destination-cannot-receive-confidential-credits"><code>VEIL-ACC-001</code> — destination cannot receive confidential credits</h2>
+<p><code>type: veil_refusal</code></p>
+<p>The account the rail offered as the destination is not configured for confidential transfers, or is not approved. Token-2022 confidential accounts need a real ceremony before they can hold anything: a configuration proof signed by the <em>owner's</em> key, plus an approval from the mint authority if <code>autoApproveNewAccounts</code> is off on the mint.</p>
+<p><strong>Fix.</strong> If you are the payer and the rail is hosted, this is a rail-side seat problem — the rail has a pool of pre-armed accounts and one of them was not armed. If you are running the rail, arm the seat, or give the payer dollars:</p>
+<pre class="code"><code class="language-bash">npm run sandbox -- --key .keys/agent.json</code></pre>
+<p><strong>Why it is a refusal, not a retry.</strong> Retrying cannot make an unconfigured account configured. A retry loop here would burn your nonce for nothing.</p>
+<hr>
+<h2 id="veil-budget-002-would-exceed-your-budget"><code>VEIL-BUDGET-002</code> — would exceed your budget</h2>
+<p><code>type: veil_budget_error</code></p>
+<p>Checked <strong>before</strong> anything is signed. If you set <code>--budget 0.10</code> and the rail asks for more than the remaining headroom, the call stops.</p>
+<p><strong>Fix.</strong> Raise the budget, or spend less before this call. If you are running more than one call, thread the <code>spent</code> value the previous result returned — <code>createVeilAgent</code> does this for you.</p>
+<p><strong>The important non-fix.</strong> Do not work around this by removing the budget. Veil will not fall back to a public payment, and a caller that disables its own cap has removed the property that makes an autonomous agent safe to run.</p>
+<hr>
+<h2 id="veil-conf-003-confidentiality-cannot-be-guaranteed-refusing-to-pay"><code>VEIL-CONF-003</code> — confidentiality cannot be guaranteed — refusing to pay</h2>
+<p><code>type: veil_refusal</code></p>
+<p><strong>Load-bearing, and deliberate.</strong> The rail's precondition probe returned an answer that is not "yes". A confidential payment that cannot be demonstrated to be confidential is a public payment with extra steps, and this product refuses to make one.</p>
+<p><strong>Fix.</strong> Fix the configuration the refusal names (it is on the 402 body's <code>veil</code> field), or point at a rail configured for the mint. The privacy probe's answer is the thing to read — Veil reports <em>declared</em> versus <em>read</em> separately, so a rail that claims confidentiality it cannot demonstrate shows up here rather than silently paying in the clear.</p>
+<hr>
+<h2 id="veil-offer-004-the-402-is-not-a-usable-veil-offer"><code>VEIL-OFFER-004</code> — the 402 is not a usable Veil offer</h2>
+<p><code>type: veil_rail_error</code></p>
+<p>Three causes, in order of likelihood:</p>
+<ol><li><strong>The URL is not a Veil resource.</strong> Check it: <code>curl -i &lt;url&gt;?nonce=1</code> — a Veil</li><li>rail answers <code>402</code> with an <code>accepts[0].scheme</code> of <code>exact-confidential</code>.</li><li><strong>The scheme is wrong.</strong> A stock x402 endpoint answers <code>exact</code>, not</li><li><code>exact-confidential</code>.</li><li><strong>The identity is already settled.</strong> The rail sent <code>409</code>, not <code>402</code>. Use a</li><li>fresh nonce — <code>createVeilAgent</code> does this per call.</li></ol>
+<p><strong>Fix.</strong> <code>npm run veil -- doctor</code> prints whether the rail is reachable and what it quotes.</p>
+<hr>
+<h2 id="veil-pool-005-no-unconsumed-one-time-account-left"><code>VEIL-POOL-005</code> — no unconsumed one-time account left</h2>
+<p><code>type: veil_refusal</code></p>
+<p>The merchant's pool of one-time accounts is exhausted. This is a <strong>feature, not a leak</strong>: a settled account is never re-armed, because re-arming would put a second payment into an account that already holds a settled one, and the public graph would link them. So the pool grows instead, and exhaustion is named.</p>
+<p><strong>Fix.</strong> Grow the pool (<code>poolSize</code> when creating the merchant, or <code>npm run setup:devnet -- --apply</code> for a cluster that already has one). Retrying the <em>same</em> payment identity returns its own account rather than spending another one, but it cannot free a seat: reservations are never recycled, so the alias stays exhausted until the pool grows. On a hosted rail with the durable ledger configured the answer is the same on every instance (<code>/v1/health</code> reports <code>ledger: durable-store</code>); without those credentials the ledger is per-instance in <code>/tmp</code> and this refusal can differ between instances.</p>
+<hr>
+<h2 id="veil-contend-008-no-address-could-be-claimed-for-this-payment"><code>VEIL-CONTEND-008</code> — no address could be claimed for this payment</h2>
+<p><code>type: veil_refusal</code></p>
+<p>On a hosted rail the same product answers on several instances, and an offer is a claim on a one-time address: it only exists once the shared ledger says so. Two instances can pick the same free seat for two different payments, and the ledger keeps whichever claim was written first — so the loser has already named an address it does not own. Paying into it would take the payer's money into an account that belongs to another payment, and the settle would then be refused: money moved, nothing credited.</p>
+<p>So the rail re-picks rather than answering with a seat it lost. <code>VEIL-CONF-006</code> is that losing several times in a row — the rail could not claim <em>any</em> seat for this payment within its retry budget, so the offer is refused instead of one it cannot honour. This is a property of the rail under contention, not of the payer, and it is <strong>safe to retry</strong> — the next attempt starts from the newest shared state.</p>
+<p><strong>Fix.</strong> Retry the request. If it keeps happening, reservations are being recorded slower than quotes are being answered: grow the pool (<code>npm run setup:devnet -- --apply</code>), or run fewer instances against one store.</p>
+<p>The server-side code for this is <code>VEIL-CONF-006</code>; the client maps it here because "retry" is the whole remedy and the rail's own name for it says nothing about what the caller should do.</p>
+<hr>
+<h2 id="veil-pay-006-built-but-did-not-settle"><code>VEIL-PAY-006</code> — built but did not settle</h2>
+<p><code>type: veil_rail_error</code></p>
+<p>The proofs verified and the transfer was signed, but the rail did not settle it. The <code>cause</code> field carries the rail's <code>detail</code>, unswallowed. The three real causes:</p>
+<ul><li><strong>Signature verification failed.</strong> The fee payer did not co-sign. The rail</li><li>co-signs the network fee; if you are running your own rail and skipped</li><li><code>feePayer</code>, the RPC rejects the transaction because one required signature is</li><li>absent. Configure a co-signer.</li><li><strong>Not enough SOL.</strong> The payer pays for its own proof transactions. Fund it.</li><li><strong>Simulation failure.</strong> Read <code>detail</code>; it is the program's own error, not a</li><li>summary.</li></ul>
+<hr>
+<h2 id="veil-rail-007-the-rail-could-not-be-reached"><code>VEIL-RAIL-007</code> — the rail could not be reached</h2>
+<p><code>type: veil_rail_error</code></p>
+<p>You passed a path where an origin was expected, or the network dropped. The <code>--rail</code> value must be an origin (<code>https://host</code>), not a URL with a path.</p>
+<p><strong>Fix.</strong> <code>curl &lt;rail&gt;/v1/health</code>. If that fails, nothing else will work.</p>
+<hr>
+<h2 id="symptoms-without-a-code">Symptoms without a code</h2>
+<p><strong><code>scheme must be exact-confidential, got undefined</code></strong> You sent the <em>hoisted</em> x402 v2 payload, which nests <code>scheme</code> under <code>accepted</code>. The rail reads <code>scheme</code> top-level. Send the rail's native payload (see <a href="./api#http-protocol">API reference · HTTP protocol</a>).</p>
+<p><strong><code>Transaction did not pass signature verification</code></strong> The fee payer is missing its signature. See <code>VEIL-PAY-006</code> above.</p>
+<p><strong><code>decryption failed</code> / a balance that reads as garbage</strong> The confidential keys do not match the account. Confidential keys are derived from the owner's keypair via a deterministic signature — if you load the wrong key file, or a key file whose first 32 bytes are not the seed, the ciphertext will not decrypt. The key format every script here expects is a JSON array of 64 bytes: <code>seed ‖ publicKey</code>.<strong><code>429</code> from the RPC</strong> The public devnet/testnet RPC is rate-limited. Set <code>VEIL_RPC_URL</code> to a dedicated endpoint, or put <code>HELIUS_API_KEY</code> in the environment: with no <code>VEIL_RPC_URL</code>, devnet runs then resolve to Helius automatically (Helius has no testnet cluster, so testnet always needs an explicit <code>VEIL_RPC_URL</code>). Explorer links can also be slow to resolve for the same reason — the transaction is on chain even when the explorer page lags.</p>
+<p><strong><code>postinstall</code> / <code>npx</code> says the package does not exist</strong> <code>veil-x402</code> is not published to the registry yet. The scaffold points at a working copy with a <code>file:</code> dependency; see the <code>README.md</code> it generates.</p>
+    <nav class="doc-pager" aria-label="Documentation pages">
+        <a class="pager prev" href="./api"><span class="k">Previous</span>API reference</a>
+        <a class="pager next" href="./verify-it-yourself"><span class="k">Next</span>Verify it yourself</a>
+      </nav>
+  </main>
+
+  <nav class="doc-toc" aria-label="On this page">
+        <p class="k">On this page</p>
+        <ul>
+          <li><a href="#veil-acc-001-destination-cannot-receive-confidential-credits">VEIL-ACC-001 — destination cannot receive confidential credits</a></li>
+          <li><a href="#veil-budget-002-would-exceed-your-budget">VEIL-BUDGET-002 — would exceed your budget</a></li>
+          <li><a href="#veil-conf-003-confidentiality-cannot-be-guaranteed-refusing-to-pay">VEIL-CONF-003 — confidentiality cannot be guaranteed — refusing to pay</a></li>
+          <li><a href="#veil-offer-004-the-402-is-not-a-usable-veil-offer">VEIL-OFFER-004 — the 402 is not a usable Veil offer</a></li>
+          <li><a href="#veil-pool-005-no-unconsumed-one-time-account-left">VEIL-POOL-005 — no unconsumed one-time account left</a></li>
+          <li><a href="#veil-contend-008-no-address-could-be-claimed-for-this-payment">VEIL-CONTEND-008 — no address could be claimed for this payment</a></li>
+          <li><a href="#veil-pay-006-built-but-did-not-settle">VEIL-PAY-006 — built but did not settle</a></li>
+          <li><a href="#veil-rail-007-the-rail-could-not-be-reached">VEIL-RAIL-007 — the rail could not be reached</a></li>
+          <li><a href="#symptoms-without-a-code">Symptoms without a code</a></li>
+        </ul>
+      </nav>
+</div>
+
+<footer>
+  <div class="foot">
+    <span class="marker">docs built from <b>docs/*.md</b> · hosted rail: <b>veil-devnet.vercel.app</b></span>
+    <nav>
+      <a href="../index.html">Landing</a>
+      <a href="../dashboard.html">Merchant ledger</a>
+      <a href="../limits.html">Honest limits</a>
+      <a href="../402.html">402 body</a>
+    </nav>
+    <div class="row">
+      <a class="btn primary" href="./quickstart">Quickstart</a>
+      <a class="btn secondary" href="../index.html">Home</a>
+    </div>
+  </div>
+</footer>
+
+<script src="../assets/pretext.js"></script>
+<script src="../assets/veil.js"></script>
+</body>
+</html>

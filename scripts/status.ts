@@ -179,7 +179,7 @@ lines.push(
   '    confidential transfers on testnet and devnet (the table above), with the',
   '    three proofs generated locally on every run.',
   '  - Hosting exists, with a caveat. serve and the facilitator are deployed at',
-  '    https://veil-sable-five.vercel.app (free tier) and settle through the public',
+  '    https://veil-devnet.vercel.app (free tier) and settle through the public',
   '    URL — but the hosted ledger is per-instance (/tmp, re-seeded on cold start)',
   '    and the public RPC still rate-limits bursts, so a busy rail needs a paid',
   '    endpoint and shared seat state.',

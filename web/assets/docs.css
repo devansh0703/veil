@@ -1,0 +1,117 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Documentation layout.
+
+   Three columns on a wide screen — sidebar, body, on-this-page — collapsing to
+   body-only on a phone. The sidebar and the page list are navigation, so they
+   stay quiet: mono labels, rules, no cards. Everything reads from the same
+   tokens as the rest of the site, which is what makes the theme switch work
+   here without a second set of values.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.doc-layout{display:grid;
+  grid-template-columns:minmax(0,200px) minmax(0,1fr) minmax(0,180px);
+  gap:var(--s8);padding-top:var(--s8);padding-bottom:var(--s12);align-items:start}
+
+/* ── sidebar ─────────────────────────────────────────────────────────────── */
+.doc-nav{position:sticky;top:76px;max-height:calc(100vh - 96px);overflow-y:auto;
+  padding-bottom:var(--s6)}
+.doc-group{margin-bottom:var(--s6)}
+.doc-group .k{margin:0 0 var(--s2)}
+.doc-group ul{list-style:none;margin:0;padding:0}
+.doc-group li{margin:0}
+.doc-group a{display:block;padding:6px 0;font-size:var(--t-ui);color:var(--text-muted);
+  text-decoration:none;border-left:2px solid transparent;padding-left:var(--s3);
+  margin-left:-2px}
+.doc-group a:hover{color:var(--text)}
+.doc-group a[aria-current="page"]{color:var(--text);font-weight:600;
+  border-left-color:var(--accent)}
+
+/* ── body ────────────────────────────────────────────────────────────────── */
+.doc-crumb{font-family:var(--font-mono);font-size:var(--t-small);
+  color:var(--text-muted);margin:0 0 var(--s3)}
+.doc-crumb a{color:var(--text-muted);text-decoration:none}
+.doc-crumb a:hover{color:var(--text);text-decoration:underline}
+.doc-title{font-family:var(--font-display);font-weight:700;
+  font-size:clamp(1.75rem,3.4vw,2.5rem);letter-spacing:-.02em;
+  margin:0 0 var(--s3);line-height:1.1;padding-bottom:0;border-bottom:0}
+.doc-body .lede{font-size:var(--t-h2);max-width:60ch;margin-bottom:var(--s6);
+  color:var(--text-muted)}
+.doc-body h2{font-family:var(--font-display);font-size:var(--t-h1);
+  margin:var(--s12) 0 var(--s4);padding-bottom:var(--s2);
+  border-bottom:1px solid var(--border);scroll-margin-top:80px}
+.doc-body h3{font-family:var(--font-body);font-weight:600;font-size:var(--t-h2);
+  margin:var(--s8) 0 var(--s3);scroll-margin-top:80px}
+.doc-body h4{font-family:var(--font-body);font-weight:600;font-size:var(--t-ui);
+  margin:var(--s6) 0 var(--s2);color:var(--text-muted);scroll-margin-top:80px}
+.doc-body p{max-width:74ch}
+.doc-body ul,.doc-body ol{max-width:74ch;margin:0 0 var(--s4);padding-left:var(--s6)}
+.doc-body li{margin-bottom:var(--s2);font-size:var(--t-body)}
+.doc-body li::marker{color:var(--text-muted)}
+.doc-body hr{border:0;border-top:1px solid var(--border);margin:var(--s8) 0}
+.doc-body a{color:var(--accent);text-decoration:underline;
+  text-underline-offset:3px;text-decoration-thickness:1px}
+.doc-body a:hover{text-decoration-thickness:2px}
+.doc-body strong{font-weight:600;color:var(--text)}
+
+/* Code, in both of its forms: inline stays in the line, fenced becomes a body. */
+.doc-body code{font-family:var(--font-mono);font-size:.92em;
+  background:var(--chip-bg);padding:1px 5px;border-radius:var(--r-sm)}
+.doc-body pre.code{background:var(--surface-raise);border:1px solid var(--border);
+  border-radius:var(--r-md);padding:var(--s4);overflow-x:auto;margin:0 0 var(--s4)}
+.doc-body pre.code code{background:none;padding:0;font-size:var(--t-small);
+  line-height:1.7;color:var(--text)}
+.doc-body pre.code .language-bash{}
+
+/* Tables: the header row takes the tracked label treatment the rest of the
+   site uses, and the wrapper scrolls rather than crushing the columns. */
+.table-wrap{overflow-x:auto;margin:0 0 var(--s4);max-width:100%}
+.doc-body table{min-width:min(100%,640px)}
+.doc-body th{font-family:var(--font-body);font-weight:600;font-size:var(--t-label);
+  letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);
+  padding:0 var(--s4) var(--s2) 0;text-align:left;
+  border-bottom:1px solid var(--border);white-space:nowrap}
+.doc-body td{padding:11px var(--s4) 11px 0;border-top:1px solid var(--border);
+  vertical-align:top;font-size:var(--t-ui)}
+.doc-body td.k{font-family:var(--font-mono);white-space:nowrap;color:var(--text)}
+.doc-body td code{white-space:nowrap}
+
+/* ── on this page ────────────────────────────────────────────────────────── */
+.doc-toc{position:sticky;top:76px;max-height:calc(100vh - 96px);overflow-y:auto;
+  border-left:1px solid var(--border);padding-left:var(--s4);padding-bottom:var(--s6)}
+.doc-toc .k{margin:0 0 var(--s2)}
+.doc-toc ul{list-style:none;margin:0;padding:0}
+.doc-toc li{margin-bottom:var(--s2)}
+.doc-toc a{font-size:var(--t-label);color:var(--text-muted);text-decoration:none;
+  display:block;line-height:1.4}
+.doc-toc a:hover{color:var(--text)}
+
+/* ── previous / next ─────────────────────────────────────────────────────── */
+.doc-pager{display:grid;grid-template-columns:1fr 1fr;gap:var(--s4);
+  margin-top:var(--s12);border-top:1px solid var(--border);padding-top:var(--s6)}
+.pager{display:flex;flex-direction:column;gap:var(--s1);padding:var(--s4);
+  border:1px solid var(--border);border-radius:var(--r-md);text-decoration:none;
+  color:var(--text);font-size:var(--t-ui);font-weight:600;
+  background:var(--surface-raise)}
+.pager:hover{border-color:var(--accent)}
+.pager .k{color:var(--text-muted)}
+.pager.next{text-align:right;grid-column:2}
+
+/* ── responsive ──────────────────────────────────────────────────────────── */
+@media (max-width:1280px){
+  .doc-layout{grid-template-columns:minmax(0,200px) minmax(0,1fr);gap:var(--s8)}
+  .doc-toc{display:none}
+}
+@media (max-width:860px){
+  .doc-layout{grid-template-columns:minmax(0,1fr);gap:var(--s6)}
+  .doc-nav{position:static;max-height:none;overflow:visible;
+    border-bottom:1px solid var(--border);padding-bottom:var(--s4);
+    display:flex;flex-wrap:wrap;gap:var(--s6)}
+  .doc-group{margin-bottom:0}
+  .doc-group ul{display:flex;flex-wrap:wrap;gap:var(--s3)}
+  .doc-group a{border-left:0;padding-left:0;margin-left:0;
+    border-bottom:2px solid transparent}
+  .doc-group a[aria-current="page"]{border-left-color:transparent;
+    border-bottom-color:var(--accent)}
+  .doc-pager{grid-template-columns:1fr}
+  .pager.next{text-align:left;grid-column:1}
+}

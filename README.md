@@ -1,10 +1,10 @@
 # Veil
 
-[![CI](https://github.com/devansh0703/veil/actions/workflows/ci.yml/badge.svg)](https://github.com/devansh0703/veil/actions/workflows/ci.yml) [![Deployed](https://img.shields.io/badge/live-veil--sable--five.vercel.app-2f855a)](https://veil-sable-five.vercel.app)
+[![CI](https://github.com/devansh0703/veil/actions/workflows/ci.yml/badge.svg)](https://github.com/devansh0703/veil/actions/workflows/ci.yml) [![Deployed](https://img.shields.io/badge/live-veil--sable--five.vercel.app-2f855a)](https://veil-devnet.vercel.app)
 
 **Private payment rails for the agent economy.**
 
-**Live rail: [https://veil-sable-five.vercel.app](https://veil-sable-five.vercel.app)** —
+**Live rail: [https://veil-devnet.vercel.app](https://veil-devnet.vercel.app)** —
 the product page, a 402 offer with a real seat (`GET /v1/oracle/tide`), and the
 facilitator (`/facilitator/health`, `/verify`, `/settle`) over public HTTPS on
 Solana testnet. Reproduce the hosted settlement with `VEIL_FACILITATOR_URL`
@@ -67,7 +67,7 @@ Requires Node ≥ 22. No global installs.
 
 ```bash
 npm install
-npm run verify     # typecheck + 115 unit tests, no network
+npm run verify     # typecheck + 141 unit tests, no network
 npm run demo       # 10 protocol scenarios over real HTTP, then render the pages
 npm run standalone # optional: one self-contained HTML file per surface
 ```
@@ -102,6 +102,63 @@ npm run build:proofs                               # the browser prover artifact
 VEIL_RPC_URL=https://api.testnet.solana.com VEIL_NETWORK=solana:testnet npm run go:live
 # add --apply to broadcast: it creates, funds, deposits, proves, transfers, applies
 ```
+
+### Agent side, in one command
+
+```bash
+npm run sandbox     -- --key .keys/agent.json                 # key, SOL, confidential account, test dollars
+npm run pay:agent   -- --key .keys/agent.json --url <rail-resource> --budget 0.10
+npm run cli         -- balance --key .keys/agent.json         # decrypt what it holds
+npm run cli         -- doctor                                 # is the rail reachable?
+```
+
+---
+
+## Documentation
+
+| Doc | What it is for |
+| --- | --- |
+| [Quickstart](docs/quickstart.md) | Buy something, sell something, both in under five minutes. |
+| [Concepts](docs/concepts.md) | Why amounts are hidden and addresses are not — and the honest limit of that. |
+| [API reference](docs/api.md) | Every export, option and return value, plus the raw 402/`X-PAYMENT` protocol. |
+| [Troubleshooting](docs/troubleshooting.md) | Every error code, keyed to its fix. Start here when a payment fails. |
+| [Verify it yourself](docs/verify-it-yourself.md) | Go from an explorer link to the CLI check that reads the ciphertext back. |
+| [CHANGELOG](CHANGELOG.md) | What changed, and the `0.x` breaking-change policy. |
+
+License: [MIT](LICENSE). Questions and integration reports: GitHub Discussions.
+
+---
+
+## Set up your own merchant — a wallet and a price
+
+x402's seller quickstart is *your API + a receive address + the middleware pointed
+at the facilitator*. Veil keeps the same sentence and drops one clause: the
+facilitator runs in the same process, so you never configure its URL. What you
+supply is a wallet to be paid at and a price.
+
+```ts
+import { veil } from './packages/server/src/index.ts';
+
+const { server } = await veil({
+  payTo: 'YourWalletAddress',   // the one required field
+  price: '0.05',                // default '0.05'
+  path: '/data',                // default '/'
+  produce: () => ({ hello: 'you paid, privately' }),
+});
+server.listen(4021);
+```
+
+`node examples/merchant.ts` runs exactly that. The first run provisions eight
+one-time accounts for the wallet and records the pool on disk; later runs reuse
+it. Network, mint and precision default to the hosted rail's public config
+(`HOSTED_DEFAULTS` in `packages/server`), and the confidentiality gate is answered
+from the pool that call wrote — reported as `pool-ledger`, never `chain`, so the
+declared-vs-read distinction stays visible. If the preconditions cannot be
+vouched for, the merchant refuses rather than downgrading the payment to public.
+
+Everything a full deployment exposes works here with no more configuration:
+`GET /.well-known/veil` describes the resource, an unpaid request returns a
+standard x402 402, and a paid retry settles and serves `produce()`.
 
 ---
 
@@ -142,6 +199,7 @@ Every refusal has one code, one cause, and one thing the agent should do.
 | `VEIL-CONF-003` | 402 | confidentiality cannot be guaranteed — refuse to serve | no |
 | `VEIL-CONF-004` | 402 | buyer would exceed its declared spend cap | only by changing the request |
 | `VEIL-CONF-005` | 503 | one-time address pool exhausted | only by growing the pool |
+| `VEIL-CONF-006` | 503 | could not claim an address before another instance took it | yes — and growing the pool if it persists |
 
 A refusal carries **no `accepts[]` entry at all**. An offer alongside a refusal would
 invite a client to pay something the server has already said it cannot settle
@@ -404,6 +462,33 @@ clusters. Run records are tagged per cluster (`data/pay-live.json` against
 which cluster a record belongs to, so one cluster's bookkeeping never blocks the
 other.
 
+#### Fresh runs — the sandbox and the agent CLI
+
+Both clusters were re-run from the new tooling, on wallets that did not exist
+before, to answer the question a stranger actually asks: *can I just pay?*
+
+| cluster | what | settlement |
+| --- | --- | --- |
+| testnet | a stranger wallet, onboarded by `veil init --sandbox` and paid through the **hosted** rail | [`58oJFwwQ…`](https://explorer.solana.com/tx/58oJFwwQzwwHhJQ299sy9TvWvWvM2vPDq2PnyBnLB5yTNkz1xgBV2k5HfDzBM3vsPdtuUoKPaMkcxJPzQ5dgVsF1?cluster=testnet) → seat `6yLQjQH…` |
+| testnet | a **second, distinct** payer (`.keys/test-payer.json`) through the same rail | [`4UHW96yi…`](https://explorer.solana.com/tx/4UHW96yi76ecKrFVVXFs8irpawaQzDx2Kp681EG899EWWnnv5VA9n2x5tg6CbPYBhvCM5fgREV8udKqsHPZq32Ec?cluster=testnet) → seat `Dbv7UiuJ…` |
+| devnet | a stranger wallet, onboarded by the same command against devnet, paid through a locally-served devnet rail | [`66GQJ11z…`](https://explorer.solana.com/tx/66GQJ11z8NG1UcZmmJvjoKpVzBiXo8DksZBnRA74WD145KCMfjA6EAeBiWH85iiQNvtM1xFDChbrcNDsGHDRWB3d?cluster=devnet) → seat `8NzXxVqL…` |
+
+The two testnet payments landed in **different seats** — one merchant, two
+payments, two unrelated accounts. That is the graph claim made concrete rather
+than argued, and `veil balance` reads both and totals them across every seat.
+
+The devnet run needs a devnet rail, which the deployment does not serve (the
+hosted rail is `solana:testnet`); it was served locally on the loopback, with
+`/supported` and the facilitator endpoints mounted on the same origin so the
+local surface answers exactly what the deployed one does. Neither cluster's
+funding was disturbed: the operator's testnet balance funded the two testnet
+runs, and devnet held.
+
+`arm-pool.ts` grows a merchant's seats, and both clusters' pools are one seat
+per alias on devnet and four for `payee.test` on testnet, so a second payment
+from a *different* payer has somewhere to land instead of a `VEIL-CONF-005`
+refusal.
+
 ### What both clusters cost
 
 | cluster | started | left | spent | where it went |
@@ -411,31 +496,129 @@ other.
 | testnet | 5.0000 SOL | 4.8051 SOL | ≈ 0.195 SOL | 24-seat pool + mint + go:live / pay:live fees |
 | devnet | 5.0000 SOL | 4.9828 SOL in the two wallets | ≈ 0.017 SOL | ≈ 0.0169 rent (mint, 3 seats, 2 run accounts — reclaimable by closing) + ≈ 0.0003 in fees |
 
-### The rail, hosted — https://veil-sable-five.vercel.app
+### The rail, hosted — https://veil-devnet.vercel.app
 
 The merchant server and the facilitator are not just local processes. The same
 code runs behind public HTTPS:
 
 | | |
 | --- | --- |
-| product page | https://veil-sable-five.vercel.app/ |
+| product page | https://veil-devnet.vercel.app/ |
+| discovery | `GET /.well-known/veil` → 200, scheme, mint, every resource with its **absolute** `url` and price, privacy gate source, refusal codes |
 | merchant health | `GET /v1/health` → 200, pool size + settlement mode |
-| a 402 offer | `GET /v1/oracle/tide` → 402 with a live seat, price and testnet CAIP-2 (same for `/v1/quote/feedmarket`, `/v1/attest/sensor`) |
+| a 402 offer | `GET /v1/oracle/tide` → 402 with a live seat, price, an absolute `resource.url` and testnet CAIP-2 (same for `/v1/quote/feedmarket`, `/v1/attest/sensor`) |
 | facilitator | `GET /facilitator/health`, `GET /facilitator/supported`, `POST /facilitator/verify`, `POST /facilitator/settle` |
 | dashboard feed | `GET /api/ledger` |
-| CORS | `access-control-allow-origin: *` with `OPTIONS` preflight — a browser on any origin can pay |
+| CORS | `access-control-allow-origin: *`, `OPTIONS` preflight allows `content-type, x-payer, x-payment` — a browser on any origin can pay, and `x-payer` is allowed so browser payers are not forced onto one shared `anonymous` identity |
+
+The whole rail is usable with nothing running locally. Ask unpaid and you get a
+standard x402 402; settle a confidential transfer into the offered one-time
+account; retry the same URL with `X-PAYMENT` and read the resource:
+
+```bash
+# 1) ask unpaid — 402 with a one-time payTo, price and extra.privacy
+curl -i "https://veil-devnet.vercel.app/v1/oracle/tide?nonce=1" -H "X-Payer: my-agent"
+
+# 2) retry the same URL + nonce with the x402 v2 payload
+curl -i "https://veil-devnet.vercel.app/v1/oracle/tide?nonce=1" \
+  -H "X-Payer: my-agent" -H "X-PAYMENT: <base64 x402 v2 payload>"
+```
+
+`?nonce=` identifies one payment (keep it unique; a retry of a settled nonce is
+`409 payment-already-settled`, and a non-integer nonce is `400 invalid-nonce`).
+`X-Payer` names the buyer so a retry gets its own seat back. Both are settable
+cross-origin. `/.well-known/veil` is the discovery document an agent reads first.
 
 It runs on Vercel's free Hobby tier (no card), so the hosted rail costs **$0**;
 the only spend in this project is the SOL on chain. A real payment was settled
-end-to-end **through the hosted facilitator** on testnet:
-[`3L47ttQouoXWxu8Y7AZcKPH6FX6T6tvhG9upj5yRQK84PrqEf8HuKMrWa3BcEbNkuoAcuTfeFJ83h4ToxZ6AXKoy`](https://explorer.solana.com/tx/3L47ttQouoXWxu8Y7AZcKPH6FX6T6tvhG9upj5yRQK84PrqEf8HuKMrWa3BcEbNkuoAcuTfeFJ83h4ToxZ6AXKoy?cluster=testnet) —
+end-to-end **through the hosted facilitator** on the primary rail, devnet:
+[`2kmv4tYaDGWt2AdEE7wd194R2Zd7AfP9iqgNuci7uVuXPV7ZeMGCHuir7Jm5foZEJFTUY9f7sTphDdMiv64thYRr`](https://explorer.solana.com/tx/2kmv4tYaDGWt2AdEE7wd194R2Zd7AfP9iqgNuci7uVuXPV7ZeMGCHuir7Jm5foZEJFTUY9f7sTphDdMiv64thYRr?cluster=devnet) —
 payer funded itself, proved locally, `/verify` → `/settle` against the public URL,
-merchant decrypted 49000 with its own key.
+merchant decrypted 49000 with its own key. The same was proven on testnet:
+[`3L47ttQouoXWxu8Y7AZcKPH6FX6T6tvhG9upj5yRQK84PrqEf8HuKMrWa3BcEbNkuoAcuTfeFJ83h4ToxZ6AXKoy`](https://explorer.solana.com/tx/3L47ttQouoXWxu8Y7AZcKPH6FX6T6tvhG9upj5yRQK84PrqEf8HuKMrWa3BcEbNkuoAcuTfeFJ83h4ToxZ6AXKoy?cluster=testnet).
+
+#### Two deployments — devnet is the primary rail
+
+The same repository is deployed twice — once per cluster — because a rail's
+ledger is only meaningful on the chain its payers are actually on. Every link on
+the site and in the docs points at **devnet**, the rail a user should pay into:
+
+| cluster | deployment | network id on the wire |
+| --- | --- | --- |
+| devnet (primary) | https://veil-devnet.vercel.app | `solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1` |
+| testnet | https://veil-sable-five.vercel.app | `solana:4uhcVJyU9pJkvQyS88uRDiswHXSCkY3z` |
+
+Both are the same code path; `VEIL_NETWORK` and `VEIL_RPC_URL` are the whole
+difference. The seed is cluster-aware (`scripts/hosted.ts` picks
+`pool-ledger.devnet.json` on devnet), so the devnet rail never offers a testnet
+seat it cannot be paid into.
+
+#### The hosted ledger is durable, and now shared
+
+A serverless function's disk is read-only except `/tmp`, and `/tmp` belongs to
+one instance. That made the ledger per-instance memory: a seat consumed here was
+forgotten by the next cold start, which re-seeded from the bundle, and a caller
+could walk a pool to exhaustion within one instance's lifetime. Chain balances
+were never affected — this was accounting, not money — but "which seats are
+spent" depended on which instance answered, and a quote and its payment could
+land on two different ones.
+
+The ledger now lives in **Upstash Redis**, read and written over its HTTP REST
+API (`scripts/ledger-store.ts`). Three things make it correct rather than merely
+persistent:
+
+- **One key per cluster** (`veil:pool-ledger:v1`, `…v1.devnet`). Two pools under
+  one key would collide on `alias#slot`, and the devnet rail would overwrite
+  testnet's seats.
+- **Merge, then compare-and-set.** Consumption is monotonic — `consumedBy` only
+  goes from null to a payment id, `settledAt` is written once — so a concurrent
+  write loses nothing: the stored value plus ours *is* the union. `save` reads,
+  merges, and CASes in Lua, retrying if another instance moved the value first.
+- **Read-through on the request path.** A durable ledger that is only read at
+  cold start is still a snapshot, so every quote and settlement calls
+  `facilitator.refresh()` first. Load-time also merges the store's consumption
+  over the bundle's *structure*, so a redeploy that armed more seats grows the
+  pool instead of shrinking back to the first write.
+
+`GET /v1/health` reports which of the two it is (`ledger: durable-store` vs
+`local-file`), so a deployment with no credentials degrades visibly rather than
+silently. With neither `UPSTASH_REDIS_REST_URL` nor `UPSTASH_REDIS_REST_TOKEN`
+set, nothing changes: the rail keeps the `/tmp` copy it always had.
+
+A payment may also adopt a seat that is still free when the instance answering
+it never saw the quote's reservation — refusing there would take a real payment
+into the merchant's own account and record nothing. A seat a *different* payment
+already owns is still refused, which is the relinking the pool exists to
+prevent.
+
+#### RPC providers
+
+| cluster | endpoint | why |
+| --- | --- | --- |
+| testnet | `https://api.testnet.solana.com` | public — neither provider below runs a testnet node |
+| devnet | Helius (`HELIUS_API_KEY`), else `https://api.devnet.solana.com` | free tier, hosted, no card |
+| mainnet | Solami (`SOLAMI_API_KEY`), else Helius | free tier, hosted, no card |
+
+Resolution order is `--rpc` → `VEIL_RPC_URL` → Solami → Helius: a configured
+endpoint always wins because it names the cluster the deployment is really on.
+
+[Helius](https://www.helius.dev) serves **devnet and mainnet only** —
+`testnet.helius-rpc.com` does not resolve and the provider's docs list two
+clusters — so with `HELIUS_API_KEY` set and no `VEIL_RPC_URL`, devnet runs use a
+dedicated node instead of the rate-limited public one, and a testnet rail keeps
+its own endpoint rather than being pointed at a chain Helius does not run.
+
+[Solami](https://solami.dev) serves Solana on **mainnet-beta only** — its cluster
+route accepts `solana` and nothing else, and query params cannot change it
+(`?network=devnet` is ignored and the endpoint still answers with mainnet's
+genesis hash). It sits ahead of Helius in the chain, so a mainnet rail with
+`SOLAMI_API_KEY` set is unchanged; setting either key is a configuration change,
+not a code change.
 
 ```bash
 # the same run against the hosted facilitator (no local child process):
 VEIL_RPC_URL=https://api.testnet.solana.com VEIL_NETWORK=solana:testnet \
-  VEIL_FACILITATOR_URL=https://veil-sable-five.vercel.app/facilitator \
+  VEIL_FACILITATOR_URL=https://veil-devnet.vercel.app/facilitator \
   npm run pay:live -- --apply
 
 # redeploy after a change:
@@ -448,12 +631,19 @@ Environment (all set in the Vercel project, `VEIL_PAYER_SECRET` as a Secret from
 `VEIL_MINT_CONFIDENTIAL=true` (without it the gate refuses with `VEIL-CONF-003`),
 `VEIL_PAYER_SECRET`.
 
+The hosted function derives its own origin from the request (`Host` +
+`x-forwarded-proto`), so `resource.url` in every offer is the public
+`https://veil-devnet.vercel.app/...` a client can fetch back — no base URL to
+configure.
+
 Two things a hosted run has to admit:
 
-- **The ledger is per-instance.** Seat reservations live in `/tmp`, seeded from
-  `data/pool-ledger.json` on cold start, so a new instance starts from the
-  committed pool again. Chain balances are unaffected — every seat address and
-  balance is on chain — but seat *consumption* is not shared across instances.
+- **The ledger is durable, not automatic.** Seat consumption is shared through
+  Upstash when `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` are set,
+  and `/v1/health` says which mode it is in. Without them the rail falls back to
+  a per-instance `/tmp` copy seeded from `data/pool-ledger.json`, which is what
+  the tests and a local run use. Chain balances are unaffected either way —
+  every seat address and balance is on chain.
 - **`vercel curl` cannot POST** (GET only) and project protection adds a checkpoint
   in front of a browser, so the checks above are plain `curl` against the
   production alias with protection disabled.
@@ -473,6 +663,32 @@ public RPC is rate-limited. A busy rail needs the pool grown
 **All 24 testnet pool accounts are approved.** The backfill pass in `setup:devnet`
 approved the 23 that predate the fix — 4 transactions, no new accounts, no rent.
 The devnet pool was created after the fix, so every seat is approved at creation.
+
+**The default ledger is cluster-aware.** `data/pool-ledger.json` holds the 24-seat
+testnet pool; `data/pool-ledger.devnet.json` holds devnet's 3. Nothing ties the
+file to a cluster, so `npm run status --chain` used to pair the devnet RPC with
+the testnet file and report 24 accounts of which 0 could receive confidentially —
+reading, in effect, as a broken deployment, while devnet was 3/3 healthy. Scripts
+now pick the cluster's own ledger when a tagged file exists, and an explicit
+`--ledger` or `VEIL_LEDGER` still wins (the hosted rail pins its file that way).
+
+**Quoting spends a seat — retries used to, and no longer do.** A price is an offer
+to settle, so the server reserves a one-time account *before* it quotes, and
+reservations are never recycled: reusing one would put two payments on the same
+public address. A retry of the same payment identity (`x-payer` + `?nonce`) now
+gets its own account back instead of consuming a second one — before that fix,
+eight unauthenticated GETs drained an alias's pool and the rail answered
+`VEIL-CONF-005` to everyone on that instance. A caller that deliberately varies
+the nonce still can walk through a pool; the only answers are a bigger pool
+(`npm run setup:devnet -- --apply`). On the hosted rail the consumed seat is now
+recorded in the durable ledger, so growth is the only answer there too rather
+than "wait for the next cold start". A nonce that is not a non-negative integer
+is refused with `400 invalid-nonce` rather than being allowed to collapse two
+different callers onto one payment id. An identity that has *already settled* is
+reported spent (`409 payment-already-settled`, naming when) instead of being
+offered its own address again: the ledger refuses to count one address twice, so
+a second payment into it would move funds that never get credited. A second
+payment takes a second nonce.
 
 **`go:live` refreshes its source account every run** rather than reusing one, which
 costs about 0.003 SOL of rent per run and leaves the previous source behind. That is

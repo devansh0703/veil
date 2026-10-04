@@ -205,7 +205,8 @@ export type RefusalCode =
   | 'VEIL-CONF-002' // destination account cannot receive confidential credits
   | 'VEIL-CONF-003' // this payment cannot be made confidential — refuse to serve
   | 'VEIL-CONF-004' // buyer would exceed its declared spend cap
-  | 'VEIL-CONF-005'; // pool exhausted: no unconsumed one-time account available
+  | 'VEIL-CONF-005' // pool exhausted: no unconsumed one-time account available
+  | 'VEIL-CONF-006'; // could not claim an address before another instance took it
 
 export interface Refusal {
   readonly code: RefusalCode;
@@ -256,6 +257,14 @@ const REFUSALS: Record<RefusalCode, Omit<Refusal, 'code'>> = {
       'Every pre-configured payment account for this merchant alias has already been consumed. Reusing one would relink two payments on the public account graph.',
     remedy:
       'Grow the pool (scripts/setup-devnet.ts --pool-size N) or wait for consumed accounts to be re-armed.',
+    recoverable: true,
+  },
+  'VEIL-CONF-006': {
+    title: 'Could not reserve a one-time address',
+    detail:
+      'Another instance consumed every address this payment could be offered before this one could record its claim on one. Answering with an address this instance does not hold would offer the same one-time account to two payments, which is the relinking the pool exists to prevent — so the offer is refused instead.',
+    remedy:
+      'Retry the request. If it keeps happening, the rail is answering quotes faster than one instance can record reservations: grow the pool, or run fewer instances against the same store.',
     recoverable: true,
   },
 };
@@ -470,6 +479,27 @@ export interface VeilPaymentRequired {
   };
 }
 
+/**
+ * Make a resource path absolute against the origin that actually served it.
+ *
+ * x402 v2's `resource.url` is a URL, and `accepts[].resource` is meant to name
+ * where the payer goes back to. The hosted rail published `/v1/oracle/tide` — a
+ * path with no scheme or host, which a stock x402 client cannot fetch and which
+ * reads as a different resource from the one at the public origin. The origin is
+ * only known where the request lands (`Host` / `x-forwarded-proto`), so the
+ * caller passes it in. With no base, the path is returned unchanged, which keeps
+ * the pure protocol core usable and testable without a request.
+ */
+export function resolveResourceUrl(resource: string, baseUrl?: string): string {
+  if (!baseUrl) return resource;
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(resource)) return resource;
+  try {
+    return new URL(resource, baseUrl).toString();
+  } catch {
+    return resource;
+  }
+}
+
 export interface BuildPaymentRequiredInput {
   readonly network: Network;
   readonly asset: string;
@@ -477,6 +507,12 @@ export interface BuildPaymentRequiredInput {
   readonly amount: Atomic;
   readonly decimals: number;
   readonly resource: string;
+  /**
+   * Origin the resource was served from, e.g. `https://veil.example`. When set,
+   * `resource.url` and `accepts[].resource` are published absolute; without it
+   * they stay as the caller passed them (a bare path in tests and local runs).
+   */
+  readonly baseUrl?: string;
   readonly description?: string;
   readonly mimeType?: string;
   readonly poolIndex: number;
@@ -498,11 +534,14 @@ export function buildPaymentRequired(
     throw new RangeError('decimals out of range');
   }
   const amount = input.amount.toString();
+  // Absolute when the caller knows the origin, so the resource a client is told
+  // to pay for is the exact URL it can fetch back.
+  const resource = resolveResourceUrl(input.resource, input.baseUrl);
   return {
     x402Version: X402_VERSION,
     ...(input.error ? { error: input.error } : {}),
     resource: {
-      url: input.resource,
+      url: resource,
       ...(input.description ? { description: input.description } : {}),
       mimeType: input.mimeType ?? 'application/json',
     },
@@ -514,7 +553,7 @@ export function buildPaymentRequired(
         payTo: input.payTo,
         maxAmountRequired: amount,
         amount,
-        resource: input.resource,
+        resource,
         ...(input.description ? { description: input.description } : {}),
         ...(input.mimeType ? { mimeType: input.mimeType } : {}),
         maxTimeoutSeconds: input.maxTimeoutSeconds ?? 60,

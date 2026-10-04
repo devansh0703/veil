@@ -28,6 +28,10 @@ body{margin:0;background:var(--surface);color:var(--text);
 .masthead .who{display:flex;align-items:center;gap:var(--s3);font-family:var(--font-mono);
   font-size:var(--t-label);color:var(--text-muted);flex-wrap:wrap}
 .masthead .who b{color:var(--text);font-weight:500}
+/* The masthead's right-hand group: the nav and the standing theme switch.
+   Grouped so space-between spreads wordmark / who / tail rather than four
+   loose children, which would push the switch away from the nav. */
+.masthead .tail{display:flex;align-items:center;gap:var(--s4);flex-wrap:wrap}
 .masthead nav{display:flex;gap:var(--s4);flex-wrap:wrap}
 .masthead nav a{font-size:var(--t-ui);font-weight:500;color:var(--text-muted);
   text-decoration:none;min-height:44px;display:inline-flex;align-items:center}
@@ -71,6 +75,15 @@ section{margin:0 0 var(--s12)}
 .btn.secondary{background:transparent;color:var(--text);border-color:var(--border)}
 .btn.secondary:hover{background:var(--chip-bg)}
 .btn[disabled]{opacity:.45;cursor:not-allowed}
+/* The standing theme switch: last child of the masthead, so it reads top right.
+   It is chrome rather than content, so it sits quieter than a call to action —
+   the label names the ground it will switch TO, which is why it changes. */
+.btn.theme{min-height:36px;padding:7px 12px;font-family:var(--font-mono);
+  font-size:var(--t-small);letter-spacing:.04em;text-transform:uppercase;
+  color:var(--text-muted);border-color:var(--border)}
+.btn.theme:hover{color:var(--text);border-color:var(--text)}
+.btn.theme[aria-pressed="true"]{background:var(--redact-fill);color:var(--on-redact);
+  border-color:var(--redact-fill)}
 .row{display:flex;gap:var(--s3);flex-wrap:wrap;align-items:center}
 
 /* ── badge + pills: colour never carries meaning alone ───────────────────── */

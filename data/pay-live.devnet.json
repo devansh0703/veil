@@ -1,7 +1,7 @@
 {
   "agent": {
-    "address": "3BPvBJawS5uDaC72HmqnbA7K2XDcPkNwmGpXufhKojBr",
-    "tokenAccount": "6qREsoN1mCg9cKcFBSuVwLmPXxhFoEb7vhtEWzfmxfEQ"
+    "address": "3V6CkPUVNb69j6MHPSx6ZfKpFS1cBvN9ajzrCkrehbpC",
+    "tokenAccount": "397ryhE8ueXN7K5Sj4dgtX7cUVj84GCdFzZzpKp7hR6p"
   },
   "runs": [
     {
@@ -10,6 +10,34 @@
       "signature": "5ubbHpgE6kNbuWPzrSYX3HvksJzHarkgJVKhH9nAhUtm1Gnq5cv9ehaEkV9HUv3qCSABJuRHRwyhbNW4cemRfD8N",
       "payer": "3BPvBJawS5uDaC72HmqnbA7K2XDcPkNwmGpXufhKojBr",
       "at": "2026-10-03T17:09:54.481Z"
+    },
+    {
+      "destination": "4sCsYfcmkYjVLj2JPN66L5XftTS5uGsWwdYmptPyivuX",
+      "amount": "49000",
+      "signature": "5U93mT8cxh8jMa3s3xzq5zLucWfCb7gHYusosFdxMFW3jzbEE8hY5mK6dC9ZzvspxvzZXEtXp3MVfaJ4GWNVhpVx",
+      "payer": "3V6CkPUVNb69j6MHPSx6ZfKpFS1cBvN9ajzrCkrehbpC",
+      "at": "2026-10-04T14:40:01.781Z"
+    },
+    {
+      "destination": "8q3Mbg1tmEieqTr6nCTs9hdM7tzpjaKMj1DCJF86sGWJ",
+      "amount": "49000",
+      "signature": "54MbFRXTtE7xFZDtuBu3PshzYfEEo27EVBFEJb7ThLEeqGadVfg3B9dwhXA1uBoCD75yvebTMAT7292h74WRabD1",
+      "payer": "3V6CkPUVNb69j6MHPSx6ZfKpFS1cBvN9ajzrCkrehbpC",
+      "at": "2026-10-04T15:43:51.971Z"
+    },
+    {
+      "destination": "6UoZb2ea6jNNGZucW9GQCdHjXkqeJYJvvPFuBDKc44Hy",
+      "amount": "49000",
+      "signature": "2kmv4tYaDGWt2AdEE7wd194R2Zd7AfP9iqgNuci7uVuXPV7ZeMGCHuir7Jm5foZEJFTUY9f7sTphDdMiv64thYRr",
+      "payer": "3V6CkPUVNb69j6MHPSx6ZfKpFS1cBvN9ajzrCkrehbpC",
+      "at": "2026-10-04T21:39:25.812Z"
+    },
+    {
+      "destination": "B4kMvqdAvSswhkPYidze9jvU2mzUccfcfN4W3TD9QR2w",
+      "amount": "49000",
+      "signature": "28j2WYUUWtZ9RduUfCtxGf55Yeu1Yf4tUfYcTEmDR3Bn3Axhv4AK5WP5rk1TZSnSmb7pRf7WK4BSMJaSTHq8nTSw",
+      "payer": "3V6CkPUVNb69j6MHPSx6ZfKpFS1cBvN9ajzrCkrehbpC",
+      "at": "2026-10-04T22:54:23.484Z"
     }
   ]
 }

@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en" data-ground="paper">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Concepts — Veil docs</title>
+<meta name="description" content="Veil makes one specific thing private: the amount of an agent payment. It does not pretend to hide anything else, and knowing which is which is the whole of…">
+<!-- Every face is self-hosted (see assets/fonts.css). No font CDN at runtime. -->
+<link rel="stylesheet" href="../assets/fonts.css">
+<link rel="stylesheet" href="../assets/tokens.css">
+<link rel="stylesheet" href="../assets/app.css">
+<link rel="stylesheet" href="../assets/docs.css">
+<script>
+/* The saved ground, applied before first paint so the page never flashes the
+   one the reader did not ask for. Same key veil.js reads later. */
+(function () {
+  try {
+    var g = localStorage.getItem("veil:ground");
+    if (g === "graphite" || g === "paper") {
+      document.documentElement.setAttribute("data-ground", g);
+    }
+  } catch (e) {}
+})();
+</script>
+</head>
+
+<body>
+<a class="skip" href="#doc">Skip to the documentation</a>
+
+<header class="masthead">
+  <div class="wrap">
+    <a class="wordmark" href="../index.html"><span class="v">V</span>EIL</a>
+    <div class="who">
+      <span>docs <b>v1</b></span>
+      <span>rail <b>x402</b></span>
+    </div>
+    <div class="tail">
+      <nav>
+        <a href="../index.html">Landing</a>
+        <a href="./" aria-current="page">Docs</a>
+        <a href="../dashboard.html">Ledger</a>
+        <a href="../limits.html">Limits</a>
+      </nav>
+      <button type="button" class="btn secondary theme" data-theme-toggle
+              aria-pressed="false" aria-label="Switch the site to the graphite ground">Graphite</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap doc-layout">
+  <aside class="doc-nav" aria-label="Documentation">
+      <div class="doc-group">
+        <p class="k">Getting started</p>
+        <ul>
+          <li><a href="./">Introduction</a></li>
+          <li><a href="./quickstart">Quickstart</a></li>
+        </ul>
+      </div>
+      <div class="doc-group">
+        <p class="k">Core concepts</p>
+        <ul>
+          <li><a href="./concepts" aria-current="page">Concepts</a></li>
+        </ul>
+      </div>
+      <div class="doc-group">
+        <p class="k">Reference</p>
+        <ul>
+          <li><a href="./api">API reference</a></li>
+          <li><a href="./troubleshooting">Troubleshooting</a></li>
+        </ul>
+      </div>
+      <div class="doc-group">
+        <p class="k">Prove it</p>
+        <ul>
+          <li><a href="./verify-it-yourself">Verify it yourself</a></li>
+        </ul>
+      </div>
+    </aside>
+
+  <main class="doc-body" id="doc">
+    <p class="doc-crumb"><a href="./">Docs</a> / Concepts</p>
+    <h1 class="doc-title">Concepts</h1>
+    <p class="lede">Veil makes one specific thing private: the amount of an agent payment. It does not pretend to hide anything else, and knowing which is which is the whole of using it well.</p>
+    <h2 id="the-two-layers">The two layers</h2>
+<h3 id="layer-1-confidential-balances-the-amount">Layer 1 — confidential balances (the amount)</h3>
+<p>The payment moves a Token-2022 balance between two <em>confidential</em> accounts. The account state on chain holds an ElGamal ciphertext and an AES ciphertext of the balance, not a number. A confidential transfer carries the ciphertexts, a zero-knowledge proof that the transferred amount was in range, and a proof that the sender's remaining balance did not go negative.</p>
+<p>The practical consequence: you can read the explorer link and see that a transfer happened, but not how much moved. The recipient — and an auditor key set on the mint, if one is — can decrypt it.</p>
+<h3 id="layer-2-one-time-accounts-the-graph">Layer 2 — one-time accounts (the graph)</h3>
+<p>Confidential balances hide amounts. They do not hide <em>that an account exists</em>. If a merchant received every payment into one token account, you could still count the transactions and correlate them with the merchant's public identity: amount privacy with a fully public graph wrapped around it.</p>
+<p>So every payment lands in a different pre-created account. Two payments to the same merchant never sit next to each other on the account graph.</p>
+<p>These accounts <strong>cannot be derived</strong>, and the design notes say so explicitly rather than shipping a derivation that would silently disagree with itself. There is exactly one deterministic address form per <code>(owner, mint)</code> — the associated token account — so a pool of N accounts is created once and its addresses recorded. What <em>is</em> deterministic is which slot a payment is assigned: <code>deriveSlot(identity, poolSize)</code> is pure, so the merchant can reconcile an incoming payment without the payer telling it anything extra.</p>
+<h2 id="what-a-payment-actually-does">What a payment actually does</h2>
+<pre class="code"><code>agent                          rail (facilitator)              merchant
+  |  GET /resource?nonce=N  ────────►  |
+  |  ◄──── 402 + offer (price, seat)   |
+  |  generate 3 proofs, write them,    |
+  |  verify them into context accounts |
+  |  sign the transfer (own half) ───► |
+  |                    co-sign fee → broadcast ──► chain ──► merchant seat
+  |  ◄──── 200 { paid: true }          |</code></pre>
+<p>Three proofs precede the transfer, each in its own transaction:</p>
+<ul><li><strong>equality</strong> — the new balance ciphertext encrypts the same value the</li><li>instruction actually subtracts,</li><li><strong>ciphertext-validity</strong> — the sender's ciphertexts are well-formed,</li><li><strong>range via record</strong> — the sender's remaining balance is at least the amount,</li><li>which is the negative-balance guard.</li></ul>
+<p>The payer signs the money movement. The rail co-signs only the network fee, so a reasonably-funded buyer is not the rail's problem, and the rail never holds the payer's keys.</p>
+<h2 id="the-identity-and-the-409">The identity, and the 409</h2>
+<p>A payment identity is <code>(resource, payer, nonce)</code>. It is deterministic, so the same identity always maps to the same seat — a client that retries a <code>402</code> after a network blip does not burn a second seat. Once it settles, that identity is spent: asking again returns <strong><code>409 payment-already-settled</code></strong> naming the time. Nonces must be fresh per payment, which is why the agent SDK generates one per call rather than letting you set it.</p>
+<h2 id="the-honest-limits">The honest limits</h2>
+<p>Stated plainly, because a privacy claim that overreaches is worse than a modest one:</p>
+<ul><li><strong>Amounts are hidden. Existence is not.</strong> An observer sees that a transfer</li><li>happened, which accounts were involved, and when. Veil does not claim</li><li>unlinkability; the defensible claim is <strong>"not trivially correlatable"</strong>.</li><li><strong>Timing analysis is not defeated.</strong> At low volume, one payment shortly after</li><li>one request is a correlation. Batching and cover traffic would help; they are</li><li>not built.</li><li><strong>The auditor key is global per mint.</strong> If one mint is shared between</li><li>merchants, one auditor secret decrypts every merchant's transfers. The</li><li>per-merchant topology is an open decision (<code>TODOS.md</code> T-4), not a solved</li><li>problem.</li><li><strong>The hosted rail's ledger is durable only when it is configured.</strong> With</li><li><code>UPSTASH_REDIS_REST_URL</code> and <code>UPSTASH_REDIS_REST_TOKEN</code> set, one shared ledger</li><li>answers "already settled" and "which seats are spent" the same way on every</li><li>instance. Without them each warm instance re-seeds its seat map and those</li><li>answers can differ. Chain balances are unaffected either way — this is</li><li>accounting memory, not money. <code>/v1/health</code> reports which mode is in use.</li><li><strong>An unpaid offer already holds a seat.</strong> The rail reserves the one-time</li><li>account before it answers a <code>402</code>, which is what stops two instances selling</li><li>the same address to two payers. That reservation is never released: a retry of</li><li>the <em>same</em> identity reuses its seat, but a <em>new</em> nonce — or a new payer — takes</li><li>a fresh one. Unpaid requests therefore consume capacity, so a crawler walking</li><li>fresh nonces can exhaust a pool without paying anything, and the rail then</li><li>refuses honestly (<code>VEIL-CONF-005</code>) rather than reuse an address.</li><li><strong>A consumed seat is never re-armed.</strong> Re-arming would put a second payment in</li><li>an account that already holds a settled one, linking them. Instead the pool is</li><li>grown, and exhaustion is a named refusal (<code>VEIL-CONF-005</code>) rather than a silent</li><li>reuse.</li></ul>
+<h2 id="where-defensibility-actually-lives">Where defensibility actually lives</h2>
+<p>Not in the cryptography. The confidential-transfer primitives are Solana's. Veil's position is the facilitator, the one-line merchant integration, the auditor workflow, and the dashboard — and if the x402 spec absorbs confidential settlement, that is the part that survives.</p>
+<h2 id="see-also">See also</h2>
+<ul><li><a href="./quickstart">Quickstart</a> — run one.</li><li><a href="./verify-it-yourself">Verify it yourself</a> — read the ciphertext back.</li><li><code>docs/designs/veil-agent-payments.md</code> — the original design and its reasoning.</li></ul>
+    <nav class="doc-pager" aria-label="Documentation pages">
+        <a class="pager prev" href="./quickstart"><span class="k">Previous</span>Quickstart</a>
+        <a class="pager next" href="./api"><span class="k">Next</span>API reference</a>
+      </nav>
+  </main>
+
+  <nav class="doc-toc" aria-label="On this page">
+        <p class="k">On this page</p>
+        <ul>
+          <li><a href="#the-two-layers">The two layers</a></li>
+          <li><a href="#what-a-payment-actually-does">What a payment actually does</a></li>
+          <li><a href="#the-identity-and-the-409">The identity, and the 409</a></li>
+          <li><a href="#the-honest-limits">The honest limits</a></li>
+          <li><a href="#where-defensibility-actually-lives">Where defensibility actually lives</a></li>
+          <li><a href="#see-also">See also</a></li>
+        </ul>
+      </nav>
+</div>
+
+<footer>
+  <div class="foot">
+    <span class="marker">docs built from <b>docs/*.md</b> · hosted rail: <b>veil-devnet.vercel.app</b></span>
+    <nav>
+      <a href="../index.html">Landing</a>
+      <a href="../dashboard.html">Merchant ledger</a>
+      <a href="../limits.html">Honest limits</a>
+      <a href="../402.html">402 body</a>
+    </nav>
+    <div class="row">
+      <a class="btn primary" href="./quickstart">Quickstart</a>
+      <a class="btn secondary" href="../index.html">Home</a>
+    </div>
+  </div>
+</footer>
+
+<script src="../assets/pretext.js"></script>
+<script src="../assets/veil.js"></script>
+</body>
+</html>

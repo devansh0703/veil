@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en" data-ground="paper">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Introduction — Veil docs</title>
+<meta name="description" content="Veil makes one thing private that x402 leaves public: the amount. It is a conformant x402 facilitator and resource server that settles in Token-2022…">
+<!-- Every face is self-hosted (see assets/fonts.css). No font CDN at runtime. -->
+<link rel="stylesheet" href="../assets/fonts.css">
+<link rel="stylesheet" href="../assets/tokens.css">
+<link rel="stylesheet" href="../assets/app.css">
+<link rel="stylesheet" href="../assets/docs.css">
+<script>
+/* The saved ground, applied before first paint so the page never flashes the
+   one the reader did not ask for. Same key veil.js reads later. */
+(function () {
+  try {
+    var g = localStorage.getItem("veil:ground");
+    if (g === "graphite" || g === "paper") {
+      document.documentElement.setAttribute("data-ground", g);
+    }
+  } catch (e) {}
+})();
+</script>
+</head>
+
+<body>
+<a class="skip" href="#doc">Skip to the documentation</a>
+
+<header class="masthead">
+  <div class="wrap">
+    <a class="wordmark" href="../index.html"><span class="v">V</span>EIL</a>
+    <div class="who">
+      <span>docs <b>v1</b></span>
+      <span>rail <b>x402</b></span>
+    </div>
+    <div class="tail">
+      <nav>
+        <a href="../index.html">Landing</a>
+        <a href="./" aria-current="page">Docs</a>
+        <a href="../dashboard.html">Ledger</a>
+        <a href="../limits.html">Limits</a>
+      </nav>
+      <button type="button" class="btn secondary theme" data-theme-toggle
+              aria-pressed="false" aria-label="Switch the site to the graphite ground">Graphite</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap doc-layout">
+  <aside class="doc-nav" aria-label="Documentation">
+      <div class="doc-group">
+        <p class="k">Getting started</p>
+        <ul>
+          <li><a href="./" aria-current="page">Introduction</a></li>
+          <li><a href="./quickstart">Quickstart</a></li>
+        </ul>
+      </div>
+      <div class="doc-group">
+        <p class="k">Core concepts</p>
+        <ul>
+          <li><a href="./concepts">Concepts</a></li>
+        </ul>
+      </div>
+      <div class="doc-group">
+        <p class="k">Reference</p>
+        <ul>
+          <li><a href="./api">API reference</a></li>
+          <li><a href="./troubleshooting">Troubleshooting</a></li>
+        </ul>
+      </div>
+      <div class="doc-group">
+        <p class="k">Prove it</p>
+        <ul>
+          <li><a href="./verify-it-yourself">Verify it yourself</a></li>
+        </ul>
+      </div>
+    </aside>
+
+  <main class="doc-body" id="doc">
+    <p class="doc-crumb"><a href="./">Docs</a> / Introduction</p>
+    <h1 class="doc-title">Introduction</h1>
+    <p class="lede">Veil makes one thing private that x402 leaves public: the amount. It is a conformant x402 facilitator and resource server that settles in Token-2022 Confidential Balances instead of a plain transfer, so a merchant already taking x402 adds a settlement address and nothing else.</p>
+    <p>This documentation is for two people — the merchant selling something behind a paywall, and the agent buying it. Both start from the <a href="quickstart.html">Quickstart</a> and are running against the hosted rail in a few minutes.</p>
+<p>Everything here runs against <code>https://veil-devnet.vercel.app</code>. Nothing runs on localhost unless you ask for it.</p>
+<hr>
+<h2 id="why-this-exists">Why this exists</h2>
+<p>x402 gave agents a way to pay for an API call without a human and without an account. It left three things on a public ledger: the amount, the counterparty, and the pattern of who pays whom, how often. On a chain, that is the whole customer record.</p>
+<p>Veil closes that gap with two primitives that already exist, rather than a mixer or a promise:</p>
+<ul><li><strong>Confidential Balances</strong> hide the amount. The chain stores ciphertext and a</li><li>zero-knowledge proof that the transfer was in range and non-inflationary.</li><li><strong>One-time accounts</strong> hide the edge. Each paid call lands in a fresh</li><li>recipient, so two payments from the same agent never sit next to each other.</li></ul>
+<p>What stays public is stated plainly on <a href="../limits.html">Honest limits</a>: account addresses, timing, and the count of transactions.</p>
+<hr>
+<h2 id="who-it-is-for">Who it is for</h2>
+<p><strong>Merchants.</strong> You already accept x402, or you want to. Veil is a drop-in facilitator: the request and response bodies are the standard ones, and the 402 carries a machine-readable refusal when a buyer's account cannot receive confidential credits. If you cannot check, you do not quote.</p>
+<p><strong>Agents.</strong> You fetch, you get a 402, you pay, you retry. The budget is enforced <em>before</em> anything is signed, so a rail that cannot guarantee confidentiality is refused rather than quietly paid in the clear.</p>
+<hr>
+<h2 id="how-it-works">How it works</h2>
+<p>A payment is three beats, all standard x402:</p>
+<ol><li><strong>Ask.</strong> <code>GET /resource?nonce=N</code> with <code>X-Payer: &lt;name&gt;</code>. Unpaid, it answers</li><li><code>402</code> with a price and a one-time account.</li><li><strong>Pay.</strong> The payer builds a confidential transfer into that account, signs</li><li>its own half, and retries with <code>X-PAYMENT</code>.</li><li><strong>Settle.</strong> The facilitator verifies, co-signs the fee, broadcasts, and</li><li>records the settlement. The merchant decrypts its own balance with its own</li><li>key.</li></ol>
+<p>For the detail behind each beat, read <a href="concepts.html">Concepts</a>. For the exact bodies on the wire, read the <a href="api.html">API reference</a>.</p>
+<hr>
+<h2 id="where-to-go-next">Where to go next</h2>
+<div class="table-wrap"><table><thead><tr><th>If you want to…</th><th>Read</th></tr></thead><tbody><tr><td class="k">Move money in five minutes</td><td><a href="quickstart.html">Quickstart</a></td></tr><tr><td class="k">Understand the two layers and the 409</td><td><a href="concepts.html">Concepts</a></td></tr><tr><td class="k">Call the rail without an SDK</td><td><a href="api.html">API reference</a></td></tr><tr><td class="k">Fix a <code>VEIL-*</code> refusal code</td><td><a href="troubleshooting.html">Troubleshooting</a></td></tr><tr><td class="k">Prove the privacy claim yourself</td><td><a href="verify-it-yourself.html">Verify it yourself</a></td></tr><tr><td class="k">See what it deliberately does not hide</td><td><a href="../limits.html">Honest limits</a></td></tr></tbody></table></div>
+    <nav class="doc-pager" aria-label="Documentation pages">
+        <span></span>
+        <a class="pager next" href="./quickstart"><span class="k">Next</span>Quickstart</a>
+      </nav>
+  </main>
+
+  <nav class="doc-toc" aria-label="On this page">
+        <p class="k">On this page</p>
+        <ul>
+          <li><a href="#why-this-exists">Why this exists</a></li>
+          <li><a href="#who-it-is-for">Who it is for</a></li>
+          <li><a href="#how-it-works">How it works</a></li>
+          <li><a href="#where-to-go-next">Where to go next</a></li>
+        </ul>
+      </nav>
+</div>
+
+<footer>
+  <div class="foot">
+    <span class="marker">docs built from <b>docs/*.md</b> · hosted rail: <b>veil-devnet.vercel.app</b></span>
+    <nav>
+      <a href="../index.html">Landing</a>
+      <a href="../dashboard.html">Merchant ledger</a>
+      <a href="../limits.html">Honest limits</a>
+      <a href="../402.html">402 body</a>
+    </nav>
+    <div class="row">
+      <a class="btn primary" href="./quickstart">Quickstart</a>
+      <a class="btn secondary" href="../index.html">Home</a>
+    </div>
+  </div>
+</footer>
+
+<script src="../assets/pretext.js"></script>
+<script src="../assets/veil.js"></script>
+</body>
+</html>

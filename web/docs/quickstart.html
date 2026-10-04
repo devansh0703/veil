@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en" data-ground="paper">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quickstart — Veil docs</title>
+<meta name="description" content="Two sides, one product. You are either selling something behind a paywall or an agent buying it. Both start in under five minutes.">
+<!-- Every face is self-hosted (see assets/fonts.css). No font CDN at runtime. -->
+<link rel="stylesheet" href="../assets/fonts.css">
+<link rel="stylesheet" href="../assets/tokens.css">
+<link rel="stylesheet" href="../assets/app.css">
+<link rel="stylesheet" href="../assets/docs.css">
+<script>
+/* The saved ground, applied before first paint so the page never flashes the
+   one the reader did not ask for. Same key veil.js reads later. */
+(function () {
+  try {
+    var g = localStorage.getItem("veil:ground");
+    if (g === "graphite" || g === "paper") {
+      document.documentElement.setAttribute("data-ground", g);
+    }
+  } catch (e) {}
+})();
+</script>
+</head>
+
+<body>
+<a class="skip" href="#doc">Skip to the documentation</a>
+
+<header class="masthead">
+  <div class="wrap">
+    <a class="wordmark" href="../index.html"><span class="v">V</span>EIL</a>
+    <div class="who">
+      <span>docs <b>v1</b></span>
+      <span>rail <b>x402</b></span>
+    </div>
+    <div class="tail">
+      <nav>
+        <a href="../index.html">Landing</a>
+        <a href="./" aria-current="page">Docs</a>
+        <a href="../dashboard.html">Ledger</a>
+        <a href="../limits.html">Limits</a>
+      </nav>
+      <button type="button" class="btn secondary theme" data-theme-toggle
+              aria-pressed="false" aria-label="Switch the site to the graphite ground">Graphite</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap doc-layout">
+  <aside class="doc-nav" aria-label="Documentation">
+      <div class="doc-group">
+        <p class="k">Getting started</p>
+        <ul>
+          <li><a href="./">Introduction</a></li>
+          <li><a href="./quickstart" aria-current="page">Quickstart</a></li>
+        </ul>
+      </div>
+      <div class="doc-group">
+        <p class="k">Core concepts</p>
+        <ul>
+          <li><a href="./concepts">Concepts</a></li>
+        </ul>
+      </div>
+      <div class="doc-group">
+        <p class="k">Reference</p>
+        <ul>
+          <li><a href="./api">API reference</a></li>
+          <li><a href="./troubleshooting">Troubleshooting</a></li>
+        </ul>
+      </div>
+      <div class="doc-group">
+        <p class="k">Prove it</p>
+        <ul>
+          <li><a href="./verify-it-yourself">Verify it yourself</a></li>
+        </ul>
+      </div>
+    </aside>
+
+  <main class="doc-body" id="doc">
+    <p class="doc-crumb"><a href="./">Docs</a> / Quickstart</p>
+    <h1 class="doc-title">Quickstart</h1>
+    <p class="lede">Two sides, one product. You are either selling something behind a paywall or an agent buying it. Both start in under five minutes.</p>
+    <p>Everything here runs against the hosted rail at <code>https://veil-devnet.vercel.app</code>. Nothing runs on localhost unless you ask it to.</p>
+<hr>
+<h2 id="if-you-are-an-agent-buy-something">If you are an agent (buy something)</h2>
+<p>You need a keypair and some test dollars. One command does both.</p>
+<pre class="code"><code class="language-bash">npm run sandbox -- --key .keys/agent.json</code></pre>
+<p>That command, in order:</p>
+<ol><li>creates the key file if it does not exist,</li><li>funds it with a little SOL (it pays for its own proof transactions — the rail</li><li>only covers the settlement fee),</li><li>creates its Token-2022 account, configures it with the agent's own derived</li><li>confidential keys, and has the mint authority approve it,</li><li>mints test dollars and deposits them as a confidential balance,</li><li>applies the pending credit so the balance is spendable <em>now</em>.</li></ol>
+<p>It prints the account, the balance and explorer links. Then pay something:</p>
+<pre class="code"><code class="language-bash">npm run pay:agent -- --key .keys/agent.json \
+  --url https://veil-devnet.vercel.app/v1/payee/test \
+  --budget 0.10</code></pre>
+<p>You should see:</p>
+<pre class="code"><code>  ok    price accepted against budget  1000 atomic → 6yLQjQH13ko6GxRCP5QCkuc7PMmZiKwGZ6bZ8N38JKXD
+  ok    the rail named its fee payer   &lt;fee payer&gt;
+  paid  1000 atomic → 6yLQjQH…
+        https://explorer.solana.com/tx/…?cluster=testnet
+  http 200  {"paid":true}
+  served 1/1 · agent spent 1000 atomic units</code></pre>
+<p>Open the explorer link. The transaction is real and the <strong>amount is not readable</strong> — that is the product.</p>
+<h3 id="spending-limits">Spending limits</h3>
+<p><code>--budget</code> is enforced <em>before</em> anything is signed. If the rail asks for more than the budget allows, the agent stops with <code>VEIL-BUDGET-002</code> and never falls back to a public payment. That last part is the whole point: a client that quietly paid in the clear when confidentiality failed would be worse than no client at all.</p>
+<p>Run several calls in one command to see the budget and the payment identity thread across them:</p>
+<pre class="code"><code class="language-bash">npm run pay:agent -- --key .keys/agent.json \
+  --url &lt;resource-1&gt; --url &lt;resource-2&gt; --budget 0.10</code></pre>
+<hr>
+<h2 id="if-you-are-a-merchant-sell-something">If you are a merchant (sell something)</h2>
+<pre class="code"><code class="language-bash">node scripts/create-merchant.mjs my-api
+cd my-api
+npm install
+export VEIL_PAY_TO=&lt;your wallet&gt;
+npm run dev</code></pre>
+<p>The generated <code>server.ts</code> is an ordinary Express app with one wrapped handler:</p>
+<pre class="code"><code class="language-ts">const merchant = await veil({
+  payTo: process.env.VEIL_PAY_TO,
+  price: '0.01',
+  path: '/api/insight',
+  produce: ({ paid }) =&gt; ({ insight: 'the thing you paid for', paid }),
+});
+
+app.get('/api/insight', merchant.handler);</code></pre>
+<p>That is the entire integration. An unpaid request gets a <code>402</code> naming the price, the mint and a one-time account; a paid one reaches <code>produce</code>.</p>
+<p>Pay it from the agent side:</p>
+<pre class="code"><code class="language-bash">npm run pay -- --url http://localhost:4021/api/insight --budget 0.10</code></pre>
+<hr>
+<h2 id="what-you-just-proved">What you just proved</h2>
+<ul><li>A payment settled through the rail, on chain, with a real signature.</li><li>The amount is ciphertext on the public explorer.</li><li>The agent could not exceed its budget.</li><li>The merchant's handler did not change shape — it is still <code>(req, res)</code>.</li></ul>
+<h2 id="where-to-go-next">Where to go next</h2>
+<ul><li><a href="./concepts">Concepts</a> — why amounts are hidden and addresses are not, and</li><li>what the honest limit of that is.</li><li><a href="./api">API reference</a> — every function, option and return value.</li><li><a href="./troubleshooting">Troubleshooting</a> — the error codes, keyed to their fix.</li><li><a href="./verify-it-yourself">Verify it yourself</a> — go from an explorer link to the</li><li>CLI check that reads the ciphertext back.</li></ul>
+    <nav class="doc-pager" aria-label="Documentation pages">
+        <a class="pager prev" href="./"><span class="k">Previous</span>Introduction</a>
+        <a class="pager next" href="./concepts"><span class="k">Next</span>Concepts</a>
+      </nav>
+  </main>
+
+  <nav class="doc-toc" aria-label="On this page">
+        <p class="k">On this page</p>
+        <ul>
+          <li><a href="#if-you-are-an-agent-buy-something">If you are an agent (buy something)</a></li>
+          <li><a href="#if-you-are-a-merchant-sell-something">If you are a merchant (sell something)</a></li>
+          <li><a href="#what-you-just-proved">What you just proved</a></li>
+          <li><a href="#where-to-go-next">Where to go next</a></li>
+        </ul>
+      </nav>
+</div>
+
+<footer>
+  <div class="foot">
+    <span class="marker">docs built from <b>docs/*.md</b> · hosted rail: <b>veil-devnet.vercel.app</b></span>
+    <nav>
+      <a href="../index.html">Landing</a>
+      <a href="../dashboard.html">Merchant ledger</a>
+      <a href="../limits.html">Honest limits</a>
+      <a href="../402.html">402 body</a>
+    </nav>
+    <div class="row">
+      <a class="btn primary" href="./quickstart">Quickstart</a>
+      <a class="btn secondary" href="../index.html">Home</a>
+    </div>
+  </div>
+</footer>
+
+<script src="../assets/pretext.js"></script>
+<script src="../assets/veil.js"></script>
+</body>
+</html>

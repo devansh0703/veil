@@ -6,9 +6,16 @@
  * rather than from the caller's working directory.
  */
 
+import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import {
+  createKeyPairSignerFromBytes,
+  createKeyPairSignerFromPrivateKeyBytes,
+  type KeyPairSigner,
+} from '@solana/kit';
 
 import {
   DEVNET,
@@ -23,6 +30,7 @@ import { PoolLedger } from '../packages/derive/src/index.ts';
 import {
   DEFAULT_RESOURCES,
   poolLedgerProbe,
+  type LedgerStore,
   type ServerConfig,
 } from '../packages/server/src/index.ts';
 
@@ -80,6 +88,95 @@ export function clusterTag(rpcUrl: string | undefined, network: string): string 
   if (resolved === SOLANA_DEVNET) return '.devnet';
   if (resolved === SOLANA_MAINNET) return '.mainnet';
   return '';
+}
+
+/**
+ * The public RPC to reach when the caller names a rail but not an RPC.
+ *
+ * The cluster follows the rail, never a hardcoded default. A client pointed at
+ * a devnet resource but given a testnet endpoint builds a transfer for an
+ * account that does not exist on that chain, and it fails as a confusing proof
+ * or missing-account error instead of an obvious "wrong cluster". So an origin
+ * that says `devnet` gets the devnet endpoint and anything else keeps testnet,
+ * which is what these scripts defaulted to before the primary rail moved.
+ *
+ * An explicit `VEIL_RPC_URL` or `--rpc` still wins: this is only the default
+ * for a caller that expressed no preference.
+ */
+export function defaultRpcUrl(rail: string): string {
+  return rail.includes('devnet')
+    ? 'https://api.devnet.solana.com'
+    : 'https://api.testnet.solana.com';
+}
+
+/**
+ * Where Solami serves Solana, and the key that unlocks it.
+ *
+ * Solami is a hosted RPC provider with a free tier (`SOLAMI_API_KEY`). Its
+ * Solana route is **mainnet-beta only** — the cluster segment accepts `solana`
+ * (plus `sol`/`Solana`) and nothing else, and query params cannot change that:
+ * `?network=devnet` is ignored and the endpoint still answers with mainnet's
+ * genesis hash. That is a property of the provider, not of this client, and it
+ * is why `solamiRpcUrl` returns undefined off mainnet rather than guessing a
+ * URL that does not exist.
+ *
+ * The tests and the devnet rail therefore keep their cluster's public endpoint.
+ * Solami is wired here so a mainnet deployment is a configuration change — put
+ * the key in the environment — instead of a code change.
+ */
+export const SOLAMI_RPC_HOST = 'https://rpc.solami.dev';
+
+export function solamiRpcUrl(
+  network: Network | string,
+  apiKey: string | undefined = process.env.SOLAMI_API_KEY,
+): string | undefined {
+  if (!apiKey) return undefined;
+  let resolved: string | undefined;
+  try {
+    resolved = normalizeNetwork(network);
+  } catch {
+    return undefined;
+  }
+  if (resolved !== SOLANA_MAINNET) return undefined;
+  return `${SOLAMI_RPC_HOST}/solana?api-key=${encodeURIComponent(apiKey)}`;
+}
+
+/**
+ * Where Helius serves Solana, and the key that unlocks it.
+ *
+ * Helius (`HELIUS_API_KEY`) is a hosted RPC provider with a free tier that
+ * serves **mainnet and devnet only**: `testnet.helius-rpc.com` does not resolve
+ * and the provider's own docs list exactly two clusters. Like `solamiRpcUrl`
+ * and for the same reason, this returns undefined for testnet rather than a URL
+ * that does not exist — testnet keeps its public endpoint instead of being
+ * pointed at a node that answers for a different chain.
+ *
+ * It sits behind Solami in the fallback chain, so a mainnet rail configured for
+ * Solami is untouched. Devnet — the rail this project actually runs — gets a
+ * dedicated node the moment the key is in the environment, instead of the
+ * rate-limited public one.
+ */
+export const HELIUS_DEVNET_RPC_HOST = 'https://devnet.helius-rpc.com';
+export const HELIUS_MAINNET_RPC_HOST = 'https://mainnet.helius-rpc.com';
+
+export function heliusRpcUrl(
+  network: Network | string,
+  apiKey: string | undefined = process.env.HELIUS_API_KEY,
+): string | undefined {
+  if (!apiKey) return undefined;
+  let resolved: string | undefined;
+  try {
+    resolved = normalizeNetwork(network);
+  } catch {
+    return undefined;
+  }
+  if (resolved === SOLANA_DEVNET) {
+    return `${HELIUS_DEVNET_RPC_HOST}/?api-key=${encodeURIComponent(apiKey)}`;
+  }
+  if (resolved === SOLANA_MAINNET) {
+    return `${HELIUS_MAINNET_RPC_HOST}/?api-key=${encodeURIComponent(apiKey)}`;
+  }
+  return undefined;
 }
 
 export async function loadLedger(path = LEDGER_PATH): Promise<PoolLedger> {
@@ -149,22 +246,55 @@ export function optionsFromEnv(argv: readonly string[] = []): ScriptOptions {
     return undefined;
   };
 
+  const network = (flag('network') ?? process.env.VEIL_NETWORK ?? DEVNET) as Network;
+
   return {
     mint: flag('mint') ?? process.env.VEIL_MINT ?? PLACEHOLDER_MINT,
     decimals: Number(flag('decimals') ?? process.env.VEIL_DECIMALS ?? '6'),
-    network: (flag('network') ?? process.env.VEIL_NETWORK ?? DEVNET) as Network,
+    network,
     spendCap: flag('spend-cap') ?? process.env.VEIL_SPEND_CAP ?? '5.00',
-    rpcUrl: flag('rpc') ?? process.env.VEIL_RPC_URL,
+    rpcUrl:
+      flag('rpc') ??
+      process.env.VEIL_RPC_URL ??
+      // A configured endpoint always wins, because it names the cluster the
+      // deployment is really on. Solami is the default only where it can serve
+      // the cluster — mainnet — and undefined everywhere else. Helius runs
+      // behind it and picks up devnet (and mainnet when no Solami key is set);
+      // neither provider runs a testnet node, so testnet falls through to
+      // undefined rather than being pointed at a cluster the provider does not
+      // serve — the caller names one with --rpc or VEIL_RPC_URL, as always.
+      solamiRpcUrl(network) ??
+      heliusRpcUrl(network),
     allowLocalSettlement:
       flag('local-settlement') === 'true' ||
       process.env.VEIL_LOCAL_SETTLEMENT === 'true',
     poolSize: Number(flag('pool-size') ?? process.env.VEIL_POOL_SIZE ?? '8'),
     port: Number(flag('port') ?? process.env.VEIL_PORT ?? '4021'),
-    ledgerPath: flag('ledger') ?? process.env.VEIL_LEDGER ?? LEDGER_PATH,
+    ledgerPath:
+      flag('ledger') ?? process.env.VEIL_LEDGER ?? defaultLedgerFor(network, flag('rpc') ?? process.env.VEIL_RPC_URL),
     mintConfidential: parseMintConfidential(
       flag('mint-confidential') ?? process.env.VEIL_MINT_CONFIDENTIAL,
     ),
   };
+}
+
+/**
+ * The pool ledger that belongs to this cluster.
+ *
+ * `data/pool-ledger.json` holds whichever pool was set up most recently, and
+ * nothing ties it to a cluster. Reading it against a different one reports
+ * another cluster's seats: `status --chain` on devnet read the 24 testnet
+ * accounts, found 0 able to receive confidentially, and told the operator a
+ * server must refuse — while the devnet pool was 3/3 healthy in
+ * `data/pool-ledger.devnet.json`. A cluster-suffixed file, when one exists, is
+ * the honest default. An explicit `--ledger` or `VEIL_LEDGER` still wins, so the
+ * hosted rail keeps its pinned file.
+ */
+function defaultLedgerFor(network: Network, rpcUrl: string | undefined): string {
+  // clusterTag already follows the repo's convention: testnet keeps the
+  // untagged name, devnet and mainnet carry a tag.
+  const tagged = join(DATA_DIR, `pool-ledger${clusterTag(rpcUrl, network)}.json`);
+  return existsSync(tagged) ? tagged : LEDGER_PATH;
 }
 
 /**
@@ -188,6 +318,20 @@ export function decodeSecret(raw: string): Uint8Array | null {
   }
   const bytes = base58Decode(text);
   return bytes && bytes.length >= 32 ? bytes : null;
+}
+
+/**
+ * A signer from key-file bytes, accepting both layouts this repo holds.
+ *
+ * `.keys/payer.json` is a 32-byte *seed*; the keys the CLI generates are 64-byte
+ * `seed ‖ publicKey` keypairs. `createKeyPairSignerFromBytes` takes only the
+ * 64-byte form and rejects a seed with a byte-length error that names neither
+ * the file nor the difference, so both are accepted here rather than leaving the
+ * caller to discover which file they happened to point at.
+ */
+export async function signerFromKeyBytes(bytes: Uint8Array): Promise<KeyPairSigner> {
+  if (bytes.length === 32) return createKeyPairSignerFromPrivateKeyBytes(bytes);
+  return createKeyPairSignerFromBytes(bytes);
 }
 
 /** Minimal base58 decoder, so scripts do not need a dependency for one helper. */
@@ -233,8 +377,16 @@ export function parseMintConfidential(
  * job is to answer from a real record. Without one the server keeps the
  * fail-closed default and refuses every paid resource — which is the correct
  * behaviour for a process that has nothing to vouch for its own privacy claim.
+ *
+ * A `ledgerStore` is threaded through so the caller can keep the config it
+ * built and the store it built it with in one place: `flush()` reads it off the
+ * config, so a store left out here is a store the server never writes to.
  */
-export function configFrom(options: ScriptOptions, ledger?: PoolLedger): ServerConfig {
+export function configFrom(
+  options: ScriptOptions,
+  ledger?: PoolLedger,
+  ledgerStore?: LedgerStore,
+): ServerConfig {
   return {
     network: options.network,
     mint: options.mint,
@@ -244,6 +396,7 @@ export function configFrom(options: ScriptOptions, ledger?: PoolLedger): ServerC
     spendCap: options.spendCap,
     ...(options.rpcUrl !== undefined ? { rpcUrl: options.rpcUrl } : {}),
     ...(options.allowLocalSettlement ? { allowLocalSettlement: true } : {}),
+    ...(ledgerStore ? { ledgerStore } : {}),
     ...(ledger
       ? {
           privacy: poolLedgerProbe(ledger, options.mintConfidential),
@@ -251,6 +404,45 @@ export function configFrom(options: ScriptOptions, ledger?: PoolLedger): ServerC
         }
       : { privacySource: 'none' as const }),
   };
+}
+
+/**
+ * Build the fee-payer co-signer the resource server needs to settle inline.
+ *
+ * The payer signs only its own half of a payment transaction; the fee payer's
+ * signature is filled in at settlement. The facilitator service owns that step
+ * (`scripts/facilitator-app.ts`), but a resource server that broadcasts inline
+ * — the hosted `/v1/*` rail and `npm run serve` — needs the same capability or
+ * every settlement is rejected as "did not pass signature verification".
+ *
+ * The key is `VEIL_PAYER_SECRET` when the deployment supplies one (the hosted
+ * runtime holds no `.keys/`), otherwise the local `payer.json`. No usable key is
+ * not an error: it simply leaves the server's pass-through behaviour, which is
+ * correct for a fully signed payer transaction.
+ */
+export async function feePayerCosignerFrom(
+  options: ScriptOptions,
+): Promise<((transaction: string) => Promise<string>) | undefined> {
+  const fromEnv = process.env.VEIL_PAYER_SECRET;
+  const seed = fromEnv
+    ? decodeSecret(fromEnv)
+    : await readFile(join(KEYS_DIR, 'payer.json'), 'utf8')
+        .then((raw) => decodeSecret(raw))
+        .catch(() => null);
+  if (!seed) return undefined;
+
+  // Imported lazily so a chain-free run (demo, tests) never loads the key
+  // machinery, and the module's static graph stays small.
+  const { createKeyPairSignerFromPrivateKeyBytes } = await import('@solana/kit');
+  const { toFacilitatorSvmSigner } = await import('@x402/svm');
+  const feePayer = await createKeyPairSignerFromPrivateKeyBytes(seed);
+  const signer = toFacilitatorSvmSigner(feePayer, {
+    ...(options.rpcUrl ? { defaultRpcUrl: options.rpcUrl } : {}),
+  });
+  // The CAIP-2 argument is unused by this signer (it only adds a signature the
+  // facilitator's key already authorises); the payer's bytes are untouched.
+  return (transaction: string) =>
+    signer.signTransaction(transaction, feePayer.address, options.network);
 }
 
 /** Minimal aligned table printer, so script output is readable in a terminal. */

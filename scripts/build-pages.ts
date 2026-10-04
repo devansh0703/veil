@@ -19,6 +19,7 @@
  */
 
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { request as httpRequest } from 'node:http';
 import { generateKeyPairSigner } from '@solana/kit';
 
 import {
@@ -30,7 +31,11 @@ import {
   type ServerConfig,
 } from '../packages/server/src/index.ts';
 import { PoolLedger } from '../packages/derive/src/index.ts';
-import { buildPaymentPayload } from '../packages/x402-core/src/index.ts';
+import {
+  buildPaymentPayload,
+  formatAtomic,
+  priceFor,
+} from '../packages/x402-core/src/index.ts';
 import {
   FIXTURES_DIR,
   DEMO_LEDGER_PATH,
@@ -202,9 +207,42 @@ async function serve(
   };
 }
 
+/**
+ * The origin the captured bodies name.
+ *
+ * The capture server runs on 127.0.0.1, but the handler derives `resource.url`
+ * from `Host` + `x-forwarded-proto` (see `requestBaseUrl`), so a plain loopback
+ * request would stamp a localhost URL into every example — which is not what
+ * the deployed rail answers. Node's `fetch` refuses to override `Host`, so the
+ * capture below uses `http.request`, which honours it: the socket still dials
+ * the loopback port, but the handler is told it is the public origin. The
+ * bodies stay real responses from the same handler the hosted function runs.
+ */
+const PUBLIC_ORIGIN = process.env.VEIL_PUBLIC_ORIGIN ?? 'https://veil-devnet.vercel.app';
+const PUBLIC_HOST = new URL(PUBLIC_ORIGIN).host;
+
 async function getJSON(url: string, headers: Record<string, string> = {}): Promise<{ status: number; body: any }> {
-  const res = await fetch(url, { headers });
-  return { status: res.status, body: await res.json() };
+  const target = new URL(url);
+  const captured = await new Promise<{ status: number; text: string }>((resolve, reject) => {
+    const req = httpRequest(
+      {
+        host: target.hostname,
+        port: target.port,
+        path: `${target.pathname}${target.search}`,
+        method: 'GET',
+        headers: { ...headers, host: PUBLIC_HOST, 'x-forwarded-proto': 'https' },
+      },
+      (res) => {
+        let text = '';
+        res.setEncoding('utf8');
+        res.on('data', (chunk) => (text += chunk));
+        res.on('end', () => resolve({ status: res.statusCode ?? 0, text }));
+      },
+    );
+    req.on('error', reject);
+    req.end();
+  });
+  return { status: captured.status, body: JSON.parse(captured.text) };
 }
 
 await mkdir(FIXTURES_DIR, { recursive: true });
@@ -616,10 +654,28 @@ fill(
         </div>`,
 );
 
+// The endpoint table on the landing page's "use it" section. Priced with the
+// same function the server prices with, so a price change cannot leave the page
+// advertising a number the rail no longer charges. The prose, curl commands and
+// client snippet around it are static; only the rows are generated.
+const quickstartRows = DEFAULT_RESOURCES.map((r) => {
+  const amount = priceFor(
+    {
+      base: r.base,
+      ...(r.perUnit !== undefined ? { perUnit: r.perUnit } : {}),
+      ...(r.units !== undefined ? { units: r.units } : {}),
+    },
+    run.decimals,
+  );
+  const price = money(formatAtomic(amount, run.decimals, ''));
+  return `        <tr>\n          <td><span class="mono">${escapeHTML(r.path)}</span></td>\n          <td class="note">${escapeHTML(r.description)}</td>\n          <td class="r mono">${escapeHTML(price)} <span class="note">VeilUSD</span></td>\n        </tr>`;
+}).join('\n');
+fill('index', 'quickstart-endpoints', quickstartRows);
+
 fill(
   'index',
   'footer',
-  `      <span class="marker">local run behind these figures · settlement <b>${escapeHTML(run.mode)}</b> · live transfers: <b>testnet + devnet</b></span>`,
+  `      <span class="marker">local run behind these figures · settlement <b>${escapeHTML(run.mode)}</b> · live transfers: <b>testnet + devnet</b> · hosted rail: <b>veil-devnet.vercel.app</b></span>`,
 );
 
 // ---------------------------------------------------------------------------
@@ -635,7 +691,7 @@ fill(
 fill(
   'limits',
   'footer',
-  `      <span class="marker">claims checked against <b>${escapeHTML(run.mode)}</b> · ${run.totals.refusedCount} refusals observed · run ${escapeHTML(stamp(run.producedAt))}</span>`,
+  `      <span class="marker">claims checked against <b>${escapeHTML(run.mode)}</b> · ${run.totals.refusedCount} refusals observed · run ${escapeHTML(stamp(run.producedAt))} · hosted rail: <b>veil-devnet.vercel.app</b></span>`,
 );
 
 // ---------------------------------------------------------------------------

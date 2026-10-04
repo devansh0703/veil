@@ -252,6 +252,17 @@ export class PoolLedger {
     const preferred = deriveSlot(id, poolSize);
     const paymentId = derivePaymentId(id);
 
+    // Re-quoting the same payment identity hands back the seat it already holds.
+    // A quote is keyed by the payment, not by the HTTP request: a client that
+    // retries a 402 (browser refresh, a read that 429'd) must not burn a second
+    // seat, and two offers for one payment id must never name two addresses —
+    // that is the shape that lets one payment look like two on the public graph.
+    // Distinct payments are distinct nonces, and only those take a new seat.
+    const held = this.#entries.find(
+      (e) => e.alias === alias && e.consumedBy === paymentId,
+    );
+    if (held) return { ...held };
+
     // Operate on the ledger's own entries, not on copies, so the reservation
     // actually sticks.
     const free = this.#entries.filter(
@@ -264,6 +275,21 @@ export class PoolLedger {
 
     chosen.consumedBy = paymentId;
     return { ...chosen };
+  }
+
+  /**
+   * The seat a payment identity holds, if it holds one — spent or not.
+   *
+   * Read-only, and deliberately not a reservation: the caller uses it to notice
+   * that an identity is already *settled*, which is a different answer from the
+   * pool being empty. `reserve()` stays the only thing that consumes a seat.
+   */
+  entryFor(alias: string, id: PaymentIdentity): PoolEntry | null {
+    const paymentId = derivePaymentId(id);
+    const entry = this.#entries.find(
+      (e) => e.alias === alias && e.consumedBy === paymentId,
+    );
+    return entry ? { ...entry } : null;
   }
 
   /** Resolve an incoming payment's destination address back to its alias. */
@@ -308,6 +334,45 @@ export class PoolLedger {
    */
   settleable(address: string, consumedBy: string): void {
     this.#findSettleable(address, consumedBy);
+  }
+
+  /**
+   * Take a seat for a payment that is being settled now rather than quoted.
+   *
+   * On a single process, `reserve` at quote time and `settle` at payment time
+   * are the same pool, so a seat is always already claimed by the time it is
+   * paid. A hosted rail breaks that assumption: the instance that answers the
+   * unpaid request and the instance that answers the paid one are not
+   * guaranteed to be the same, and the second one has never heard of the
+   * reservation.
+   *
+   * Refusing in that case is the worst possible answer, because the money has
+   * already moved into the merchant's own account — the rail would be taking
+   * the payment and recording nothing. So a payment may claim a seat that is
+   * still free, and this is idempotent for the seat's current owner.
+   *
+   * What it deliberately does *not* do is take a seat claimed by a different
+   * payment. That is the one case where refusing is right: two payments into one
+   * one-time address is exactly the relinking the pool exists to prevent, and
+   * the second payer must be told to use a new offer rather than be counted into
+   * an address someone else is already using.
+   */
+  claim(address: string, consumedBy: string): void {
+    const entry = this.#entries.find((e) => e.address === address);
+    if (!entry) throw new Error(`unknown payment account ${address}`);
+    // Already this payment's seat: the normal case on a single process.
+    if (entry.consumedBy === consumedBy) return;
+    if (entry.consumedBy !== null) {
+      throw new Error(
+        `account ${address} was consumed by ${entry.consumedBy}, not ${consumedBy}`,
+      );
+    }
+    // Re-arming is a separate, deliberate operation; a settlement path must not
+    // quietly hand out an account the merchant chose to withhold.
+    if (!entry.armed) {
+      throw new Error(`account ${address} is not armed, so it cannot take a payment`);
+    }
+    entry.consumedBy = consumedBy;
   }
 
   #findSettleable(address: string, consumedBy: string): MutableEntry {
@@ -389,4 +454,88 @@ export class PoolLedger {
       }
     }
   }
+}
+
+/**
+ * A settlement in the form it can be stored and served.
+ *
+ * The ledger records *that* a seat settled (`settledAt`), which is the part the
+ * pool's promise depends on. It does not record the transaction that settled it:
+ * the signature, amount and resource live in the process that broadcast the
+ * payment, which is exactly the copy a serverless instance loses. Keeping the
+ * record here, in a shape both the store and the HTTP surface can carry, is what
+ * lets a dashboard show a settlement that a *different* instance took.
+ *
+ * `amount` is a string and not the branded `Atomic` because this is a wire and
+ * storage shape: a bigint survives neither `JSON.stringify` nor a Redis value,
+ * and silently turning one into a float on the way out would misstate money.
+ */
+export interface StoredSettlement {
+  readonly paymentId: string;
+  readonly alias: string;
+  readonly address: string;
+  readonly amount: string;
+  readonly resource: string;
+  readonly at: string;
+  readonly signature: string | null;
+}
+
+/**
+ * Combine a stored ledger with a freshly-seeded one, keeping every consumed seat.
+ *
+ * A durable store and the bundle that seeded it drift apart in both directions,
+ * and each direction has one safe answer:
+ *
+ * - The store learned that seats were consumed; the seed has never heard of
+ *   those payments. The store's `consumedBy`/`settledAt` win, always, because
+ *   forgetting a paid address is how a pool hands the same one-time address to a
+ *   second payer.
+ * - The seed gained seats since the store was written, because the operator armed
+ *   more. Those must appear, or a redeploy would silently shrink the pool to
+ *   whatever existed the first time it ran.
+ *
+ * So structure (which seats exist, their alias and armed flag) comes from the
+ * seed, and only the two monotonic consumption fields come from the store. Both
+ * sides go through the same constructor checks as any other ledger, so a merge
+ * that would produce an impossible pool fails loudly instead of persisting.
+ */
+export function mergeLedgers(stored: PoolLedger | null, seed: PoolLedger): PoolLedger {
+  if (!stored) return seed;
+
+  const storedByAddress = new Map<string, PoolEntry>();
+  for (const entry of stored.allFor()) storedByAddress.set(entry.address, entry);
+
+  const merged = PoolLedger.empty();
+  // The seed's structure where it has a say, and the seed's own entries are
+  // never dropped. A seat the store knows about but the seed does not is kept
+  // too: an empty or unreadable seed must not be able to empty a live pool, and
+  // a pool whose seats were armed by an earlier writing of the file is still
+  // that pool. There is no way to add a seat without writing it down, so every
+  // seat in the store was legitimate when it was written.
+  const seen = new Set<string>();
+  for (const entry of seed.allFor()) {
+    const storedEntry = storedByAddress.get(entry.address);
+    const settledAt = storedEntry?.settledAt ?? entry.settledAt;
+    merged.register({
+      slot: entry.slot,
+      address: entry.address,
+      alias: entry.alias,
+      armed: entry.armed,
+      consumedBy: storedEntry?.consumedBy ?? entry.consumedBy,
+      ...(settledAt === undefined ? {} : { settledAt }),
+    });
+    seen.add(entry.address);
+  }
+  for (const entry of stored.allFor()) {
+    if (seen.has(entry.address)) continue;
+    merged.register({
+      slot: entry.slot,
+      address: entry.address,
+      alias: entry.alias,
+      armed: entry.armed,
+      consumedBy: entry.consumedBy,
+      ...(entry.settledAt === undefined ? {} : { settledAt: entry.settledAt }),
+    });
+  }
+  return merged;
 }

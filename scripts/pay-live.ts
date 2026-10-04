@@ -958,7 +958,22 @@ try {
     const info = await retryRead('read the payer token account', () =>
       rpc.getAccountInfo(held, { encoding: 'base64' }).send(),
     );
-    if (info.value === null) tokenAddress = null;
+    if (info.value === null) {
+      tokenAddress = null;
+    } else {
+      // Adopted only if it is really *this* payer's account for *this* mint.
+      // The state file can name an account an earlier run's keypair created:
+      // it exists, so an existence check waves it through, and the first thing
+      // that touches it fails with "ciphertext may be tampered or the key
+      // incorrect" — which reads as corruption but is the wrong key. The owner
+      // and mint are readable in the clear; check them here.
+      const decodedAccount = tokenDecoder.decode(
+        Buffer.from(info.value.data[0], 'base64'),
+      );
+      const wrongOwner = payer !== null && decodedAccount.owner !== payer.address;
+      const wrongMint = decodedAccount.mint !== mint;
+      if (wrongOwner || wrongMint) tokenAddress = null;
+    }
   }
   if (!tokenAddress) {
     tokenAddress = await findPayerTokenAccount(payer.address);
@@ -1346,15 +1361,11 @@ try {
   const body = {
     x402Version: payload.x402Version,
     paymentPayload: payload,
-    paymentRequirements: {
-      scheme: offer.scheme,
-      network: offer.network,
-      asset: offer.asset,
-      amount: offer.amount,
-      payTo: offer.payTo,
-      maxTimeoutSeconds: offer.maxTimeoutSeconds,
-      extra: offer.extra,
-    },
+    // The whole offer, not a normalized subset: a real x402 client echoes the
+    // 402's requirement verbatim, and the fields dropped here before were
+    // exactly the ones the settlement record reads — the dashboard row lost
+    // its resource (and the price name) because they never reached /settle.
+    paymentRequirements: offer,
   };
 
   async function post(path: string): Promise<{ status: number; body: any }> {
@@ -1439,7 +1450,10 @@ try {
   step('5', 'Close the context accounts; the rent returns to the payer');
   await reclaimScaffolding();
 } catch (error) {
-  stop('the run failed', (error as Error).message);
+  stop(
+    'the run failed',
+    (error as Error).message || String((error as Error)?.stack ?? error),
+  );
   await reclaimScaffolding();
 }
 

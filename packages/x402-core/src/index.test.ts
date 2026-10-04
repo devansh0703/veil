@@ -13,6 +13,7 @@ import {
   parsePaymentRequired,
   priceFor,
   refusal,
+  resolveResourceUrl,
   toAtomic,
   toX402Requirements,
   VEIL_SCHEME,
@@ -100,6 +101,28 @@ describe('402 body', () => {
 
   test('refuses a non-positive price', () => {
     assert.throws(() => buildPaymentRequired({ ...base, amount: 0n }), RangeError);
+  });
+
+  test('publishes an absolute resource URL once the origin is known', () => {
+    const body = buildPaymentRequired({
+      ...base,
+      amount: 1n,
+      baseUrl: 'https://veil.example',
+    });
+    assert.equal(body.resource!.url, 'https://veil.example/v1/oracle/tide');
+    assert.equal(body.accepts[0]!.resource, 'https://veil.example/v1/oracle/tide');
+  });
+
+  test('leaves the resource relative when no origin is passed', () => {
+    const body = buildPaymentRequired({ ...base, amount: 1n });
+    assert.equal(body.resource!.url, '/v1/oracle/tide');
+  });
+
+  test('does not double-prefix a resource that is already absolute', () => {
+    assert.equal(
+      resolveResourceUrl('https://x.example/a', 'https://veil.example'),
+      'https://x.example/a',
+    );
   });
 
   test('rejects an offer whose privacy claim it cannot check', () => {
