@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-10-04T22:39:12.130Z",
+  "capturedAt": "2026-10-11T21:39:02.393Z",
   "wellKnown": {
     "scheme": "exact-confidential",
     "network": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
@@ -40,6 +40,27 @@
       }
     ],
     "privacySource": "pool-ledger",
+    "trust": {
+      "model": "chain-verified",
+      "verifiedBy": "the Token-2022 zk-elgamal-proof program, on chain",
+      "keyHeldBy": "the recipient only",
+      "intermediates": [],
+      "verifier": {
+        "command": "npm run replay <paymentId|signature>",
+        "reads": "chain state, with no Veil service in the loop"
+      }
+    },
+    "paymentHeaders": {
+      "v1": {
+        "request": "X-PAYMENT"
+      },
+      "v2": {
+        "request": "PAYMENT-SIGNATURE",
+        "challenge": "PAYMENT-REQUIRED",
+        "response": "PAYMENT-RESPONSE"
+      },
+      "idempotency": "X-IDEMPOTENCY-KEY"
+    },
     "privacyGate": {
       "mode": "enforcing",
       "source": "pool-ledger",
@@ -78,6 +99,21 @@
         "code": "VEIL-CONF-005",
         "title": "One-time address pool exhausted",
         "recoverable": true
+      },
+      {
+        "code": "VEIL-CONF-006",
+        "title": "Could not reserve a one-time address",
+        "recoverable": true
+      },
+      {
+        "code": "VEIL-CONF-007",
+        "title": "Payment is bound to a different resource",
+        "recoverable": true
+      },
+      {
+        "code": "VEIL-CONF-008",
+        "title": "Transaction is not a confidential transfer",
+        "recoverable": true
       }
     ]
   },
@@ -93,7 +129,7 @@
         "scheme": "exact-confidential",
         "network": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
         "asset": "6pFkZndusKGifrKLXgaQJFjUT3Gi9n1uXcwkG7Jef3ur",
-        "payTo": "Ghmg5ChYw63TWuNrFASTSu38oCokx6xLLM9x2P8A9d1w",
+        "payTo": "EidqotpL1dEap2ykWc7uKxXKJpvKRYpwyzhv6gWkRUKr",
         "maxAmountRequired": "49000",
         "amount": "49000",
         "resource": "https://veil-devnet.vercel.app/v1/oracle/tide",
@@ -118,7 +154,9 @@
     "settled": {
       "signature": null,
       "amount": "49000",
-      "at": "2026-10-04T22:39:12.123Z",
+      "at": "2026-10-11T21:39:02.387Z",
+      "paymentId": "967571a5ede5ba3204cfdefdfb53c43345d66585398c7cb7d95f4d411d907839",
+      "seat": "EidqotpL1dEap2ykWc7uKxXKJpvKRYpwyzhv6gWkRUKr",
       "confid": "amount hidden on chain by Token-2022 confidential balances"
     },
     "data": {
@@ -131,8 +169,8 @@
   "refusal": {
     "x402Version": 2,
     "resource": {
-      "url": "https://veil-devnet.vercel.app/v1/attest/sensor",
-      "description": "Sensor provenance attestation, per call (0.012000 units)",
+      "url": "https://veil-devnet.vercel.app/v1/payee/test",
+      "description": "Reference payee — the seat the end-to-end check pays (0.001000 units)",
       "mimeType": "application/json"
     },
     "accepts": [
@@ -140,11 +178,11 @@
         "scheme": "exact-confidential",
         "network": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
         "asset": "6pFkZndusKGifrKLXgaQJFjUT3Gi9n1uXcwkG7Jef3ur",
-        "payTo": "C4Jqv2NMPv49QWjyW2B7eJaVgTeP6naC8BzKRWqqp8Sx",
-        "maxAmountRequired": "12000",
-        "amount": "12000",
-        "resource": "https://veil-devnet.vercel.app/v1/attest/sensor",
-        "description": "Sensor provenance attestation, per call (0.012000 units)",
+        "payTo": "2KncEeBuW9WRRqfxbrCgVJ63nMPTBJqpwvzaRXAuRTi5",
+        "maxAmountRequired": "1000",
+        "amount": "1000",
+        "resource": "https://veil-devnet.vercel.app/v1/payee/test",
+        "description": "Reference payee — the seat the end-to-end check pays (0.001000 units)",
         "maxTimeoutSeconds": 60,
         "extra": {
           "tokenProgram": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",

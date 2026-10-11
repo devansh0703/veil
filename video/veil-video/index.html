@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <link rel="stylesheet" href="assets/fonts.css" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1920px; height: 1080px; overflow: hidden;
+        background: #101114;
+        font-family: 'General Sans', ui-sans-serif, system-ui, sans-serif;
+      }
+      #root {
+        position: relative; width: 1920px; height: 1080px;
+        color: #E8E6E1; background: #101114;
+        font-variant-numeric: tabular-nums;
+      }
+      /* The ground rides a full-bleed child, never the root. */
+      #ground { position: absolute; inset: 0; background: #101114; }
+
+      /* isolation gives each scene its own stacking context, so the -1 ground
+         child paints above the scene background instead of behind the root. */
+      .scene { position: absolute; inset: 0; padding: 104px 120px; isolation: isolate; }
+      /* A frame's ground is its own full-bleed child, never the root. */
+      .scene-ground { position: absolute; inset: 0; background: #101114; z-index: -1; }
+      .scene.paper .scene-ground { background: #F2F2F0; }
+      .scene.paper { color: #17161A; }
+
+      .label {
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        font-size: 21px; letter-spacing: 0.14em; text-transform: uppercase;
+        color: #8A8C93;
+      }
+      .paper .label { color: #6B6862; }
+
+      .display {
+        font-family: 'Cabinet Grotesk', Georgia, serif;
+        font-weight: 700; letter-spacing: -0.022em; line-height: 1.02;
+      }
+      .h1 { font-size: 94px; }
+      .h2 { font-size: 68px; }
+      .h3 { font-size: 46px; }
+
+      .body { font-size: 28px; line-height: 1.5; color: #C9C7C2; }
+      .paper .body { color: #3A3835; }
+      .sub { font-size: 26px; line-height: 1.5; color: #8A8C93; }
+
+      .mono {
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        font-variant-numeric: tabular-nums;
+      }
+      .red { color: #DE523C; }
+      .paper .red { color: #B4341F; }
+      .ok { color: #3E9C6B; }
+
+      .rule { height: 1px; background: #2A2C31; }
+      .paper .rule { background: #D5D5D1; }
+
+      /* The signature element: a filled redaction bar over hidden text. */
+      .redact { position: relative; display: inline-block; }
+      .redact .bar {
+        display: block; transform-origin: left center;
+        position: absolute; inset: 0; background: #B4341F; border-radius: 2px;
+        background-image: repeating-linear-gradient(135deg, rgba(0,0,0,0.16) 0 6px, transparent 6px 12px);
+      }
+
+      .row { display: flex; gap: 26px; align-items: baseline; }
+      .row .k {
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        font-size: 26px; color: #B4B6BB; min-width: 132px; letter-spacing: 0.06em;
+      }
+      .row .v { font-size: 29px; color: #E8E6E1; }
+      .paper .row .k { color: #4F4D49; }
+      .paper .row .v { color: #17161A; }
+
+      .figures { display: flex; gap: 96px; }
+      .figure .n {
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        font-size: 86px; font-weight: 600; letter-spacing: -0.02em; color: #E8E6E1;
+      }
+      .figure .c { font-size: 23px; color: #8A8C93; max-width: 300px; line-height: 1.4; margin-top: 10px; }
+
+      .term {
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        font-size: 23px; line-height: 1.62; color: #C9C7C2;
+        background: #17181C; border: 1px solid #2A2C31; border-radius: 3px;
+        padding: 34px 38px;
+      }
+      .term .cmd { color: #E8E6E1; }
+      .shot-frame {
+        position: absolute; inset: 0;
+        border: 1px solid #2A2C31; border-radius: 3px; overflow: hidden;
+      }
+      .shot-frame img { width: 100%; height: 100%; object-fit: cover; object-position: top left; display: block; }
+      .caption {
+        position: absolute; left: 0; right: 0; bottom: 128px;
+        background: rgba(16,17,20,0.94); border-top: 1px solid #2A2C31;
+        padding: 30px 40px; font-size: 25px; color: #C9C7C2;
+      }
+
+      /* Burned-in captions: one band, always visible; the lines inside it are
+         timed to the narration, so a muted viewer still gets the argument. */
+      #caption-layer {
+        position: absolute; left: 0; right: 0; bottom: 0; height: 128px;
+        background: #101114; border-top: 1px solid #2A2C31; z-index: 60;
+      }
+      .cap {
+        position: absolute; left: 140px; right: 140px; top: 0; height: 128px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 27px; line-height: 1.34; color: #E8E6E1; text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="veil-pitch" data-start="0" data-duration="113"
+         data-width="1920" data-height="1080">
+      <div id="ground"></div>
+
+      <!-- 1 · the hook -->
+      <div class="scene clip" id="s1-hook" data-start="0" data-duration="9.5" data-track-index="0">
+        <div class="label" data-in> x402 · HTTP 402 payments for agents</div>
+        <div class="display h1" data-in style="margin-top: 54px; max-width: 1560px;">
+          Every payment here is a <span class="red">public broadcast</span>.
+        </div>
+        <div class="sub" data-in style="margin-top: 44px; max-width: 1200px;">
+          Amount, counterparty, timing. On-chain, indexed, permanent.
+        </div>
+      </div>
+
+      <!-- 2 · the scale, with sources on screen -->
+      <div class="scene clip" id="s2-scale" data-start="9.5" data-duration="14" data-track-index="0">
+        <div class="label" data-in>the rail, measured</div>
+        <div class="figures" style="margin-top: 78px;">
+          <div class="figure" data-in>
+            <div class="n">198.9M</div>
+            <div class="c">payments settled on x402 — TRM, via PYMNTS, 15 Sep 2026</div>
+          </div>
+          <div class="figure" data-in>
+            <div class="n">$52.7M</div>
+            <div class="c">value moved — the same measurement</div>
+          </div>
+          <div class="figure" data-in>
+            <div class="n">$0.31</div>
+            <div class="c">average ticket — TACEO, 12 May 2026</div>
+          </div>
+        </div>
+        <div class="rule" data-in style="margin: 74px 0 40px;"></div>
+        <div class="body" data-in style="font-size: 34px; max-width: 1400px;">
+          At thirty-one cents a call, your price list becomes public infrastructure.
+        </div>
+      </div>
+
+      <!-- 3 · what leaks -->
+      <div class="scene clip" id="s3-leaks" data-start="23.5" data-duration="14" data-track-index="0">
+        <div class="label" data-in>what actually leaks</div>
+        <div class="display h2" data-in style="margin-top: 46px;">Not the balance. The business.</div>
+        <div style="margin-top: 64px; display: flex; flex-direction: column; gap: 22px;">
+          <div class="row" data-in><div class="k">buyer</div><div class="v">what each customer pays you</div></div>
+          <div class="row" data-in><div class="k">discount</div><div class="v">whether you charge them differently</div></div>
+          <div class="row" data-in><div class="k">curve</div><div class="v">your usage over time, per account</div></div>
+          <div class="row" data-in><div class="k">signal</div><div class="v">which new client is ramping</div></div>
+          <div class="row" data-in><div class="k">revenue</div><div class="v">your book, broken down by counterparty</div></div>
+        </div>
+        <div class="sub" data-in style="margin-top: 58px; font-size: 22px;">
+          Framing from TACEO’s x402 privacy analysis, 12 May 2026.
+        </div>
+      </div>
+
+      <!-- 4 · what Veil is -->
+      <div class="scene clip" id="s4-what" data-start="37.5" data-duration="16.5" data-track-index="0">
+        <div class="label" data-in>Veil · an x402 scheme, on Solana</div>
+        <div class="display h2" data-in style="margin-top: 46px; max-width: 1500px;">
+          <span class="redact"><span class="bar" id="bar-amount"></span>The amount</span> is ciphertext.
+          The <span class="red">chain</span> does the checking.
+        </div>
+        <div style="margin-top: 62px; display: flex; flex-direction: column; gap: 26px; max-width: 1560px;">
+          <div class="body" data-in>
+            A confidential transfer: ElGamal ciphertext plus zero-knowledge proofs — Token-2022,
+            instruction family 27, operation 7.
+          </div>
+          <div class="body" data-in>
+            Solana’s own Token-2022 program verifies those proofs. No MPC cluster, no enclave,
+            no coprocessor in the trust path.
+          </div>
+          <div class="body" data-in>
+            Every payment lands in a fresh one-time seat, so two payments never sit side by side
+            on the account graph.
+          </div>
+        </div>
+        <div class="mono" data-in style="margin-top: 56px; font-size: 23px; color: #8A8C93;">
+          scheme exact-confidential · scheme batch-settlement · one redemption per session
+        </div>
+      </div>
+
+      <!-- 5 · the merchant's real ledger -->
+      <div class="scene clip" id="s5-ledger" data-start="54" data-duration="16" data-track-index="0" style="padding: 0;">
+        <div class="shot-frame" data-in>
+          <img src="assets/dashboard.png" alt="Veil merchant dashboard after a real protocol run" />
+          <div class="caption">
+            The merchant’s ledger after a real run. Amounts are readable only with the merchant’s
+            key — and the addresses stay public, so the dashboard prints them.
+          </div>
+        </div>
+      </div>
+
+      <!-- 6 · the check a stranger runs -->
+      <div class="scene clip" id="s6-replay" data-start="70" data-duration="16.5" data-track-index="0">
+        <div class="label" data-in>the proof is a command, not a promise</div>
+        <div class="display h2" data-in style="margin-top: 42px;">You don’t have to believe any of that.</div>
+        <div class="term" data-in style="margin-top: 46px;">
+          <div class="cmd">$ npm run replay -- 2kmv4tYaDGWt2AdEE7…hYRr</div>
+          <div class="ok">PASS  the transaction exists on chain &nbsp;→ found</div>
+          <div class="ok">PASS  the transaction succeeded &nbsp;→ error null</div>
+          <div class="ok">PASS  exactly one Token-2022 confidential transfer (family 27, op 7) &nbsp;→ 1</div>
+          <div class="ok">PASS  no plaintext Token-2022 transfer is present &nbsp;→ none</div>
+          <div class="ok">PASS  the amount is not a plaintext field of the instruction</div>
+          <div class="ok" style="padding-left: 78px; color: #8A8C93;">→ 169 bytes of ciphertext + proofs (a plain transfer carries 9–10 bytes and a readable u64)</div>
+          <div class="ok">PASS  no readable amount moved in public state &nbsp;→ destination delta 0</div>
+          <div class="ok">PASS  the destination is a one-time seat of this rail &nbsp;→ slot 5, oracle.tide</div>
+          <div class="cmd">VERDICT: every assertion held. &nbsp;exit 0</div>
+        </div>
+        <div class="sub" data-in style="margin-top: 34px; font-size: 22px;">
+          Verbatim from the run, against devnet. Read from the chain, not from our database —
+          anything the host cannot answer is reported as INFO, not as a pass.
+        </div>
+      </div>
+
+      <!-- 7 · the field, honestly -->
+      <div class="scene clip" id="s7-field" data-start="86.5" data-duration="14.5" data-track-index="0">
+        <div class="label" data-in>the field, stated plainly</div>
+        <div class="display h2" data-in style="margin-top: 42px; max-width: 1560px;">
+          Others ship privacy for x402. This is the one a stranger can check.
+        </div>
+        <div style="margin-top: 58px; display: flex; flex-direction: column; gap: 22px;">
+          <div class="row" data-in><div class="k">MPC</div><div class="v">amounts secret-shared 3-of-3 with an operator cluster — TACEO Merces, May 2026</div></div>
+          <div class="row" data-in><div class="k">TEE</div><div class="v">proofs run inside an enclave today — PrivateX402, Feb 2026</div></div>
+          <div class="row" data-in><div class="k">FHE</div><div class="v">a coprocessor computes on the ciphertext — Fhenix, Oct 2025</div></div>
+          <div class="row" data-in><div class="k red">VEIL</div><div class="v">the chain verifies it, and anyone re-runs the check in one command</div></div>
+        </div>
+        <div class="sub" data-in style="margin-top: 54px; font-size: 23px; max-width: 1500px;">
+          Public for all four, ours included: the account addresses, the mint, and the timing.
+          That is the limit of this primitive, and it is on our limits page in the same words.
+        </div>
+      </div>
+
+      <!-- 8 · live, and the ask -->
+      <div class="scene clip paper" data-start="101" data-duration="12" data-track-index="0" id="closing">
+        <div class="scene-ground"></div>
+        <div class="label" data-in>where it stands today</div>
+        <div class="display h2" data-in style="margin-top: 42px;">Live on devnet, with the receipts in the repo.</div>
+        <div style="margin-top: 58px; display: flex; flex-direction: column; gap: 24px;">
+          <div class="body" data-in style="color: #3A3835;">
+            Confidential payments settled end to end, each with an explorer link in the README.
+          </div>
+          <div class="body" data-in style="color: #3A3835;">
+            A hosted facilitator, an npm CLI, and an agent sandbox that any client can call today.
+          </div>
+          <div class="body" data-in style="color: #3A3835;">
+            MIT licensed, zero paid infrastructure, built and verified by one developer on devnet.
+          </div>
+        </div>
+        <div class="rule" data-in style="margin: 56px 0 36px;"></div>
+        <div class="mono" data-in style="font-size: 26px; color: #17161A;">
+          npm run replay — the whole argument, in one command
+        </div>
+      </div>
+
+      <!-- Burned-in captions. Each line's window matches its narration clip, so
+           the band is legible with the sound off and never outruns the voice. -->
+      <div id="caption-layer">
+        <!-- captions:begin -->
+        <div class="clip cap" id="cap-1" data-start="0.6" data-duration="8.021">x402 lets an agent pay for an API call with no account and no human — and makes every payment public.</div>
+        <div class="clip cap" id="cap-2" data-start="10.1" data-duration="12.075">Two hundred million payments settled on this rail, moving fifty-two million dollars. The average ticket: thirty-one cents. At thirty-one cents a call, your price list becomes public infrastructure.</div>
+        <div class="clip cap" id="cap-3" data-start="24.1" data-duration="11.157">What leaks isn't your balance. It's your business. What each customer pays you. Whether you charge them differently. Which new client is ramping. Your book, broken down by counterparty.</div>
+        <div class="clip cap" id="cap-4" data-start="38" data-duration="14.187">Veil is an x402 scheme on Solana. The amount is ciphertext, and the chain does the checking: ElGamal and zero-knowledge proofs, verified by Solana's own Token-2022 program.</div>
+        <div class="clip cap" id="cap-5" data-start="54.6" data-duration="12.693">This is the merchant's ledger after a real run. Amounts are readable only with the merchant's own key. The addresses stay public, so the dashboard prints them. That is the honest boundary of the primitive.</div>
+        <div class="clip cap" id="cap-6" data-start="70.6" data-duration="13.184">You don't have to believe any of that. The proof is a command, not a promise. Replay reads the chain, not our database, and asserts seven things: the transaction exists, it succeeded, and no readable amount moved.</div>
+        <div class="clip cap" id="cap-7" data-start="87.1" data-duration="12.501">Others ship privacy for x402: an MPC cluster, a TEE, an FHE coprocessor. Each asks you to trust an operator set. This one is verified by the chain.</div>
+        <div class="clip cap" id="cap-8" data-start="101.5" data-duration="10.347">Live on devnet, with every receipt in the repository. A hosted facilitator, an npm CLI, and an agent sandbox any client can call today.</div>
+      <!-- captions:end -->
+      
+      </div>
+
+      <!-- Narration. One clip per scene, generated locally by Kokoro-82M
+           (am_michael, 1.1x) — no service in the loop, matching the product's
+           own "the payer's machine does the work" stance. Durations are measured
+           from the rendered WAVs, not estimated; see audio_pitch.json. -->
+      <!-- audio:begin -->
+      <audio id="vo-1" src="assets/vo/pitch-01.wav" data-start="0.6" data-duration="8.021" data-track-index="10" data-volume="1"></audio>
+      <audio id="vo-2" src="assets/vo/pitch-02.wav" data-start="10.1" data-duration="12.075" data-track-index="10" data-volume="1"></audio>
+      <audio id="vo-3" src="assets/vo/pitch-03.wav" data-start="24.1" data-duration="11.157" data-track-index="10" data-volume="1"></audio>
+      <audio id="vo-4" src="assets/vo/pitch-04.wav" data-start="38" data-duration="14.187" data-track-index="10" data-volume="1"></audio>
+      <audio id="vo-5" src="assets/vo/pitch-05.wav" data-start="54.6" data-duration="12.693" data-track-index="10" data-volume="1"></audio>
+      <audio id="vo-6" src="assets/vo/pitch-06.wav" data-start="70.6" data-duration="13.184" data-track-index="10" data-volume="1"></audio>
+      <audio id="vo-7" src="assets/vo/pitch-07.wav" data-start="87.1" data-duration="12.501" data-track-index="10" data-volume="1"></audio>
+      <audio id="vo-8" src="assets/vo/pitch-08.wav" data-start="101.5" data-duration="10.347" data-track-index="10" data-volume="1"></audio>
+      <!-- audio:end -->
+    </div>
+
+    <script>
+      // Every scene's entrance is derived from one table, so the timeline stays
+      // data-driven and the cut times are readable in one place.
+      const SCENES = [
+        { start: 0 }, { start: 9.5 }, { start: 23.5 }, { start: 37.5 },
+        { start: 54 }, { start: 70 }, { start: 86.5 }, { start: 101 },
+      ];
+
+      document.fonts.ready.then(() => {
+        const tl = gsap.timeline({ paused: true });
+        const scenes = gsap.utils.toArray('.scene');
+
+        scenes.forEach((scene, index) => {
+          const at = SCENES[index] ? SCENES[index].start : 0;
+          const parts = scene.querySelectorAll('[data-in]');
+          tl.fromTo(
+            parts,
+            { opacity: 0, y: 26 },
+            { opacity: 1, y: 0, duration: 0.62, ease: 'power3.out', stagger: 0.11 },
+            at + 0.12,
+          );
+        });
+
+        // The one authored moment: the redaction bar lifts off the headline, once,
+        // at the point in the argument where the product is introduced.
+        tl.fromTo('#ground', { opacity: 0 }, { opacity: 1, duration: 0.3, ease: 'power2.out' }, 0);
+        tl.fromTo('#bar-amount', { scaleX: 1 }, { scaleX: 0, duration: 0.5, ease: 'power3.inOut' }, 42);
+
+        window.__timelines['veil-pitch'] = tl;
+        tl.seek(0);
+      });
+    </script>
+  </body>
+</html>

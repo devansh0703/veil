@@ -1,0 +1,95 @@
+{
+  "cut": "pitch",
+  "voice": "am_michael",
+  "speed": "1.1",
+  "segments": [
+    {
+      "n": 1,
+      "scene": "s1-hook",
+      "text": "x402 lets an agent pay for an API call with no account and no human — and makes every payment public.",
+      "file": "assets/vo/pitch-01.wav",
+      "voStart": 0.6,
+      "duration": 8.021,
+      "sceneEnd": 9.5,
+      "available": 8.9,
+      "fits": true
+    },
+    {
+      "n": 2,
+      "scene": "s2-scale",
+      "text": "Two hundred million payments settled on this rail, moving fifty-two million dollars. The average ticket: thirty-one cents. At thirty-one cents a call, your price list becomes public infrastructure.",
+      "file": "assets/vo/pitch-02.wav",
+      "voStart": 10.1,
+      "duration": 12.075,
+      "sceneEnd": 23.5,
+      "available": 13.4,
+      "fits": true
+    },
+    {
+      "n": 3,
+      "scene": "s3-leaks",
+      "text": "What leaks isn't your balance. It's your business. What each customer pays you. Whether you charge them differently. Which new client is ramping. Your book, broken down by counterparty.",
+      "file": "assets/vo/pitch-03.wav",
+      "voStart": 24.1,
+      "duration": 11.157,
+      "sceneEnd": 37.5,
+      "available": 13.4,
+      "fits": true
+    },
+    {
+      "n": 4,
+      "scene": "s4-what",
+      "text": "Veil is an x402 scheme on Solana. The amount is ciphertext, and the chain does the checking: ElGamal and zero-knowledge proofs, verified by Solana's own Token-2022 program.",
+      "file": "assets/vo/pitch-04.wav",
+      "voStart": 38,
+      "duration": 14.187,
+      "sceneEnd": 54,
+      "available": 16,
+      "fits": true
+    },
+    {
+      "n": 5,
+      "scene": "s5-ledger",
+      "text": "This is the merchant's ledger after a real run. Amounts are readable only with the merchant's own key. The addresses stay public, so the dashboard prints them. That is the honest boundary of the primitive.",
+      "file": "assets/vo/pitch-05.wav",
+      "voStart": 54.6,
+      "duration": 12.693,
+      "sceneEnd": 70,
+      "available": 15.4,
+      "fits": true
+    },
+    {
+      "n": 6,
+      "scene": "s6-replay",
+      "text": "You don't have to believe any of that. The proof is a command, not a promise. Replay reads the chain, not our database, and asserts seven things: the transaction exists, it succeeded, and no readable amount moved.",
+      "file": "assets/vo/pitch-06.wav",
+      "voStart": 70.6,
+      "duration": 13.184,
+      "sceneEnd": 86.5,
+      "available": 15.9,
+      "fits": true
+    },
+    {
+      "n": 7,
+      "scene": "s7-field",
+      "text": "Others ship privacy for x402: an MPC cluster, a TEE, an FHE coprocessor. Each asks you to trust an operator set. This one is verified by the chain.",
+      "file": "assets/vo/pitch-07.wav",
+      "voStart": 87.1,
+      "duration": 12.501,
+      "sceneEnd": 101,
+      "available": 13.9,
+      "fits": true
+    },
+    {
+      "n": 8,
+      "scene": "s8-closing",
+      "text": "Live on devnet, with every receipt in the repository. A hosted facilitator, an npm CLI, and an agent sandbox any client can call today.",
+      "file": "assets/vo/pitch-08.wav",
+      "voStart": 101.5,
+      "duration": 10.347,
+      "sceneEnd": 113,
+      "available": 11.5,
+      "fits": true
+    }
+  ]
+}

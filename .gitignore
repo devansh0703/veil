@@ -62,3 +62,20 @@ Thumbs.db
 # ...except the documented template. A later pattern wins in gitignore, so this
 # has to come after the ignore above and not only after the one near the top.
 !.env.example
+
+# The local Python venv the video narration is generated in. It exists only to
+# hold kokoro-onnx + soundfile so `npx hyperframes tts` can find an interpreter
+# via HYPERFRAMES_PYTHON; it is 235 MB of third-party wheels and has no place in
+# the repo. Recreate it with the two commands in docs/video-scripts.md.
+video/**/.venv-tts/
+
+# Frames pulled out of a rendered MP4 while checking it. Inspection scratch, not
+# a deliverable — the MP4 next to it is the artifact.
+video/**/qc/
+video/**/renders/frames/
+video/**/snapshots/
+
+# The raw transcript of the session this build was resumed from. Local context,
+# not a project artifact — it is a 3 MB chat log with nothing a reader of the
+# repo needs.
+freebuff-chat-*.md

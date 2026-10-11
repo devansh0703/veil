@@ -12,6 +12,25 @@ production.
 
 ### Added
 
+- **The submission packet** (`submission/`): the product description and the
+  blockchains/tools list, the go-to-market and demand-validation write-up, the
+  third-party dependency and licence inventory that rules § 9 asks for
+  (generated from `package-lock.json` by `submission/build-inventory.mjs`), and
+  the prior-development disclosure — including the history squash and the AI
+  tooling used, stated rather than implied.
+- **The brand assets** (`brand/`): the mark and lockups as SVG with the wordmark
+  converted to real vector outlines, so nothing depends on a font being
+  installed, plus PNG exports and the architecture diagram. `brand/build-logo.py`,
+  `brand/build-diagram.py` and `brand/build-png.mjs` regenerate all of it, and
+  the diagram's layout is derived from measured text rather than guessed.
+- **Two submission videos** (`video/`): a 113 s pitch and a 167 s technical demo,
+  both 1920×1080 with narration and burned-in captions. Each is its own
+  HyperFrames project; `scripts/gen-vo.mjs` generates the narration with the
+  local Kokoro engine and **exits non-zero if any clip overruns the scene it has
+  to fit**, and `scripts/sync-audio.mjs` writes the caption text and the audio
+  windows from the measured WAV durations so the two cannot drift.
+- **`docs/video-scripts.md`**: both read-aloud scripts with per-scene timings.
+
 - **A durable, shared hosted ledger** (`scripts/ledger-store.ts`), on Upstash
   Redis over its HTTP REST API. One key per cluster; writes merge and
   compare-and-set in Lua so two instances settling at once lose no seat; reads

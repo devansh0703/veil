@@ -177,6 +177,10 @@
   .masthead .who{display:flex;align-items:center;gap:var(--s3);font-family:var(--font-mono);
     font-size:var(--t-label);color:var(--text-muted);flex-wrap:wrap}
   .masthead .who b{color:var(--text);font-weight:500}
+  /* The masthead's right-hand group: the nav and the standing theme switch.
+     Grouped so space-between spreads wordmark / who / tail rather than four
+     loose children, which would push the switch away from the nav. */
+  .masthead .tail{display:flex;align-items:center;gap:var(--s4);flex-wrap:wrap}
   .masthead nav{display:flex;gap:var(--s4);flex-wrap:wrap}
   .masthead nav a{font-size:var(--t-ui);font-weight:500;color:var(--text-muted);
     text-decoration:none;min-height:44px;display:inline-flex;align-items:center}
@@ -220,6 +224,15 @@
   .btn.secondary{background:transparent;color:var(--text);border-color:var(--border)}
   .btn.secondary:hover{background:var(--chip-bg)}
   .btn[disabled]{opacity:.45;cursor:not-allowed}
+  /* The standing theme switch: last child of the masthead, so it reads top right.
+     It is chrome rather than content, so it sits quieter than a call to action —
+     the label names the ground it will switch TO, which is why it changes. */
+  .btn.theme{min-height:36px;padding:7px 12px;font-family:var(--font-mono);
+    font-size:var(--t-small);letter-spacing:.04em;text-transform:uppercase;
+    color:var(--text-muted);border-color:var(--border)}
+  .btn.theme:hover{color:var(--text);border-color:var(--text)}
+  .btn.theme[aria-pressed="true"]{background:var(--redact-fill);color:var(--on-redact);
+    border-color:var(--redact-fill)}
   .row{display:flex;gap:var(--s3);flex-wrap:wrap;align-items:center}
 
   /* ── badge + pills: colour never carries meaning alone ───────────────────── */
@@ -436,6 +449,18 @@
 </style>
 
 
+<script>
+/* The saved ground, applied before first paint so the page never flashes the
+   one the reader did not ask for. Same key veil.js reads later. */
+(function () {
+  try {
+    var g = localStorage.getItem("veil:ground");
+    if (g === "graphite" || g === "paper") {
+      document.documentElement.setAttribute("data-ground", g);
+    }
+  } catch (e) {}
+})();
+</script>
 </head>
 
 <body>
@@ -445,14 +470,19 @@
   <div class="wrap">
     <a class="wordmark" href="index.html"><span class="v">V</span>EIL</a>
     <div class="who">
-      <span>network <b>Solana devnet</b></span>
+      <span>network <b>testnet + devnet</b></span>
       <span>mint <b>VeilUSD</b></span>
     </div>
-    <nav>
+    <div class="tail">
+      <nav>
       <a href="index.html">Landing</a>
       <a href="dashboard.html">Merchant ledger</a>
+      <a href="docs/">Docs</a>
       <a href="402.html">402 body</a>
-    </nav>
+      </nav>
+      <button type="button" class="btn secondary theme" data-theme-toggle
+            aria-pressed="false" aria-label="Switch the site to the graphite ground">Graphite</button>
+    </div>
   </div>
 </header>
 
@@ -461,7 +491,7 @@
   <h1 id="limits">What Veil hides, and what it does not</h1>
   <p class="lede" data-pretext>Privacy products earn trust in the exact place they are tempted to be vague. So this page is not a footnote. It is a surface, linked from the top of every other one, and it makes three claims without hedging: what is hidden, what stays public, and what a determined observer can still infer.</p>
   <!-- veil:provenance -->
-  <p class="note" style="margin-top:var(--s4)">Provenance of this build: one run on <b>02 Oct · 14:21 UTC</b>, settlement mode <span class="mono">local-ledger-only</span>, chain <span class="mono">not-executed</span>. The confidential preconditions were <span class="mono">declared, not chain-read</span> and published as <span class="mono">privacySource: pool-ledger</span>. Nothing was broadcast, so the limits below describe what this code does and what a funded devnet deployment would do — not a chain fact observed here.</p>
+  <p class="note" style="margin-top:var(--s4)">Provenance of this build: one run on <b>11 Oct · 21:39 UTC</b>, settlement mode <span class="mono">local-ledger-only</span>, chain <span class="mono">not-executed</span>. The confidential preconditions were <span class="mono">declared, not chain-read</span> and published as <span class="mono">privacySource: pool-ledger</span>. This run broadcast nothing — but broadcasting is not hypothetical: the same transfers have been confirmed on Solana testnet and devnet with these proofs, linked from <a href="index.html#live-solana">Live on Solana</a>. The limits below describe what the code does and where it has been demonstrated.</p>
       <!-- /veil:provenance -->
 
   <!-- ── the three claims, verbatim ─────────────────────────────────────── -->
@@ -549,8 +579,9 @@
   <section aria-labelledby="caveats-h">
     <h2 id="caveats-h">The rest of the list, in plain language</h2>
     <dl class="states">
-      <dt>no chain execution in this build</dt>
-      <dd>Nothing on these pages was broadcast. This build runs the protocol against a local HTTP server with real generated one-time accounts and reports its own settlement mode as <span class="mono">local-ledger-only</span>. The confidential-transfer instructions are built and tested against the real Token-2022 SDK, and the three zero-knowledge proofs a transfer requires are generated locally — see <span class="mono">npm run prove:check</span>. Broadcasting still needs a funded payer; <span class="mono">npm run setup:devnet</span> is that path, and it verifies the mint by reading it rather than declaring it.</dd>
+      <dt>chain execution: demonstrated on both clusters</dt>
+      <dd>The figures on these pages come from a local run that reports its own settlement mode as <span class="mono">local-ledger-only</span> — but broadcasting is not hypothetical. Confidential transfers have been confirmed on Solana <b>testnet</b> and <b>devnet</b>, both from the operator's end-to-end run and from an independent payer through the x402 facilitator, with the three zero-knowledge proofs generated locally each time.
+        <span class="note">All four transactions are linked from <a href="index.html#live-solana">Live on Solana</a>. The checkout is no longer local-only: <span class="mono">serve</span> and the facilitator are also deployed at <span class="mono">veil-devnet.vercel.app</span>, and a payment settled through the hosted facilitator on devnet. What hosting does not fix is the rate-limited public RPC — a busy rail still needs a paid endpoint, and the hosted ledger is per-instance.</span></dd>
       <dt>where the proofs come from</dt>
       <dd>The proofs are generated <em>on the payer's own machine</em>, by WASM shipped inside the <span class="mono">@solana/zk-sdk</span> package. There is no prover service, no RPC round trip, and no fee: a transfer's three proofs build in about 50&nbsp;ms in Node and run identically in a browser, because it is the same WASM. Nothing about the amount leaves the client to make them — the only inputs are the payer's own key material, the amount, and the destination's <em>public</em> key. That is what makes the client side of this real rather than a promise.</dd>
       <dt>not audited</dt>
@@ -571,11 +602,12 @@
   <footer>
     <div class="foot">
       <!-- veil:footer -->
-      <span class="marker">claims checked against <b>local-ledger-only</b> · 4 refusals observed · run 02 Oct · 14:21 UTC</span>
+      <span class="marker">claims checked against <b>local-ledger-only</b> · 4 refusals observed · run 11 Oct · 21:39 UTC · hosted rail: <b>veil-devnet.vercel.app</b></span>
       <!-- /veil:footer -->
       <nav>
         <a href="index.html">Landing</a>
         <a href="dashboard.html">Merchant ledger</a>
+        <a href="docs/">Docs</a>
         <a href="402.html">402 body</a>
       </nav>
       <div class="row">
@@ -753,23 +785,115 @@
       setView(root.getAttribute('data-view') || 'public');
     }
 
-    /* ── ground: seeded from the use scene, toggle for inspection ─────────── */
-    function initGround() {
-      var toggle = document.querySelector('[data-ground-toggle]');
-      if (!toggle) return;
-      /* The ground is fixed by the use scene, not by prefers-color-scheme —
-         DESIGN.md rejects inverting a surface for a platform preference. This
-         control exists so a reviewer can see both grounds, nothing more. */
-      function label() {
-        toggle.textContent = root.getAttribute('data-ground') === 'graphite'
-          ? 'Inspect on paper' : 'Inspect on graphite';
+    /* ── ground: paper by default, graphite on request, remembered ────────────
+
+       The site is read in daylight, so paper is the default on every page and
+       the choice is the reader's to make rather than the platform's — a theme
+       switch follows the person, not `prefers-color-scheme`, and each ground
+       keeps the composition it was designed with. Both are full token sets
+       (see tokens.css); nothing here inverts a surface.
+
+       Two controls share one setter: `data-theme-toggle` in the masthead is the
+       standing switch (short label — it is chrome), `data-ground-toggle` in the
+       flow is the inline "inspect on the other ground" affordance. */
+    var GROUND_KEY = 'veil:ground';
+
+    function storedGround() {
+      try {
+        var value = window.localStorage.getItem(GROUND_KEY);
+        return value === 'graphite' || value === 'paper' ? value : null;
+      } catch (error) {
+        /* Private mode and file:// can refuse storage; the default stands. */
+        return null;
       }
-      label();
-      toggle.addEventListener('click', function () {
-        root.setAttribute('data-ground',
-          root.getAttribute('data-ground') === 'graphite' ? 'paper' : 'graphite');
-        label();
-        requestAnimationFrame(relayout);
+    }
+
+    function setGround(next) {
+      root.setAttribute('data-ground', next);
+      try {
+        window.localStorage.setItem(GROUND_KEY, next);
+      } catch (error) {
+        /* The switch still works for this page even when it cannot persist. */
+      }
+      var other = next === 'graphite' ? 'paper' : 'graphite';
+      var label = other.charAt(0).toUpperCase() + other.slice(1);
+      document.querySelectorAll('[data-theme-toggle]').forEach(function (button) {
+        button.textContent = label;
+        button.setAttribute('aria-pressed', next === 'graphite' ? 'true' : 'false');
+        button.setAttribute('aria-label', 'Switch the site to the ' + other + ' ground');
+      });
+      document.querySelectorAll('[data-ground-toggle]').forEach(function (button) {
+        button.textContent = 'Inspect on ' + other;
+      });
+      requestAnimationFrame(relayout);
+    }
+
+    function initGround() {
+      if (!document.querySelector('[data-theme-toggle],[data-ground-toggle]')) return;
+      var saved = storedGround();
+      var initial = saved || root.getAttribute('data-ground') || 'paper';
+      setGround(initial);
+      document.querySelectorAll('[data-theme-toggle],[data-ground-toggle]').forEach(function (button) {
+        button.addEventListener('click', function () {
+          setGround(root.getAttribute('data-ground') === 'graphite' ? 'paper' : 'graphite');
+        });
+      });
+    }
+
+    /* ── export: the rows on screen, and nothing the view is hiding ─────────── */
+    function csvCell(value) {
+      var s = String(value == null ? '' : value);
+      return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    }
+
+    function initExport() {
+      var button = document.querySelector('[data-export-ledger]');
+      var table = document.querySelector('table.ledger');
+      if (!button || !table) return;
+      var rows = Array.prototype.slice.call(table.querySelectorAll('tbody tr'));
+      if (!rows.length) return;
+
+      button.disabled = false;
+      button.title = 'Download the rows on screen as CSV';
+
+      button.addEventListener('click', function () {
+        try {
+          /* The export follows the view. In public view the amount cell holds its
+             real value in the DOM behind a redaction bar, so exporting it raw
+             would hand back exactly the number the page is hiding. */
+          var auditor = root.getAttribute('data-view') === 'auditor';
+          var cell = function (tr, sel) {
+            var el = tr.querySelector(sel);
+            return el ? el.textContent.trim() : '';
+          };
+          var lines = [['payment', 'vendor', 'time', 'state', 'reason', 'amount'].join(',')];
+          rows.forEach(function (tr) {
+            var amountValue = cell(tr, '.amount-value');
+            var amount = amountValue
+              ? (auditor ? amountValue : 'redacted')
+              : (cell(tr, '.cipher') || '');
+            lines.push([
+              csvCell(cell(tr, '.pay')),
+              csvCell(cell(tr, 'td:nth-child(2)')),
+              csvCell(cell(tr, '.when')),
+              csvCell(cell(tr, '.pill')),
+              csvCell(cell(tr, '.reason')),
+              csvCell(amount),
+            ].join(','));
+          });
+          var blob = new Blob([lines.join('\n') + '\n'], { type: 'text/csv;charset=utf-8' });
+          var href = URL.createObjectURL(blob);
+          var link = document.createElement('a');
+          link.href = href;
+          link.download = 'veil-ledger.csv';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(href);
+        } catch (e) {
+          button.title = 'Export failed: ' + (e && e.message ? e.message : e) +
+            ' — nothing was written';
+        }
       });
     }
 
@@ -787,6 +911,7 @@
 
     initView();
     initGround();
+    initExport();
 
     if (!P) {
       /* Fail closed: amounts stay redacted, the page still reads, it just cannot

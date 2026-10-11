@@ -71,7 +71,7 @@ GET /v1/oracle/tide<br>
 <b>← 402 Payment Required</b><br>
 &nbsp;&nbsp;accepts[0].scheme <span class="ok">"exact-confidential"</span><br>
 &nbsp;&nbsp;accepts[0].asset&nbsp; <span class="ok">6pFk…3ur</span><br>
-&nbsp;&nbsp;accepts[0].payTo&nbsp; Ghmg5…9d1w <span>(one-time)</span><br>
+&nbsp;&nbsp;accepts[0].payTo&nbsp; Eidqo…RUKr <span>(one-time)</span><br>
 &nbsp;&nbsp;accepts[0].maxAmountRequired <span>49000</span><br>
 &nbsp; &nbsp;accepts[0].extra.privacy <span class="ok">confidential-balances</span><br>
 &nbsp;&nbsp;accepts[0].extra.poolIndex <span>7</span>
@@ -85,7 +85,7 @@ GET /v1/oracle/tide<br>
 <br>
 <b>← 200 OK</b> · resource delivered<br>
 &nbsp;&nbsp;paid <span class="ok">true</span><br>
-&nbsp;&nbsp;settled.at <span class="val">22:39:12</span><br>
+&nbsp;&nbsp;settled.at <span class="val">21:39:02</span><br>
 &nbsp;&nbsp;settled.signature <span class="val">null</span><br>
 &nbsp;&nbsp;amount <span class="hid">[ciphertext on chain]</span><br>
 &nbsp;&nbsp;mode <span>local-ledger-only</span>
@@ -119,7 +119,7 @@ GET /v1/oracle/tide<br>
       <span class="key">"scheme"</span>: <span class="str">"exact-confidential"</span>,
       <span class="key">"network"</span>: <span class="str">"solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1"</span>,
       <span class="key">"asset"</span>: <span class="str">"6pFkZndusKGifrKLXgaQJFjUT3Gi9n1uXcwkG7Jef3ur"</span>,
-      <span class="key">"payTo"</span>: <span class="str">"Ghmg5ChYw63TWuNrFASTSu38oCokx6xLLM9x2P8A9d1w"</span>,
+      <span class="key">"payTo"</span>: <span class="str">"EidqotpL1dEap2ykWc7uKxXKJpvKRYpwyzhv6gWkRUKr"</span>,
       <span class="key">"maxAmountRequired"</span>: <span class="str">"49000"</span>,
       <span class="key">"amount"</span>: <span class="str">"49000"</span>,
       <span class="key">"resource"</span>: <span class="str">"https://veil-devnet.vercel.app/v1/oracle/tide"</span>,
@@ -190,6 +190,24 @@ GET /v1/oracle/tide<br>
           <td class="note">One-time address pool exhausted</td>
           <td class="hide-sm note">Backoff, or refill the pool. Never fall back to a plain transfer. <span class="mono">observed: pool exhausted while quoting</span></td>
         </tr>
+        <tr>
+          <td><span class="mono">VEIL-CONF-006</span></td>
+          <td class="mono">—</td>
+          <td class="note">Could not reserve a one-time address</td>
+          <td class="hide-sm note">Do not pay. Fix the configuration, then retry.</td>
+        </tr>
+        <tr>
+          <td><span class="mono">VEIL-CONF-007</span></td>
+          <td class="mono">—</td>
+          <td class="note">Payment is bound to a different resource</td>
+          <td class="hide-sm note">Do not pay. Fix the configuration, then retry.</td>
+        </tr>
+        <tr>
+          <td><span class="mono">VEIL-CONF-008</span></td>
+          <td class="mono">—</td>
+          <td class="note">Transaction is not a confidential transfer</td>
+          <td class="hide-sm note">Do not pay. Fix the configuration, then retry.</td>
+        </tr>
       <!-- /veil:refusals -->
       </tbody>
     </table>
@@ -239,8 +257,8 @@ GET /v1/oracle/tide<br>
 <pre>{
   <span class="key">"x402Version"</span>: <span class="val">2</span>,
   <span class="key">"resource"</span>: {
-    <span class="key">"url"</span>: <span class="str">"https://veil-devnet.vercel.app/v1/attest/sensor"</span>,
-    <span class="key">"description"</span>: <span class="str">"Sensor provenance attestation, per call (0.012000 units)"</span>,
+    <span class="key">"url"</span>: <span class="str">"https://veil-devnet.vercel.app/v1/payee/test"</span>,
+    <span class="key">"description"</span>: <span class="str">"Reference payee — the seat the end-to-end check pays (0.001000 units)"</span>,
     <span class="key">"mimeType"</span>: <span class="str">"application/json"</span>
   },
   <span class="key">"accepts"</span>: [
@@ -248,11 +266,11 @@ GET /v1/oracle/tide<br>
       <span class="key">"scheme"</span>: <span class="str">"exact-confidential"</span>,
       <span class="key">"network"</span>: <span class="str">"solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1"</span>,
       <span class="key">"asset"</span>: <span class="str">"6pFkZndusKGifrKLXgaQJFjUT3Gi9n1uXcwkG7Jef3ur"</span>,
-      <span class="key">"payTo"</span>: <span class="str">"C4Jqv2NMPv49QWjyW2B7eJaVgTeP6naC8BzKRWqqp8Sx"</span>,
-      <span class="key">"maxAmountRequired"</span>: <span class="str">"12000"</span>,
-      <span class="key">"amount"</span>: <span class="str">"12000"</span>,
-      <span class="key">"resource"</span>: <span class="str">"https://veil-devnet.vercel.app/v1/attest/sensor"</span>,
-      <span class="key">"description"</span>: <span class="str">"Sensor provenance attestation, per call (0.012000 units)"</span>,
+      <span class="key">"payTo"</span>: <span class="str">"2KncEeBuW9WRRqfxbrCgVJ63nMPTBJqpwvzaRXAuRTi5"</span>,
+      <span class="key">"maxAmountRequired"</span>: <span class="str">"1000"</span>,
+      <span class="key">"amount"</span>: <span class="str">"1000"</span>,
+      <span class="key">"resource"</span>: <span class="str">"https://veil-devnet.vercel.app/v1/payee/test"</span>,
+      <span class="key">"description"</span>: <span class="str">"Reference payee — the seat the end-to-end check pays (0.001000 units)"</span>,
       <span class="key">"maxTimeoutSeconds"</span>: <span class="val">60</span>,
       <span class="key">"extra"</span>: {
         <span class="key">"tokenProgram"</span>: <span class="str">"TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"</span>,

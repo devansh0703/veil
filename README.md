@@ -153,7 +153,18 @@ npm run cli         -- doctor                                 # is the rail reac
 | [API reference](docs/api.md) | Every export, option and return value, plus the raw 402/`X-PAYMENT` protocol. |
 | [Troubleshooting](docs/troubleshooting.md) | Every error code, keyed to its fix. Start here when a payment fails. |
 | [Verify it yourself](docs/verify-it-yourself.md) | Go from an explorer link to the CLI check that reads the ciphertext back. |
+| [Video scripts](docs/video-scripts.md) | Read-aloud scripts for both submission videos, timed to the measured audio. |
+| [x402 2026 landscape](docs/notes/x402-2026-landscape.md) | Every external claim in this repo, with a dated primary source and a may-claim/may-not-claim register. |
+| [SVM batch binding](docs/notes/svm-batch-binding.md) | The `batch-confidential` scheme, in the spec's own section order, with every divergence from upstream stated. |
 | [CHANGELOG](CHANGELOG.md) | What changed, and the `0.x` breaking-change policy. |
+
+### Submission and brand
+
+| Path | What it is |
+| --- | --- |
+| [`submission/`](submission/README.md) | The written submission: product, go-to-market, licence inventory, prior-work disclosure. |
+| [`brand/`](brand/README.md) | The mark and lockups as SVG with the wordmark in real vector outlines, plus PNG exports. |
+| [`video/`](video/) | The two HyperFrames projects behind the pitch and technical-demo videos. |
 
 License: [MIT](LICENSE). Questions and integration reports: GitHub Discussions.
 

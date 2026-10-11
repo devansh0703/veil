@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <link rel="stylesheet" href="assets/fonts.css" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 1920px; height: 1080px; overflow: hidden;
+        background: #101114;
+        font-family: 'General Sans', ui-sans-serif, system-ui, sans-serif;
+      }
+      #root {
+        position: relative; width: 1920px; height: 1080px;
+        color: #E8E6E1; background: #101114;
+        font-variant-numeric: tabular-nums;
+      }
+      #ground { position: absolute; inset: 0; background: #101114; }
+
+      .scene { position: absolute; inset: 0; padding: 96px 120px 150px; isolation: isolate; }
+      .scene-ground { position: absolute; inset: 0; background: #101114; z-index: -1; }
+      .scene.paper .scene-ground { background: #F2F2F0; }
+      .scene.paper { color: #17161A; }
+
+      .label {
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        font-size: 21px; letter-spacing: 0.14em; text-transform: uppercase;
+        color: #8A8C93;
+      }
+      .paper .label { color: #6B6862; }
+
+      .display {
+        font-family: 'Cabinet Grotesk', Georgia, serif;
+        font-weight: 700; letter-spacing: -0.022em; line-height: 1.02;
+      }
+      .h1 { font-size: 92px; }
+      .h2 { font-size: 62px; }
+      .h3 { font-size: 48px; }
+
+      .body { font-size: 27px; line-height: 1.5; color: #C9C7C2; }
+      .paper .body { color: #3A3835; }
+      .sub { font-size: 25px; line-height: 1.5; color: #8A8C93; }
+
+      .mono {
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        font-variant-numeric: tabular-nums;
+      }
+      .red { color: #DE523C; }
+      .paper .red { color: #B4341F; }
+      .ok { color: #3E9C6B; }
+
+      .rule { height: 1px; background: #2A2C31; }
+      .paper .rule { background: #D5D5D1; }
+
+      .row { display: flex; gap: 26px; align-items: baseline; }
+      .row .k {
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        font-size: 24px; color: #B4B6BB; min-width: 216px; letter-spacing: 0.04em;
+      }
+      .row .v { font-size: 27px; color: #E8E6E1; }
+      .paper .row .k { color: #4F4D49; }
+      .paper .row .v { color: #17161A; }
+
+      .figures { display: flex; gap: 88px; }
+      .figure .n {
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        font-size: 80px; font-weight: 600; letter-spacing: -0.02em; color: #E8E6E1;
+      }
+      .figure .c { font-size: 22px; color: #8A8C93; max-width: 290px; line-height: 1.4; margin-top: 10px; }
+
+      .term {
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        font-size: 21px; line-height: 1.6; color: #C9C7C2;
+        background: #17181C; border: 1px solid #2A2C31; border-radius: 3px;
+        padding: 30px 34px;
+      }
+      /* Only the pre-formatted JSON needs preserved whitespace. Putting `pre`
+         on .term itself makes the source whitespace between block children
+         render as blank lines, which silently doubles the box's height. */
+      .term .pre { white-space: pre; }
+      .term .cmd { color: #E8E6E1; }
+      .term .dim { color: #8A8C93; }
+
+      /* the refusal table — a ledger is a table */
+      .rtable { width: 100%; border-collapse: collapse; }
+      .rtable th {
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        font-size: 20px; letter-spacing: 0.1em; text-transform: uppercase;
+        color: #8A8C93; text-align: left; padding: 0 22px 14px 0;
+        border-bottom: 1px solid #2A2C31; font-weight: 400;
+      }
+      .rtable td {
+        font-size: 24px; color: #C9C7C2; padding: 13px 22px 13px 0;
+        border-bottom: 1px solid #1E2024; vertical-align: baseline;
+      }
+      .rtable td.code {
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        font-size: 22px; color: #E8E6E1; white-space: nowrap;
+      }
+      .rtable tr.lead td { color: #DE523C; }
+      .rtable tr.lead td.code { color: #DE523C; }
+
+      #caption-layer {
+        position: absolute; left: 0; right: 0; bottom: 0; height: 124px;
+        background: #101114; border-top: 1px solid #2A2C31; z-index: 60;
+      }
+      .cap {
+        position: absolute; left: 140px; right: 140px; top: 0; height: 124px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 26px; line-height: 1.34; color: #E8E6E1; text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="veil-demo" data-start="0" data-duration="167"
+         data-width="1920" data-height="1080">
+      <div id="ground"></div>
+
+      <!-- 1 · title -->
+      <div class="scene clip" id="d1-title" data-start="0" data-duration="7" data-track-index="0">
+        <div class="label" data-in>Veil · a technical walkthrough</div>
+        <div class="display h1" data-in style="margin-top: 50px; max-width: 1600px;">
+          Private payment rails<br />for the agent economy.
+        </div>
+        <div class="sub" data-in style="margin-top: 44px; max-width: 1300px;">
+          x402 on Solana, settled through Token-2022 Confidential Balances.
+        </div>
+      </div>
+
+      <!-- 2 · the request path -->
+      <div class="scene clip" id="d2-request" data-start="7" data-duration="20" data-track-index="0">
+        <div class="label" data-in>1 · the request path</div>
+        <div class="display h3" data-in style="margin-top: 34px;">Quote only what you can settle privately.</div>
+        <div class="term" data-in style="margin-top: 34px; font-size: 19px; line-height: 1.5;">
+<div class="pre">$ curl -i "https://veil-devnet.vercel.app/v1/oracle/tide?nonce=99001"
+<span class="dim">HTTP/2 402</span>
+{
+  "x402Version": 2,
+  "accepts": [{
+    "scheme": "exact-confidential",
+    "network": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+    "asset": "H1WQvSNbaRrJrfRME8vrRdMgCvQGEpfzDwUYZmApCA7p",
+    "payTo": "AQjSU7qHwYYY5eVDxtR1oHwjVhuwui45g52UfGY3jAAC",  <span class="dim">← one-time seat</span>
+    "amount": "49000",
+    "extra": { "privacy": "confidential-balances", "auditor": null,
+               "hides": ["on-chain-amount", "on-chain-balance"] }
+  }]
+}</div>
+        </div>
+        <div class="body" data-in style="margin-top: 26px; font-size: 25px;">
+          Before it quotes, the rail reads the mint and the destination and confirms both can
+          hold a confidential transfer. If either cannot be checked, it offers nothing.
+        </div>
+      </div>
+
+      <!-- 3 · the proofs -->
+      <div class="scene clip" id="d3-proofs" data-start="27" data-duration="22" data-track-index="0">
+        <div class="label" data-in>2 · where the proofs come from</div>
+        <div class="display h3" data-in style="margin-top: 34px;">The payer's machine, with no service in the loop.</div>
+        <div style="margin-top: 40px; display: flex; flex-direction: column; gap: 20px;">
+          <div class="row" data-in><div class="k">equality</div><div class="v">the balance written is the old balance minus this amount</div></div>
+          <div class="row" data-in><div class="k">validity</div><div class="v">both grouped ciphertexts really encrypt that amount</div></div>
+          <div class="row" data-in><div class="k">range</div><div class="v">every committed value is in range, so nothing wraps negative</div></div>
+        </div>
+        <div class="rule" data-in style="margin: 38px 0 26px;"></div>
+        <div class="body" data-in style="font-size: 25px;">
+          All three are built by WASM inside the Solana ZK SDK, before any network call — an
+          offline wallet can still author a payment. Roughly 50&nbsp;ms for all three in Node.
+        </div>
+        <div class="mono" data-in style="margin-top: 24px; font-size: 22px; color: #8A8C93;">
+          npm run prove:check · 23 checks · npm run prove:browser · 18 checks, 0 network requests while proving
+        </div>
+      </div>
+
+      <!-- 4 · settlement -->
+      <div class="scene clip" id="d4-settle" data-start="49" data-duration="24" data-track-index="0">
+        <div class="label" data-in>3 · settlement</div>
+        <div class="display h3" data-in style="margin-top: 34px;">The chain does the checking.</div>
+        <div style="margin-top: 42px; display: flex; flex-direction: column; gap: 22px;">
+          <div class="row" data-in><div class="k">instruction</div><div class="v">Token-2022 · family 27 · operation 7</div></div>
+          <div class="row" data-in><div class="k">verified by</div><div class="v">Solana's own token program, from the Instructions sysvar</div></div>
+          <div class="row" data-in><div class="k">who signs</div><div class="v">the payer signs the money; the rail co-signs only the fee</div></div>
+          <div class="row" data-in><div class="k">who reads</div><div class="v">the merchant, with the key derived from its own wallet</div></div>
+          <div class="row" data-in><div class="k red">auditor key</div><div class="v">off by default — one global key per mint is not a per-merchant path</div></div>
+        </div>
+        <div class="sub" data-in style="margin-top: 40px; font-size: 23px; max-width: 1500px;">
+          The legacy proof-record flow is kept as a fallback; the txv1 path collapses it into one
+          transaction when the gate is live (mainnet since 15 Sep 2026).
+        </div>
+      </div>
+
+      <!-- 5 · refusals -->
+      <div class="scene clip" id="d5-refusals" data-start="73" data-duration="20" data-track-index="0">
+        <div class="label" data-in>4 · the refusal policy</div>
+        <div class="display h3" data-in style="margin-top: 32px;">It never downgrades to a public payment.</div>
+        <table class="rtable" data-in style="margin-top: 34px;">
+          <thead>
+            <tr><th>code</th><th>cause</th><th>http</th></tr>
+          </thead>
+          <tbody>
+            <tr class="lead"><td class="code">VEIL-CONF-003</td><td>confidentiality cannot be guaranteed — refuse to serve</td><td class="code">402</td></tr>
+            <tr><td class="code">VEIL-CONF-001</td><td>mint lacks the confidential-transfer extension</td><td class="code">402</td></tr>
+            <tr><td class="code">VEIL-CONF-002</td><td>destination cannot receive confidential credits</td><td class="code">402</td></tr>
+            <tr><td class="code">VEIL-CONF-004</td><td>buyer would exceed its declared spend cap</td><td class="code">402</td></tr>
+            <tr><td class="code">VEIL-CONF-005</td><td>one-time address pool exhausted</td><td class="code">503</td></tr>
+            <tr><td class="code">VEIL-CONF-007</td><td>payment presented against a different resource</td><td class="code">402</td></tr>
+          </tbody>
+        </table>
+        <div class="body" data-in style="margin-top: 28px; font-size: 25px;">
+          A refusal carries <span class="red">no <span class="mono">accepts[]</span> entry at all</span> — an offer alongside a
+          refusal would invite a client to pay for something the rail has already said it cannot settle privately.
+        </div>
+      </div>
+
+      <!-- 6 · the graph layer -->
+      <div class="scene clip" id="d6-graph" data-start="93" data-duration="18" data-track-index="0">
+        <div class="label" data-in>5 · the graph layer</div>
+        <div class="display h3" data-in style="margin-top: 34px;">One-time seats, never re-armed.</div>
+        <div class="figures" data-in style="margin-top: 56px;">
+          <div class="figure">
+            <div class="n">256</div>
+            <div class="c">pre-armed one-time accounts on devnet</div>
+          </div>
+          <div class="figure">
+            <div class="n">0</div>
+            <div class="c">seats ever re-used — re-arming would link two payments</div>
+          </div>
+          <div class="figure">
+            <div class="n">2</div>
+            <div class="c">payments to one merchant, two unrelated accounts</div>
+          </div>
+        </div>
+        <div class="body" data-in style="margin-top: 52px; font-size: 25px; max-width: 1560px;">
+          A seat cannot be derived — there is one deterministic address form per owner and mint — so
+          the pool is created once and its addresses recorded. What is deterministic is which slot a
+          payment takes, so the merchant reconciles without the payer telling it anything.
+        </div>
+      </div>
+
+      <!-- 7 · verification -->
+      <div class="scene clip" id="d7-replay" data-start="111" data-duration="22" data-track-index="0">
+        <div class="label" data-in>6 · verification</div>
+        <div class="display h3" data-in style="margin-top: 32px;">The proof is a command, not a promise.</div>
+        <div class="term" data-in style="margin-top: 32px; font-size: 20px; line-height: 1.55;">
+          <div class="cmd">$ npm run replay -- 2kmv4tYaDGWt2AdEE7…hYRr</div>
+          <div class="ok">PASS  the transaction exists on chain</div>
+          <div class="ok">PASS  the transaction succeeded</div>
+          <div class="ok">PASS  exactly one Token-2022 confidential transfer (family 27, op 7)</div>
+          <div class="ok">PASS  no plaintext Token-2022 transfer is present</div>
+          <div class="ok">PASS  the amount is not a plaintext field of the instruction</div>
+          <div class="ok">PASS  no readable amount moved in public state</div>
+          <div class="ok">PASS  the destination is a one-time seat of this rail</div>
+          <div class="cmd">VERDICT: every assertion held.  exit 0</div>
+        </div>
+        <div class="sub" data-in style="margin-top: 24px; font-size: 22px;">
+          Read from the chain — not our ledger, not our server. Anything the host cannot answer is
+          reported as INFO, never counted as a pass.
+        </div>
+      </div>
+
+      <!-- 8 · what landed in 2026 -->
+      <div class="scene clip" id="d8-2026" data-start="133" data-duration="19" data-track-index="0">
+        <div class="label" data-in>7 · what landed in 2026</div>
+        <div class="display h3" data-in style="margin-top: 34px;">Sessions, one transaction, V2 headers.</div>
+        <div style="margin-top: 40px; display: flex; flex-direction: column; gap: 20px;">
+          <div class="row" data-in><div class="k">batch-confidential</div><div class="v">capital committed once, a signed voucher per call, one confidential redemption</div></div>
+          <div class="row" data-in><div class="k">txv1 · SIMD-0385</div><div class="v">proof verification folded into one ≤ 4,096-byte transaction</div></div>
+          <div class="row" data-in><div class="k">x402 V2 headers</div><div class="v">PAYMENT-SIGNATURE / -REQUIRED / -RESPONSE, negotiated alongside V1</div></div>
+          <div class="row" data-in><div class="k">svm binding</div><div class="v">a spec-shaped sibling to upstream's, with the confidential redemption it lacks</div></div>
+        </div>
+        <div class="sub" data-in style="margin-top: 36px; font-size: 23px;">
+          Every one is additive and behind scheme negotiation — the deployed rail is unchanged.
+        </div>
+      </div>
+
+      <!-- 9 · what stays public -->
+      <div class="scene clip paper" data-start="152" data-duration="15" data-track-index="0" id="d9-limits">
+        <div class="scene-ground"></div>
+        <div class="label" data-in>what stays public</div>
+        <div class="display h2" data-in style="margin-top: 34px;">Addresses, mint, timing.</div>
+        <div style="margin-top: 44px; display: flex; flex-direction: column; gap: 22px;">
+          <div class="body" data-in style="color: #3A3835;">Amounts and balances are ciphertext. That is all this primitive hides.</div>
+          <div class="body" data-in style="color: #3A3835;">Token account addresses stay public by design of the extension.</div>
+          <div class="body" data-in style="color: #3A3835;">At low volume, timing correlation remains possible. We say so on the limits page.</div>
+        </div>
+        <div class="rule" data-in style="margin: 46px 0 30px;"></div>
+        <div class="mono" data-in style="font-size: 25px; color: #17161A;">
+          github.com/devansh0703/veil · MIT · live on devnet
+        </div>
+      </div>
+
+      <!-- Burned-in captions, timed to the narration. -->
+      <div id="caption-layer">
+        <!-- captions:begin -->
+        <div class="clip cap" id="dcap-1" data-start="0.5" data-duration="5.376">Veil. A technical walkthrough of a confidential x402 rail on Solana.</div>
+        <div class="clip cap" id="dcap-2" data-start="7.5" data-duration="16.235">An agent asks for a resource. Unpaid, it gets a standard 402: a price, a one-time account, and a privacy claim it can check. Before quoting, the rail reads the mint and the destination, confirming both can hold a confidential transfer.</div>
+        <div class="clip cap" id="dcap-3" data-start="27.5" data-duration="19.648">A confidential transfer needs three proofs: ciphertext-commitment equality, batched ciphertext validity, and a range proof over the remaining balance. All three are built on the payer's own machine, by WASM inside the Solana ZK SDK. No prover service, no fee, about fifty milliseconds.</div>
+        <div class="clip cap" id="dcap-4" data-start="49.5" data-duration="21.845">The transfer is Token-2022, instruction family twenty-seven, operation seven. Solana's own token program verifies those proofs on chain. The payer signs the money movement; the rail co-signs only the network fee. The merchant decrypts its own recipient ciphertext with its own wallet key — one key per merchant.</div>
+        <div class="clip cap" id="dcap-5" data-start="73.5" data-duration="16.896">Every refusal has one code, one cause, one remedy. The load-bearing one is VEIL-CONF-003: if the rail cannot demonstrate that a payment will be confidential, it refuses and offers nothing. A refusal carries no accepts entry at all.</div>
+        <div class="clip cap" id="dcap-6" data-start="93.5" data-duration="14.805">Confidential balances hide the amount, not that an account exists. So every payment lands in a different one-time account from a pre-created pool. Seats are never re-armed — reusing one would link two payments on the public graph.</div>
+        <div class="clip cap" id="dcap-7" data-start="111.5" data-duration="17.024">The claim is about someone else's blockchain, so it should not be taken on our word. Replay reads the chain, not our ledger, and asserts seven things: the transaction exists, it succeeded, it carries exactly one confidential transfer, and no readable amount moved.</div>
+        <div class="clip cap" id="dcap-8" data-start="133.5" data-duration="17.045">Three things landed in 2026. Batch settlement: capital committed once, a signed voucher per call, and a confidential redemption — only the session total reaches the chain. One-transaction settlement behind txv1. And V2 headers.</div>
+        <div class="clip cap" id="dcap-9" data-start="152.5" data-duration="10.069">What stays public, stated plainly: the account addresses, the mint, and the timing. That is the limit of this primitive, and it is on our limits page in the same words.</div>
+      <!-- captions:end -->
+      
+      </div>
+
+      <!-- Narration: Kokoro-82M, generated locally. Durations measured from the WAVs. -->
+      <!-- audio:begin -->
+      <audio id="dvo-1" src="assets/vo/demo-01.wav" data-start="0.5" data-duration="5.376" data-track-index="10" data-volume="1"></audio>
+      <audio id="dvo-2" src="assets/vo/demo-02.wav" data-start="7.5" data-duration="16.235" data-track-index="10" data-volume="1"></audio>
+      <audio id="dvo-3" src="assets/vo/demo-03.wav" data-start="27.5" data-duration="19.648" data-track-index="10" data-volume="1"></audio>
+      <audio id="dvo-4" src="assets/vo/demo-04.wav" data-start="49.5" data-duration="21.845" data-track-index="10" data-volume="1"></audio>
+      <audio id="dvo-5" src="assets/vo/demo-05.wav" data-start="73.5" data-duration="16.896" data-track-index="10" data-volume="1"></audio>
+      <audio id="dvo-6" src="assets/vo/demo-06.wav" data-start="93.5" data-duration="14.805" data-track-index="10" data-volume="1"></audio>
+      <audio id="dvo-7" src="assets/vo/demo-07.wav" data-start="111.5" data-duration="17.024" data-track-index="10" data-volume="1"></audio>
+      <audio id="dvo-8" src="assets/vo/demo-08.wav" data-start="133.5" data-duration="17.045" data-track-index="10" data-volume="1"></audio>
+      <audio id="dvo-9" src="assets/vo/demo-09.wav" data-start="152.5" data-duration="10.069" data-track-index="10" data-volume="1"></audio>
+      <!-- audio:end -->
+    </div>
+
+    <script>
+      const SCENES = [
+        { start: 0 }, { start: 7 }, { start: 27 }, { start: 49 }, { start: 73 },
+        { start: 93 }, { start: 111 }, { start: 133 }, { start: 151 },
+      ];
+
+      document.fonts.ready.then(() => {
+        const tl = gsap.timeline({ paused: true });
+        const scenes = gsap.utils.toArray('.scene');
+
+        scenes.forEach((scene, index) => {
+          const at = SCENES[index] ? SCENES[index].start : 0;
+          const parts = scene.querySelectorAll('[data-in]');
+          tl.fromTo(
+            parts,
+            { opacity: 0, y: 24 },
+            { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out', stagger: 0.09 },
+            at + 0.12,
+          );
+        });
+
+        tl.fromTo('#ground', { opacity: 0 }, { opacity: 1, duration: 0.3, ease: 'power2.out' }, 0);
+
+        window.__timelines['veil-demo'] = tl;
+        tl.seek(0);
+      });
+    </script>
+  </body>
+</html>

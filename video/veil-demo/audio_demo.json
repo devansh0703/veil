@@ -1,0 +1,106 @@
+{
+  "cut": "demo",
+  "voice": "am_michael",
+  "speed": "1.1",
+  "segments": [
+    {
+      "n": 1,
+      "scene": "d1-title",
+      "text": "Veil. A technical walkthrough of a confidential x402 rail on Solana.",
+      "file": "assets/vo/demo-01.wav",
+      "voStart": 0.5,
+      "duration": 5.376,
+      "sceneEnd": 7,
+      "available": 6.5,
+      "fits": true
+    },
+    {
+      "n": 2,
+      "scene": "d2-request",
+      "text": "An agent asks for a resource. Unpaid, it gets a standard 402: a price, a one-time account, and a privacy claim it can check. Before quoting, the rail reads the mint and the destination, confirming both can hold a confidential transfer.",
+      "file": "assets/vo/demo-02.wav",
+      "voStart": 7.5,
+      "duration": 16.235,
+      "sceneEnd": 27,
+      "available": 19.5,
+      "fits": true
+    },
+    {
+      "n": 3,
+      "scene": "d3-proofs",
+      "text": "A confidential transfer needs three proofs: ciphertext-commitment equality, batched ciphertext validity, and a range proof over the remaining balance. All three are built on the payer's own machine, by WASM inside the Solana ZK SDK. No prover service, no fee, about fifty milliseconds.",
+      "file": "assets/vo/demo-03.wav",
+      "voStart": 27.5,
+      "duration": 19.648,
+      "sceneEnd": 49,
+      "available": 21.5,
+      "fits": true
+    },
+    {
+      "n": 4,
+      "scene": "d4-settle",
+      "text": "The transfer is Token-2022, instruction family twenty-seven, operation seven. Solana's own token program verifies those proofs on chain. The payer signs the money movement; the rail co-signs only the network fee. The merchant decrypts its own recipient ciphertext with its own wallet key — one key per merchant.",
+      "file": "assets/vo/demo-04.wav",
+      "voStart": 49.5,
+      "duration": 21.845,
+      "sceneEnd": 73,
+      "available": 23.5,
+      "fits": true
+    },
+    {
+      "n": 5,
+      "scene": "d5-refusals",
+      "text": "Every refusal has one code, one cause, one remedy. The load-bearing one is VEIL-CONF-003: if the rail cannot demonstrate that a payment will be confidential, it refuses and offers nothing. A refusal carries no accepts entry at all.",
+      "file": "assets/vo/demo-05.wav",
+      "voStart": 73.5,
+      "duration": 16.896,
+      "sceneEnd": 93,
+      "available": 19.5,
+      "fits": true
+    },
+    {
+      "n": 6,
+      "scene": "d6-graph",
+      "text": "Confidential balances hide the amount, not that an account exists. So every payment lands in a different one-time account from a pre-created pool. Seats are never re-armed — reusing one would link two payments on the public graph.",
+      "file": "assets/vo/demo-06.wav",
+      "voStart": 93.5,
+      "duration": 14.805,
+      "sceneEnd": 111,
+      "available": 17.5,
+      "fits": true
+    },
+    {
+      "n": 7,
+      "scene": "d7-replay",
+      "text": "The claim is about someone else's blockchain, so it should not be taken on our word. Replay reads the chain, not our ledger, and asserts seven things: the transaction exists, it succeeded, it carries exactly one confidential transfer, and no readable amount moved.",
+      "file": "assets/vo/demo-07.wav",
+      "voStart": 111.5,
+      "duration": 17.024,
+      "sceneEnd": 133,
+      "available": 21.5,
+      "fits": true
+    },
+    {
+      "n": 8,
+      "scene": "d8-2026",
+      "text": "Three things landed in 2026. Batch settlement: capital committed once, a signed voucher per call, and a confidential redemption — only the session total reaches the chain. One-transaction settlement behind txv1. And V2 headers.",
+      "file": "assets/vo/demo-08.wav",
+      "voStart": 133.5,
+      "duration": 17.045,
+      "sceneEnd": 152,
+      "available": 18.5,
+      "fits": true
+    },
+    {
+      "n": 9,
+      "scene": "d9-limits",
+      "text": "What stays public, stated plainly: the account addresses, the mint, and the timing. That is the limit of this primitive, and it is on our limits page in the same words.",
+      "file": "assets/vo/demo-09.wav",
+      "voStart": 152.5,
+      "duration": 10.069,
+      "sceneEnd": 167,
+      "available": 14.5,
+      "fits": true
+    }
+  ]
+}

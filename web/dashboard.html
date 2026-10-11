@@ -61,12 +61,12 @@
       <!-- veil:totals -->
       <div>
         <div class="k">Settled</div>
-        <div class="total" data-pretext>$11.561</div>
-        <div class="sub">33 payments · 3 merchants · every address used once</div>
+        <div class="total" data-pretext>$11.572</div>
+        <div class="sub">44 payments · 4 merchants · every address used once</div>
       </div>
       <div>
         <div class="k">In flight</div>
-        <div class="total tertiary" data-pretext>6</div>
+        <div class="total tertiary" data-pretext>8</div>
         <div class="sub">reserved and quoted, not yet settled</div>
       </div>
       <div>
@@ -81,7 +81,7 @@
       </div>
       <div>
         <div class="k">Pool</div>
-        <div class="total tertiary" data-pretext>48</div>
+        <div class="total tertiary" data-pretext>64</div>
         <div class="sub">one-time accounts · 0 reused</div>
       </div>
       <!-- /veil:totals -->
@@ -119,7 +119,7 @@
           </td>
           <td class="r"><span class="redact"><span class="amount-value">$0.539</span><span class="redaction-bar" aria-hidden="true"></span></span></td>
           <td class="r mono">11</td>
-          <td class="r hide-sm mono">17:10:57</td>
+          <td class="r hide-sm mono">21:39:01</td>
         </tr>
         <tr>
           <td>
@@ -128,7 +128,7 @@
           </td>
           <td class="r"><span class="redact"><span class="amount-value">$10.89</span><span class="redaction-bar" aria-hidden="true"></span></span></td>
           <td class="r mono">11</td>
-          <td class="r hide-sm mono">17:10:57</td>
+          <td class="r hide-sm mono">21:39:02</td>
         </tr>
         <tr>
           <td>
@@ -137,7 +137,16 @@
           </td>
           <td class="r"><span class="redact"><span class="amount-value">$0.132</span><span class="redaction-bar" aria-hidden="true"></span></span></td>
           <td class="r mono">11</td>
-          <td class="r hide-sm mono">17:10:57</td>
+          <td class="r hide-sm mono">21:39:02</td>
+        </tr>
+        <tr>
+          <td>
+            <span class="alias">payee.test</span>
+            <span class="note" data-pretext>Reference payee — the seat the end-to-end check pays</span>
+          </td>
+          <td class="r"><span class="redact"><span class="amount-value">$0.011</span><span class="redaction-bar" aria-hidden="true"></span></span></td>
+          <td class="r mono">11</td>
+          <td class="r hide-sm mono">21:39:02</td>
         </tr>
       <!-- /veil:vendors -->
       </tbody>
@@ -149,7 +158,7 @@
     <h2 id="ledger-h">Payments</h2>
     <table class="ledger">
       <!-- veil:ledger-caption -->
-      <caption>Latest 10 of 43, newest first. A row carries an amount only if the payment settled; a refusal keeps its code and gains no figure.</caption>
+      <caption>Latest 10 of 56, newest first. A row carries an amount only if the payment settled; a refusal keeps its code and gains no figure.</caption>
       <!-- /veil:ledger-caption -->
       <thead>
         <tr>
@@ -165,7 +174,7 @@
         <tr>
           <td data-label="Payment"><span class="pay">—</span></td>
           <td data-label="Vendor">Sensor Attest</td>
-          <td data-label="Time" class="hide-sm when">17:10:57</td>
+          <td data-label="Time" class="hide-sm when">21:39:02</td>
           <td data-label="State">
             <span class="pill unreadable"><span class="dot" aria-hidden="true"></span>refused</span>
             <span class="reason" data-pretext>VEIL-CONF-003 — Confidentiality cannot be guaranteed — refusing to serve</span>
@@ -175,7 +184,7 @@
         <tr>
           <td data-label="Payment"><span class="pay">—</span></td>
           <td data-label="Vendor">Sensor Attest</td>
-          <td data-label="Time" class="hide-sm when">17:10:57</td>
+          <td data-label="Time" class="hide-sm when">21:39:02</td>
           <td data-label="State">
             <span class="pill unreadable"><span class="dot" aria-hidden="true"></span>refused</span>
             <span class="reason" data-pretext>VEIL-CONF-004 — Buyer spend cap exceeded</span>
@@ -185,7 +194,7 @@
         <tr>
           <td data-label="Payment"><span class="pay">—</span></td>
           <td data-label="Vendor">Sensor Attest</td>
-          <td data-label="Time" class="hide-sm when">17:10:57</td>
+          <td data-label="Time" class="hide-sm when">21:39:02</td>
           <td data-label="State">
             <span class="pill unreadable"><span class="dot" aria-hidden="true"></span>refused</span>
             <span class="reason" data-pretext>VEIL-CONF-005 — One-time address pool exhausted</span>
@@ -195,7 +204,7 @@
         <tr>
           <td data-label="Payment"><span class="pay">—</span></td>
           <td data-label="Vendor">Tidewater Atlas</td>
-          <td data-label="Time" class="hide-sm when">17:10:57</td>
+          <td data-label="Time" class="hide-sm when">21:39:02</td>
           <td data-label="State">
             <span class="pill unreadable"><span class="dot" aria-hidden="true"></span>refused</span>
             <span class="reason" data-pretext>invalid-payment — invalid-payment</span>
@@ -203,9 +212,29 @@
           <td data-label="Amount" class="r amount"><span class="cipher">no amount</span></td>
         </tr>
         <tr>
+          <td data-label="Payment"><span class="pay">p_dba9…f56</span></td>
+          <td data-label="Vendor">payee.test</td>
+          <td data-label="Time" class="hide-sm when">21:39:02</td>
+          <td data-label="State">
+            <span class="pill verifying"><span class="dot" aria-hidden="true"></span>in flight</span>
+            <span class="reason" data-pretext>quoted and reserved at slot 8; counted separately, never as settled</span>
+          </td>
+          <td data-label="Amount" class="r amount"><span class="redact"><span class="amount-value">$0.001</span><span class="redaction-bar" aria-hidden="true"></span></span></td>
+        </tr>
+        <tr>
+          <td data-label="Payment"><span class="pay">p_fec5…f5f</span></td>
+          <td data-label="Vendor">payee.test</td>
+          <td data-label="Time" class="hide-sm when">21:39:02</td>
+          <td data-label="State">
+            <span class="pill verifying"><span class="dot" aria-hidden="true"></span>in flight</span>
+            <span class="reason" data-pretext>quoted and reserved at slot 15; counted separately, never as settled</span>
+          </td>
+          <td data-label="Amount" class="r amount"><span class="redact"><span class="amount-value">$0.001</span><span class="redaction-bar" aria-hidden="true"></span></span></td>
+        </tr>
+        <tr>
           <td data-label="Payment"><span class="pay">p_3929…47e</span></td>
           <td data-label="Vendor">Sensor Attest</td>
-          <td data-label="Time" class="hide-sm when">17:10:57</td>
+          <td data-label="Time" class="hide-sm when">21:39:02</td>
           <td data-label="State">
             <span class="pill verifying"><span class="dot" aria-hidden="true"></span>in flight</span>
             <span class="reason" data-pretext>quoted and reserved at slot 8; counted separately, never as settled</span>
@@ -215,7 +244,7 @@
         <tr>
           <td data-label="Payment"><span class="pay">p_bc01…51f</span></td>
           <td data-label="Vendor">Sensor Attest</td>
-          <td data-label="Time" class="hide-sm when">17:10:57</td>
+          <td data-label="Time" class="hide-sm when">21:39:02</td>
           <td data-label="State">
             <span class="pill verifying"><span class="dot" aria-hidden="true"></span>in flight</span>
             <span class="reason" data-pretext>quoted and reserved at slot 7; counted separately, never as settled</span>
@@ -225,7 +254,7 @@
         <tr>
           <td data-label="Payment"><span class="pay">p_a12f…e52</span></td>
           <td data-label="Vendor">Feedmarket</td>
-          <td data-label="Time" class="hide-sm when">17:10:57</td>
+          <td data-label="Time" class="hide-sm when">21:39:02</td>
           <td data-label="State">
             <span class="pill verifying"><span class="dot" aria-hidden="true"></span>in flight</span>
             <span class="reason" data-pretext>quoted and reserved at slot 8; counted separately, never as settled</span>
@@ -235,32 +264,12 @@
         <tr>
           <td data-label="Payment"><span class="pay">p_329e…00b</span></td>
           <td data-label="Vendor">Feedmarket</td>
-          <td data-label="Time" class="hide-sm when">17:10:57</td>
+          <td data-label="Time" class="hide-sm when">21:39:02</td>
           <td data-label="State">
             <span class="pill verifying"><span class="dot" aria-hidden="true"></span>in flight</span>
             <span class="reason" data-pretext>quoted and reserved at slot 13; counted separately, never as settled</span>
           </td>
           <td data-label="Amount" class="r amount"><span class="redact"><span class="amount-value">$0.99</span><span class="redaction-bar" aria-hidden="true"></span></span></td>
-        </tr>
-        <tr>
-          <td data-label="Payment"><span class="pay">p_52c4…7c7</span></td>
-          <td data-label="Vendor">Tidewater Atlas</td>
-          <td data-label="Time" class="hide-sm when">17:10:57</td>
-          <td data-label="State">
-            <span class="pill verifying"><span class="dot" aria-hidden="true"></span>in flight</span>
-            <span class="reason" data-pretext>quoted and reserved at slot 10; counted separately, never as settled</span>
-          </td>
-          <td data-label="Amount" class="r amount"><span class="redact"><span class="amount-value">$0.049</span><span class="redaction-bar" aria-hidden="true"></span></span></td>
-        </tr>
-        <tr>
-          <td data-label="Payment"><span class="pay">p_ab14…480</span></td>
-          <td data-label="Vendor">Tidewater Atlas</td>
-          <td data-label="Time" class="hide-sm when">17:10:57</td>
-          <td data-label="State">
-            <span class="pill verifying"><span class="dot" aria-hidden="true"></span>in flight</span>
-            <span class="reason" data-pretext>quoted and reserved at slot 7; counted separately, never as settled</span>
-          </td>
-          <td data-label="Amount" class="r amount"><span class="redact"><span class="amount-value">$0.049</span><span class="redaction-bar" aria-hidden="true"></span></span></td>
         </tr>
       <!-- /veil:ledger-rows -->
       </tbody>
@@ -310,7 +319,7 @@
   <footer>
     <div class="foot">
       <!-- veil:footer -->
-      <span class="marker">local-ledger-only · chain not-executed · 33 payments · run <b>03 Oct · 17:10 UTC</b></span>
+      <span class="marker">local-ledger-only · chain not-executed · 44 payments · run <b>11 Oct · 21:39 UTC</b></span>
       <!-- /veil:footer -->
       <nav>
         <a href="limits.html">Honest limits</a>
