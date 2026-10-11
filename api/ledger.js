@@ -1,4 +1,5 @@
 // packages/server/src/index.ts
+import { createHash as createHash2 } from "node:crypto";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 
@@ -114,6 +115,18 @@ var REFUSALS = {
     detail: "Another instance consumed every address this payment could be offered before this one could record its claim on one. Answering with an address this instance does not hold would offer the same one-time account to two payments, which is the relinking the pool exists to prevent \u2014 so the offer is refused instead.",
     remedy: "Retry the request. If it keeps happening, the rail is answering quotes faster than one instance can record reservations: grow the pool, or run fewer instances against the same store.",
     recoverable: true
+  },
+  "VEIL-CONF-007": {
+    title: "Payment is bound to a different resource",
+    detail: "The signed payment names a resource other than the one it was presented against. A payment is a claim against one offer, and a captured payment replayed against a different endpoint is the replay attack the binding exists to stop \u2014 the seat ledger alone only prevents the same payment being credited twice, not it being spent somewhere it was never signed for.",
+    remedy: "Re-quote the resource you actually want and sign a payment for that offer. If you are retrying, retry the identical request: an idempotent retry is recognised by its payment identity and does not need a new payment.",
+    recoverable: true
+  },
+  "VEIL-CONF-008": {
+    title: "Transaction is not a confidential transfer",
+    detail: "The transaction decoded successfully, and it does not contain a Token-2022 confidential transfer (instruction family 27, operation 7). Settling it would move the amount onto the public ledger while the payer believed it was private, which is the one outcome Veil refuses rather than reports.",
+    remedy: "Build the payment as a confidential transfer against the offered account and mint. If you need a public payment, use a plain x402 facilitator \u2014 Veil will not settle one.",
+    recoverable: true
   }
 };
 function refusal(code) {
@@ -140,6 +153,15 @@ function toAtomic(amount, decimals) {
   const padded = frac.padEnd(decimals, "0");
   const value = BigInt(`${whole}${padded}`);
   return negative ? -value : value;
+}
+function fromAtomic(amount, decimals) {
+  const negative = amount < 0n;
+  const digits = (negative ? -amount : amount).toString().padStart(decimals + 1, "0");
+  const whole = digits.slice(0, digits.length - decimals);
+  const frac = decimals === 0 ? "" : digits.slice(digits.length - decimals);
+  const trimmed = frac.replace(/0+$/, "");
+  const body = trimmed ? `${whole}.${trimmed}` : whole;
+  return negative ? `-${body}` : body;
 }
 function formatAtomic(amount, decimals, symbol = "$") {
   const negative = amount < 0n;
@@ -563,6 +585,93 @@ function mergeLedgers(stored, seed) {
   return merged;
 }
 
+// packages/server/src/inspect.ts
+import {
+  decompileTransactionMessage,
+  getCompiledTransactionMessageDecoder
+} from "@solana/kit";
+import { decodeTransactionFromPayload } from "@x402/svm";
+var CONFIDENTIAL_TRANSFER_FAMILY = 27;
+var CONFIDENTIAL_TRANSFER_OP = 7;
+function inspectConfidentialTransfer(wire) {
+  if (typeof wire !== "string" || wire.length === 0) {
+    return { ok: false, kind: "opaque", reason: "the payload carries no transaction bytes" };
+  }
+  let message;
+  try {
+    const decoded = decodeTransactionFromPayload({ transaction: wire });
+    const compiled = getCompiledTransactionMessageDecoder().decode(decoded.messageBytes);
+    message = decompileTransactionMessage(compiled);
+  } catch (error) {
+    return {
+      ok: false,
+      kind: "opaque",
+      reason: `the transaction could not be decoded: ${error instanceof Error ? error.message : String(error)}`
+    };
+  }
+  const instructions = message.instructions ?? [];
+  const transfers = instructions.filter(
+    (instruction) => instruction.programAddress === TOKEN_2022_PROGRAM_ADDRESS && instruction.data?.[0] === CONFIDENTIAL_TRANSFER_FAMILY && instruction.data?.[1] === CONFIDENTIAL_TRANSFER_OP
+  );
+  if (transfers.length === 0) {
+    const programs = [...new Set(instructions.map((i) => i.programAddress))];
+    return {
+      ok: false,
+      kind: "not-confidential",
+      reason: `the transaction contains no Token-2022 confidential transfer instruction, so its amount would be public. Programs invoked: ${programs.length > 0 ? programs.join(", ") : "none"}. Build the payment with a confidential transfer (family 27, operation 7) or Veil will not settle it.`
+    };
+  }
+  if (transfers.length > 1) {
+    return {
+      ok: false,
+      kind: "not-confidential",
+      reason: `the transaction contains ${transfers.length} confidential transfers; a payment must contain exactly one`
+    };
+  }
+  const accounts = (transfers[0].accounts ?? []).map((account) => account.address);
+  const [source, mint, destination] = accounts;
+  if (!source || !mint || !destination) {
+    return {
+      ok: false,
+      kind: "not-confidential",
+      reason: `a confidential transfer needs at least source, mint and destination accounts; got ${accounts.length}`
+    };
+  }
+  return {
+    ok: true,
+    source,
+    mint,
+    destination,
+    authority: accounts[accounts.length - 1] ?? null
+  };
+}
+function inspectPaymentTransaction(wire, expected) {
+  const reading = inspectConfidentialTransfer(wire);
+  if (!reading.ok) return reading;
+  if (reading.destination !== expected.payTo) {
+    return {
+      ok: false,
+      kind: "not-confidential",
+      reason: `the confidential transfer pays ${reading.destination}, but this payment was offered the account ${expected.payTo}`
+    };
+  }
+  if (reading.mint !== expected.mint) {
+    return {
+      ok: false,
+      kind: "not-confidential",
+      reason: `the confidential transfer moves ${reading.mint}, but this merchant settles in ${expected.mint}`
+    };
+  }
+  return reading;
+}
+
+// packages/server/src/batch.ts
+var PKCS8_ED25519_PREFIX = Buffer.from("302e020100300506032b657004220420", "hex");
+var SPKI_ED25519_PREFIX = Buffer.from("302a300506032b6570032100", "hex");
+function capDecimal(session, decimals) {
+  return fromAtomic(session.cap, decimals);
+}
+
 // packages/server/src/index.ts
 var RESERVATION_ATTEMPTS = 4;
 async function loadLedger(path) {
@@ -597,6 +706,12 @@ function createFacilitator(rawConfig, initialLedger) {
     );
   }
   const settled = [];
+  const counts = { confidential_assertion_failures: 0, settlements: 0, broadcasts: 0 };
+  const logEvent = (event) => {
+    process.stdout.write(`${JSON.stringify({ at: (/* @__PURE__ */ new Date()).toISOString(), ...event })}
+`);
+  };
+  const aliasHash = (alias) => createHash2("sha256").update(alias, "utf8").digest("hex").slice(0, 16);
   const spentByPayer = /* @__PURE__ */ new Map();
   const poolSizeFor = (alias) => {
     const total = ledger.allFor(alias).length;
@@ -604,13 +719,25 @@ function createFacilitator(rawConfig, initialLedger) {
     return 2 ** Math.floor(Math.log2(total));
   };
   const gate = (alias) => {
-    if (!config.privacy) return { code: "VEIL-CONF-003" };
+    const blocked = (code) => {
+      counts.confidential_assertion_failures += 1;
+      logEvent({
+        event: "refusal",
+        decision: "refused",
+        stage: "gate",
+        reason: code,
+        alias_hash: aliasHash(alias),
+        confidential_asserted: false
+      });
+      return { code };
+    };
+    if (!config.privacy) return blocked("VEIL-CONF-003");
     const mint = config.privacy.mintConfidential();
-    if (mint === false) return { code: "VEIL-CONF-001" };
-    if (mint === "unknown") return { code: "VEIL-CONF-003" };
+    if (mint === false) return blocked("VEIL-CONF-001");
+    if (mint === "unknown") return blocked("VEIL-CONF-003");
     const accounts = config.privacy.accountsArmed(alias);
-    if (accounts === false) return { code: "VEIL-CONF-002" };
-    if (accounts === "unknown") return { code: "VEIL-CONF-003" };
+    if (accounts === false) return blocked("VEIL-CONF-002");
+    if (accounts === "unknown") return blocked("VEIL-CONF-003");
     return null;
   };
   const reserveSeat = async (alias, id, poolSize) => {
@@ -643,6 +770,11 @@ function createFacilitator(rawConfig, initialLedger) {
   };
   const facilitator = {
     config,
+    // A getter, not a copy: a snapshot taken once would report whatever the
+    // counters happened to be when the server started.
+    get metrics() {
+      return { ...counts };
+    },
     // A getter, not a copy: `refresh` swaps the ledger object, and every read of
     // `state.ledger` — the spent-identity check included — must see the swap.
     state: {
@@ -842,6 +974,52 @@ function createFacilitator(rawConfig, initialLedger) {
           reason: `payload.payTo belongs to ${entry.alias}, not the merchant for ${resource.path}`
         };
       }
+      const bound = pathOf(accepted.resource);
+      if (bound !== resource.path) {
+        return {
+          ok: false,
+          status: 402,
+          code: "VEIL-CONF-007",
+          reason: `this payment is bound to ${bound ?? "a resource Veil cannot read"}, but it was presented against ${resource.path}`
+        };
+      }
+      const reading = inspectPaymentTransaction(inner.transaction, {
+        payTo: inner.payTo,
+        mint: config.mint
+      });
+      if (!reading.ok) {
+        if (reading.kind === "not-confidential") {
+          counts.confidential_assertion_failures += 1;
+          logEvent({
+            event: "refusal",
+            decision: "refused",
+            stage: "transaction",
+            reason: "VEIL-CONF-008",
+            alias_hash: aliasHash(entry.alias),
+            detail: reading.reason,
+            confidential_asserted: false
+          });
+          return { ok: false, status: 402, code: "VEIL-CONF-008", reason: reading.reason };
+        }
+        if (config.rpcUrl !== void 0) {
+          counts.confidential_assertion_failures += 1;
+          logEvent({
+            event: "refusal",
+            decision: "refused",
+            stage: "transaction",
+            reason: "VEIL-CONF-008",
+            alias_hash: aliasHash(entry.alias),
+            detail: reading.reason,
+            confidential_asserted: "unknown"
+          });
+          return {
+            ok: false,
+            status: 402,
+            code: "VEIL-CONF-008",
+            reason: `cannot assert this payment is confidential: ${reading.reason}`
+          };
+        }
+      }
       return {
         ok: true,
         payload,
@@ -850,15 +1028,24 @@ function createFacilitator(rawConfig, initialLedger) {
     },
     async settle(input) {
       const { payload, resource, address, paymentId } = input;
+      const startedAt = Date.now();
       try {
         ledger.claim(address, paymentId);
         ledger.settleable(address, paymentId);
       } catch (error) {
-        return {
-          ok: false,
-          status: 402,
-          reason: error instanceof Error ? error.message : "settlement rejected"
-        };
+        const reason = error instanceof Error ? error.message : "settlement rejected";
+        logEvent({
+          event: "settlement",
+          payment_id: paymentId,
+          alias_hash: aliasHash(resource.alias),
+          slot: ledger.resolve(address)?.slot ?? null,
+          signature: null,
+          confidential_asserted: null,
+          decision: "refused",
+          reason,
+          duration_ms: Date.now() - startedAt
+        });
+        return { ok: false, status: 402, reason };
       }
       let signature = null;
       if (config.rpcUrl !== void 0) {
@@ -892,6 +1079,19 @@ function createFacilitator(rawConfig, initialLedger) {
         resource: settlement.resource,
         at: settlement.at,
         signature: settlement.signature
+      });
+      counts.settlements += 1;
+      if (signature !== null) counts.broadcasts += 1;
+      logEvent({
+        event: "settlement",
+        payment_id: settlement.paymentId,
+        alias_hash: aliasHash(settlement.alias),
+        slot: ledger.resolve(settlement.address)?.slot ?? null,
+        signature: settlement.signature,
+        confidential_asserted: true,
+        decision: "served",
+        settlement_mode: signature !== null ? "rpc" : "local-ledger-only",
+        duration_ms: Date.now() - startedAt
       });
       return { ok: true, settlement };
     },
@@ -962,7 +1162,7 @@ async function broadcast(rpcUrl, base64Transaction) {
   }
   return body.result;
 }
-function json(res, status, body) {
+function json(res, status, body, headers = {}) {
   const text = JSON.stringify(
     body,
     (_key, value) => typeof value === "bigint" ? value.toString() : value,
@@ -971,12 +1171,114 @@ function json(res, status, body) {
   res.writeHead(status, {
     "content-type": "application/json; charset=utf-8",
     "content-length": Buffer.byteLength(text),
+    // F8 — paid content is never cacheable. This lives in the one function every
+    // response is written through, so a new route cannot forget it; the arXiv
+    // paper leaked paid content through misconfigured caches on 100% of the
+    // nginx configurations it tested, and the published mitigation is exactly
+    // this header. The regression test asserts it on a granted paid GET.
     "cache-control": "no-store",
+    // F8 — and a response that varies with the caller's identity must say so, or
+    // a shared cache that ignores `no-store` could still hand one payer's answer
+    // to the next one keyed only by URL.
+    vary: "x-payer, x-payment, payment-signature, x-voucher",
     // Payers are browsers and agents on other origins — a hosted rail must
     // answer them. No credentials are accepted here, so `*` is safe.
-    "access-control-allow-origin": "*"
+    "access-control-allow-origin": "*",
+    // The payment headers are the response half of the protocol. Without this
+    // list a browser payer can read the body but not the challenge or the
+    // settlement receipt, which is the difference between an x402 client that
+    // works in a page and one that only works in a script.
+    "access-control-expose-headers": "payment-required, payment-response, x-idempotency-key, x-payment-signature",
+    ...headers
   });
   res.end(text);
+}
+async function readBody(req) {
+  const chunks = [];
+  for await (const chunk of req) chunks.push(chunk);
+  if (chunks.length === 0) return void 0;
+  const text = Buffer.concat(chunks).toString("utf8");
+  try {
+    return JSON.parse(text);
+  } catch {
+    return void 0;
+  }
+}
+function pathOf(resource) {
+  if (typeof resource !== "string" || resource.length === 0) return null;
+  if (resource.startsWith("/")) return resource;
+  try {
+    return new URL(resource).pathname;
+  } catch {
+    return null;
+  }
+}
+function decodePublicKey(value) {
+  if (/^[0-9a-fA-F]{64}$/.test(value)) {
+    return Buffer.from(value, "hex");
+  }
+  const bytes = Buffer.from(value, "base64");
+  return bytes.length === 32 ? bytes : null;
+}
+function readVoucherClaims(signed) {
+  const voucher = signed?.voucher;
+  if (typeof voucher?.sessionId !== "string" || voucher.sessionId.length === 0 || !Number.isSafeInteger(voucher.seq) || voucher.seq < 1 || typeof voucher.total !== "string" || !/^\d+$/.test(voucher.total)) {
+    return null;
+  }
+  return { sessionId: voucher.sessionId, seq: voucher.seq, total: BigInt(voucher.total) };
+}
+function voucherRefusalDetail(code, claims, price, decimals) {
+  const unit = (value) => formatAtomic(value, decimals, "");
+  switch (code) {
+    case "underpaid":
+      return `this call costs ${unit(price)}; a cumulative total of ${unit(
+        claims.total
+      )} does not cover the session's served value plus this call. Sign a higher cumulative total.`;
+    case "stale-seq":
+      return `sequence ${claims.seq} has already been charged in this session; a cumulative chain only moves forward, so sign sequence ${claims.seq + 1} with the new total.`;
+    case "gap-seq":
+      return `sequence ${claims.seq} is not the next one owed; a gap would let one signature silently cover charges nobody vouched for.`;
+    case "over-cap":
+      return "the voucher total exceeds the cap this session was opened with. Open a new session with a larger cap to spend more.";
+    case "bad-signature":
+      return "the voucher signature does not verify against the public key this session was opened with.";
+    case "session-expired":
+      return "this session passed its expiry; open a new one.";
+    case "session-closed":
+      return "this session has already redeemed as one settlement, so a later voucher is a double-spend attempt rather than a late arrival.";
+    case "unknown-session":
+      return "no session with this id is open on the instance answering. Retry against the instance that opened it, or open a new session.";
+  }
+}
+function sessionView(session, config, baseUrl) {
+  return {
+    scheme: "batch-confidential",
+    sessionId: session.id,
+    alias: session.alias,
+    payer: session.payer,
+    state: session.state,
+    cap: capDecimal(session, config.decimals),
+    headSeq: session.headSeq,
+    served: session.charged.toString(),
+    servedDecimal: fromAtomic(session.charged, config.decimals),
+    openedAt: session.openedAt,
+    expiresAt: session.expiresAt,
+    voucher: {
+      // The exact bytes a payer signs, published so a client does not have to
+      // guess the domain separation or the field order and then discover the
+      // mismatch as a signature failure.
+      format: "veil-batch-voucher-v1 : u32be-len(sessionId) sessionId : u32be-len(seq) seq : u32be-len(total) total",
+      signedWith: "ed25519 over the bytes above; signature is base64",
+      cumulative: true,
+      transport: {
+        header: "X-VOUCHER",
+        encoding: "base64 of JSON { voucher: { sessionId, seq, total }, signature }"
+      },
+      binding: "docs/notes/svm-batch-binding.md"
+    },
+    settle: resolveResourceUrl(`/v1/sessions/${session.id}/settle`, baseUrl),
+    ...session.receipt ? { receipt: session.receipt } : {}
+  };
 }
 function requestBaseUrl(req) {
   const host = req.headers["host"];
@@ -1001,7 +1303,7 @@ function createVeilHandler(rawConfig, facilitator) {
         res.writeHead(204, {
           "access-control-allow-origin": "*",
           "access-control-allow-methods": "GET, POST, OPTIONS",
-          "access-control-allow-headers": "content-type, x-payer, x-payment",
+          "access-control-allow-headers": "content-type, x-payer, x-payment, payment-signature, x-voucher",
           "access-control-max-age": "86400"
         });
         res.end();
@@ -1025,6 +1327,46 @@ function createVeilHandler(rawConfig, facilitator) {
             ...r.perUnit ? { perUnit: r.perUnit, units: r.units ?? 0 } : {}
           })),
           privacySource: config.privacySource ?? "none",
+          /**
+           * Who a caller must believe for the privacy claim to hold.
+           *
+           * Published because it is the honest half of the pitch: Veil's privacy
+           * is chain-verified — Token-2022 Confidential Balances means the
+           * transfer's zk proofs are checked by the zk-elgamal-proof program on
+           * chain and the amount is an ElGamal ciphertext under the recipient's
+           * key — so there is no operator set, no threshold, and no gateway in
+           * the trust path. A competing design that secret-shares balances across
+           * an MPC cluster, or decrypts inside an FHE coprocessor, is private for
+           * as long as that cluster behaves; this one is private for as long as
+           * the chain's own verifier holds, and anyone can re-derive the claim
+           * with `npm run replay` rather than take this server's word for it.
+           */
+          trust: {
+            model: "chain-verified",
+            verifiedBy: "the Token-2022 zk-elgamal-proof program, on chain",
+            keyHeldBy: "the recipient only",
+            intermediates: [],
+            verifier: {
+              command: "npm run replay <paymentId|signature>",
+              reads: "chain state, with no Veil service in the loop"
+            }
+          },
+          paymentHeaders: {
+            v1: { request: "X-PAYMENT" },
+            v2: {
+              request: "PAYMENT-SIGNATURE",
+              challenge: "PAYMENT-REQUIRED",
+              response: "PAYMENT-RESPONSE"
+            },
+            idempotency: "X-IDEMPOTENCY-KEY"
+          },
+          ...config.batchSessions !== void 0 ? {
+            batch: {
+              scheme: "batch-confidential",
+              sessions: resolveResourceUrl("/v1/sessions", baseUrl),
+              binding: "docs/notes/svm-batch-binding.md"
+            }
+          } : {},
           privacyGate: config.privacy === void 0 ? {
             mode: "refusing",
             note: "no precondition probe configured, so every paid resource answers VEIL-CONF-003"
@@ -1043,7 +1385,10 @@ function createVeilHandler(rawConfig, facilitator) {
             "VEIL-CONF-002",
             "VEIL-CONF-003",
             "VEIL-CONF-004",
-            "VEIL-CONF-005"
+            "VEIL-CONF-005",
+            "VEIL-CONF-006",
+            "VEIL-CONF-007",
+            "VEIL-CONF-008"
           ].map((code) => {
             const r = refusal(code);
             return { code: r.code, title: r.title, recoverable: r.recoverable };
@@ -1069,7 +1414,11 @@ function createVeilHandler(rawConfig, facilitator) {
           // store is one shared record, and a caller should be able to tell which
           // one it is talking to without reading the config.
           ledger: config.ledgerStore !== void 0 ? "durable-store" : "local-file",
-          settlement: config.rpcUrl ? "rpc" : config.allowLocalSettlement === true ? "local-ledger-only" : "unavailable"
+          settlement: config.rpcUrl ? "rpc" : config.allowLocalSettlement === true ? "local-ledger-only" : "unavailable",
+          // D-4's counter, live. `/api/ledger` carries it too, so the dashboard
+          // and the CLI read the same number from the same place.
+          metrics: facilitator.metrics,
+          batchSessions: config.batchSessions !== void 0 ? { open: config.batchSessions.list().length } : null
         });
       }
       if (path === "/api/ledger") {
@@ -1078,12 +1427,163 @@ function createVeilHandler(rawConfig, facilitator) {
           network: config.network,
           mint: config.mint,
           decimals: config.decimals,
+          // A refusal count that only exists in a log file is a claim; one next
+          // to the settlement rows is a check a reader can perform. Per-process,
+          // and labelled as such by `scope`.
+          metrics: {
+            scope: "process",
+            counter: "confidential_assertion_failures",
+            ...facilitator.metrics
+          },
           pool: facilitator.state.ledger.toJSON(),
           // One row per settled seat, not one per settlement this instance
           // happened to broadcast, and with the signature and amount the shared
           // log recorded rather than a blank where another instance took the
           // payment. Nothing here is per-instance except the last write.
           settled: await facilitator.settlementLog()
+        });
+      }
+      if (config.batchSessions !== void 0 && path.startsWith("/v1/sessions")) {
+        const sessions = config.batchSessions;
+        if (req.method === "POST" && path === "/v1/sessions") {
+          const body = await readBody(req);
+          const rawKey = body?.payerPubkey;
+          const pubkey = typeof rawKey === "string" ? decodePublicKey(rawKey) : null;
+          if (pubkey === null) {
+            return json(res, 400, {
+              error: "invalid-payer-pubkey",
+              detail: "payerPubkey must be base64 or 64-char hex of a raw 32-byte ed25519 public key \u2014 the key every voucher in this session is verified against"
+            });
+          }
+          try {
+            const opened = sessions.open({
+              // The session's payer defaults to the caller's own identity. Read
+              // here rather than from the resource branch below, because a
+              // session is opened before any resource is named and the header is
+              // the only thing that says who is asking.
+              payer: typeof body?.payer === "string" ? body.payer : typeof req.headers["x-payer"] === "string" ? req.headers["x-payer"] : "anonymous",
+              alias: typeof body?.alias === "string" ? body.alias : config.resources[0].alias,
+              payerPubkey: pubkey,
+              cap: typeof body?.cap === "string" ? body.cap : "0.50",
+              decimals: config.decimals
+            });
+            return json(res, 201, sessionView(opened, config, baseUrl));
+          } catch (error) {
+            return json(res, 400, {
+              error: "session-not-opened",
+              detail: error instanceof Error ? error.message : "unknown"
+            });
+          }
+        }
+        const sessionId = path.slice("/v1/sessions/".length).split("/")[0] ?? "";
+        const session = sessions.get(sessionId);
+        if (!session) {
+          return json(res, 404, { error: "unknown-session", sessionId });
+        }
+        if (req.method === "GET" && path === `/v1/sessions/${sessionId}`) {
+          return json(res, 200, sessionView(session, config, baseUrl));
+        }
+        if (req.method === "POST" && path === `/v1/sessions/${sessionId}/settle`) {
+          if (session.state === "settled") {
+            return json(res, 409, {
+              error: "session-already-settled",
+              detail: "this session already redeemed: the value moved exactly once, and the receipt below is that record",
+              receipt: session.receipt
+            });
+          }
+          const head = session.headVoucher;
+          if (head === null || session.charged === 0n) {
+            return json(res, 402, {
+              error: "nothing-to-settle",
+              detail: "no voucher has been charged to this session, so there is no value to redeem"
+            });
+          }
+          const total = BigInt(head.voucher.total);
+          const settleResource = {
+            path: `/v1/sessions/${sessionId}/settle`,
+            alias: session.alias,
+            description: `Redeem session ${sessionId} \u2014 one confidential transfer for the whole session`,
+            base: fromAtomic(total, config.decimals),
+            produce: () => ({ redeemed: sessionId })
+          };
+          const settleIdentity = {
+            resource: settleResource.path,
+            payer: session.payer,
+            nonce: 0
+          };
+          const settleHeader = req.headers["payment-signature"] ?? req.headers["x-payment"];
+          if (typeof settleHeader !== "string") {
+            const quote = await facilitator.quote(settleResource, settleIdentity, baseUrl);
+            const challenge = {
+              "payment-required": Buffer.from(JSON.stringify(quote.body)).toString("base64")
+            };
+            return json(res, quote.ok ? 402 : quote.status, quote.body, challenge);
+          }
+          let settleDecoded;
+          try {
+            settleDecoded = JSON.parse(Buffer.from(settleHeader, "base64").toString("utf8"));
+          } catch {
+            return json(res, 402, {
+              error: "malformed-payment-header",
+              detail: "the redemption payment must be base64-encoded JSON"
+            });
+          }
+          const settleVerified = facilitator.verify(settleDecoded, settleResource);
+          if (!settleVerified.ok) {
+            return json(res, settleVerified.status, {
+              error: "invalid-payment",
+              detail: settleVerified.reason,
+              ...settleVerified.code !== void 0 ? { refusal: refusal(settleVerified.code) } : {}
+            });
+          }
+          const settleOutcome = await facilitator.settle({
+            payload: settleVerified.payload,
+            resource: settleResource,
+            address: settleVerified.address,
+            paymentId: derivePaymentId(settleIdentity),
+            payer: session.payer,
+            amount: total
+          });
+          if (!settleOutcome.ok) {
+            return json(res, settleOutcome.status, {
+              error: "settlement-failed",
+              detail: settleOutcome.reason
+            });
+          }
+          const receipt = sessions.settle(sessionId, {
+            voucherHead: head,
+            seat: settleVerified.address,
+            signature: settleOutcome.settlement.signature,
+            settlementMode: settleOutcome.settlement.signature !== null ? "rpc" : "local-ledger-only"
+          });
+          return json(
+            res,
+            200,
+            {
+              redeemed: true,
+              receipt,
+              ...receipt === null ? {
+                detail: "the settlement landed and the session closed concurrently, so this response could not record the receipt \u2014 the settlement rows on /api/ledger are the record"
+              } : {}
+            },
+            {
+              "x-idempotency-key": `${sessionId}:settle`,
+              ...settleOutcome.settlement.signature !== null ? { "x-payment-signature": settleOutcome.settlement.signature } : {},
+              "payment-response": Buffer.from(
+                JSON.stringify({
+                  success: true,
+                  transaction: settleOutcome.settlement.signature,
+                  network: config.network,
+                  payer: session.payer
+                })
+              ).toString("base64")
+            }
+          );
+        }
+        return json(res, 405, {
+          error: "method-not-allowed",
+          detail: "the session surface is POST /v1/sessions, GET /v1/sessions/{id}, POST /v1/sessions/{id}/settle",
+          path
         });
       }
       const resource = byPath.get(path);
@@ -1102,8 +1602,69 @@ function createVeilHandler(rawConfig, facilitator) {
         });
       }
       const id = { resource: path, payer, nonce };
-      const paymentHeader = req.headers["x-payment"];
+      const paymentHeader = req.headers["payment-signature"] ?? req.headers["x-payment"];
       await facilitator.refresh();
+      const voucherHeader = req.headers["x-voucher"];
+      if (typeof voucherHeader === "string") {
+        const sessions = config.batchSessions;
+        if (sessions === void 0) {
+          return json(res, 501, {
+            error: "sessions-not-enabled",
+            detail: "this rail was started without a session manager, so it serves one-time seats only. Configure batchSessions to accept vouchers, or pay per call with a confidential transfer."
+          });
+        }
+        let signed;
+        try {
+          signed = JSON.parse(
+            Buffer.from(voucherHeader, "base64").toString("utf8")
+          );
+        } catch {
+          return json(res, 402, {
+            error: "malformed-voucher-header",
+            detail: "X-VOUCHER must be base64-encoded JSON of { voucher, signature }"
+          });
+        }
+        const claims = readVoucherClaims(signed);
+        if (claims === null) {
+          return json(res, 402, {
+            error: "malformed-voucher",
+            detail: "a voucher must carry { voucher: { sessionId, seq, total }, signature }; anything else is refused rather than interpreted"
+          });
+        }
+        const price = priceFor(
+          {
+            base: resource.base,
+            ...resource.perUnit !== void 0 ? { perUnit: resource.perUnit } : {},
+            ...resource.units !== void 0 ? { units: resource.units } : {}
+          },
+          config.decimals
+        );
+        const charged = sessions.charge(claims.sessionId, signed, price);
+        if (!charged.ok) {
+          return json(res, 402, {
+            error: "voucher-rejected",
+            code: charged.code,
+            detail: voucherRefusalDetail(charged.code, claims, price, config.decimals)
+          });
+        }
+        return json(
+          res,
+          200,
+          {
+            paid: true,
+            session: {
+              sessionId: claims.sessionId,
+              headSeq: charged.headSeq,
+              served: charged.charged.toString(),
+              servedDecimal: fromAtomic(charged.charged, config.decimals),
+              settlesWith: resolveResourceUrl(`/v1/sessions/${claims.sessionId}/settle`, baseUrl),
+              deferred: "charged to the session: the per-call usage is a voucher signature and never reaches the chain, and the session redeems as one confidential transfer"
+            },
+            data: resource.produce({ paid: true })
+          },
+          { "x-idempotency-key": `${claims.sessionId}:${charged.headSeq}` }
+        );
+      }
       if (typeof paymentHeader !== "string") {
         const spent = facilitator.state.ledger.entryFor(resource.alias, id);
         if (spent !== null && spent.settledAt !== void 0) {
@@ -1114,8 +1675,11 @@ function createVeilHandler(rawConfig, facilitator) {
           });
         }
         const quote = await facilitator.quote(resource, id, baseUrl);
-        if (!quote.ok) return json(res, quote.status, quote.body);
-        return json(res, 402, quote.body);
+        const challenge = {
+          "payment-required": Buffer.from(JSON.stringify(quote.body)).toString("base64")
+        };
+        if (!quote.ok) return json(res, quote.status, quote.body, challenge);
+        return json(res, 402, quote.body, challenge);
       }
       let decoded;
       try {
@@ -1130,7 +1694,15 @@ function createVeilHandler(rawConfig, facilitator) {
       }
       const verified = facilitator.verify(decoded, resource);
       if (!verified.ok) {
-        return json(res, verified.status, { error: "invalid-payment", detail: verified.reason });
+        return json(res, verified.status, {
+          error: "invalid-payment",
+          detail: verified.reason,
+          // The policy refusals carry their catalog entry, so a client can tell
+          // "your payment is bound to another resource" (VEIL-CONF-007) from "your
+          // transaction would settle in public" (VEIL-CONF-008) without parsing
+          // prose — and so the counter and the body name the same event.
+          ...verified.code !== void 0 ? { refusal: refusal(verified.code) } : {}
+        });
       }
       const paymentId = derivePaymentId(id);
       const amount = priceFor(
@@ -1155,16 +1727,40 @@ function createVeilHandler(rawConfig, facilitator) {
           detail: outcome.reason
         });
       }
-      return json(res, 200, {
-        paid: true,
-        settled: {
-          signature: outcome.settlement.signature,
-          amount: outcome.settlement.amount.toString(),
-          at: outcome.settlement.at,
-          confid: "amount hidden on chain by Token-2022 confidential balances"
+      return json(
+        res,
+        200,
+        {
+          paid: true,
+          settled: {
+            signature: outcome.settlement.signature,
+            amount: outcome.settlement.amount.toString(),
+            at: outcome.settlement.at,
+            paymentId,
+            seat: outcome.settlement.address,
+            confid: "amount hidden on chain by Token-2022 confidential balances"
+          },
+          data: resource.produce({ paid: true })
         },
-        data: resource.produce({ paid: true })
-      });
+        {
+          // F7 — the idempotency key is derived from the payment identity, so
+          // the payer and the merchant compute the same key for the same payment
+          // without either telling the other. A retried HTTP request answers on
+          // the same key, which is what makes "deterministic instead of a second
+          // grant" checkable rather than merely intended.
+          "x-idempotency-key": paymentId,
+          ...outcome.settlement.signature !== null ? { "x-payment-signature": outcome.settlement.signature } : {},
+          // F3 — v2's settlement receipt, in a header, mirroring the body.
+          "payment-response": Buffer.from(
+            JSON.stringify({
+              success: true,
+              transaction: outcome.settlement.signature,
+              network: config.network,
+              payer: id.payer
+            })
+          ).toString("base64")
+        }
+      );
     } catch (error) {
       json(res, 500, {
         error: "internal-error",
@@ -1490,7 +2086,8 @@ var pool_ledger_devnet_default = [
     address: "7GT198ojf9tCFWSmsgaDmxwErACzAZzJrSEoSKV4AhnQ",
     alias: "oracle.tide",
     armed: true,
-    consumedBy: null
+    consumedBy: "202a5e6b14212a58c06d5a6e138354dce64089f11aab09736d121996a0efb56b",
+    settledAt: "2026-10-11T21:18:26.964Z"
   },
   {
     slot: 8,
@@ -2823,396 +3420,396 @@ var pool_ledger_devnet_default = [
     consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 8,
     address: "Emyfr8TtsqAEFrbDYznVu84QLeK2UhLY4dGvbszs1xeK",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 9,
     address: "FbhP3fLRTRLbar6Et6sf7MJd4ZGx9jfmcfx3ohaJSdKD",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 10,
     address: "J2bBS56XTLNMHGrfxfWu1aWJYjkJ1qu73MohQJSvksy5",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 11,
     address: "AdTwCeHp9H1dPqJbWkmqsstjERmkgXKfiMvSfK41BSVZ",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 12,
     address: "1V1ZBYtitnLjVSC8rVeRrrR6MYzseHmuE9hds6Cz8UR",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 13,
     address: "HQRqWoErLJGXu5rL1jqyy5GbXPZ6qBa5x9cWmqzqcdEE",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 14,
     address: "Dm2RSr68RFwo464jSf9qmMEJzWNjGtPCXpGgYctXb36T",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 15,
     address: "7uheXP4gSbAogecDqeT3WMZiovbCwLQLPgQrBMZte4ne",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 16,
     address: "GBr9tR8raYUreFqUvSyhvGMGCxcVz5SP5ErCvB2yKD9q",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 17,
     address: "96ovd92jqPLNXvvqijV9XxYrEB2qoJ5atBQG8THnKybv",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 18,
     address: "DnUKU1gGsMCn4hcP2Vh5FXJ2fVipFWP2MVvoMotfAejG",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 19,
     address: "oQvqjmQvSZxMYjWDBJ66JoSPyGjTwNubCgq2o5QSGoA",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 20,
     address: "HRx418bDyHt6DTaEXJtXXkNmZCLBwuC8v21FwJXcVwVy",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 21,
     address: "6tdZjuM57GF2ggKdu6yLmghmD2ZHmap8KtU86WmmDfiK",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 22,
     address: "9CgHbShzBfiqrNcvuXHESCy1Lxq9yA5u4FxZtD8eEYLG",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 23,
     address: "62oLvHCY3fNt2ydKXuGTroyMLXCveEmadapJyPpZzLiT",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 24,
     address: "2Nu14VqUUrq7oZerKsqvgpVCB9kLdGYXPRhVHUYU8CEb",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 25,
     address: "AYDzZuzJNh7E3JBdykbVi5eZ4m1ZE6ZS9MdBHN9pDPGS",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 26,
     address: "9zyhDRUKrRGtNyE1n6U9x2zaQS4YBuAzjcEACdVvii2j",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 27,
     address: "4xsUusaJotgKbKFeXi9FsDnBTXrLaHWQeNhohq2Z9b1K",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 28,
     address: "JAWHKnGZWCbzU8wsYUwaWXtgGi5Ns3XwzYtCym2K5PK7",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 29,
     address: "2wQW5mWEKDPoMTvbrgbAMuKHgbxMs4kheunWHDse3PSG",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 30,
     address: "2K6aiBKiL7g5X8vpFkgYB69ZNyFgAqS9k7fgks3PbBLt",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 31,
     address: "28LKk4rJSvVFRAMJ9XHEUWH1uznwU7d6fDjqStSLUEJz",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 32,
     address: "CTfYjmwGV9wbSxw5dWCxzwmiPvj8NMjVLfkqnKWpLfRZ",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 33,
     address: "DXrMugzwZDw1qsC7R8yW71aBFwRv3cSHsPLfxAvStRiV",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 34,
     address: "ESPFk15CtCR3rxFUVB3yWxakkT8LzYBpoCgS7s9eDjiT",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 35,
     address: "DL6qtuhQ8uav7pNg3Qt8nPp4jhhuVj8preNL8PorGJKv",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 36,
     address: "2KQNAXcijsNftX2VxtrQ3kBTkVUiY5tGX4qt99USuuEF",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 37,
     address: "8JCXQnsoMuG68n9uZxkuDbThvFwsdf9Y1ShfPfHjN6EJ",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 38,
     address: "5HAmmmQEdAQKfV7WVhiLQvFvvb2cH3o9JhJn9XRB7Dui",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 39,
     address: "FWg8U4Zb52oiXdE51VNx91UTm1aXpY4sDeFKJZHPL9JG",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 40,
     address: "ACw6BcGRN7T5ZdK59XEfMQNCU4zynwseVQuTmLJRJjLR",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 41,
     address: "GHTMwjCJZZii5QGr67cZ8Mtb7yhwG9BHXvSGD9X3Eh3s",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 42,
     address: "6A8GrxnsG4BWTrWCBRAtBKWVA9UDTbE3Nmg75C46vXof",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 43,
     address: "6G7MndpqsQD4FCMEK3datjjDHV4MuVMu9ikYmhbzahze",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 44,
     address: "3nLHsWfoxX9F4U3PuQQVk2bc3hovmRpPxNpooH2SRUSH",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 45,
     address: "kS1M6Jc6anXRoLoC1QGQy3HnZZ7KbYpcw9m8hi1qEeZ",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 46,
     address: "KTQzNMGK74iRef1CnRRBYo9iaqxPYKsuqnK9HstRj5A",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 47,
     address: "EcKPExvDQ2QJD8fgiGxy96zXZr69AmPM44A7Y661ANM6",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 48,
     address: "HmHPSymDx6iLXNRYzbATinekeTpvko8mVeXQZjsu5qk5",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 49,
     address: "EwVrZN7PDmNjwH8TjnXmgEcwLySuWYN5SkBPK9MgjxLB",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 50,
     address: "5zMuLCn3y1XxXNET6TDnwmnTYV6A1Nsgqqsbk9z1TGkC",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 51,
     address: "HGNe22PUkw9hjwCNr9rvc4n9AJdXLMNg5mHDFYeNjYhJ",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 52,
     address: "CPVoYB137mr5nZTkMemDuqn7UcEXGCwmoe1WrdJC1U9G",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 53,
     address: "G1PfjUuHZokoWksjC4gyKuNU8ibmeN7rb51aBNrt5PgA",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 54,
     address: "3WDwy8HLFhvPhKdw51eEHeTwYWRbnz8NkNYrnJJXdxbV",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 55,
     address: "5y7fmEnvjD7NXkuiwYVMiDLJ1uFqVZ1YuT9S9wG8mDtE",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 56,
     address: "9borj5ipfiZNYENmKWKpYhVqnQfQVKPC5uneomhby9w",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 57,
     address: "8aVRRzxUCyT9bfyhB18zz4J1DdHp8EZ17mo1YRQF2XL4",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 58,
     address: "6H5K4CxqiqCZe37iH1hKF2p1bfUfgTohhfForhC2bAGU",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 59,
     address: "2UJ9twtn8ew4NhVnQxKxN7MrWUFUQWerveDKe5PU8qYR",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 60,
     address: "FBFBJu45qXUs4RWqJGDXJ49Ui8bCn6E7gYeWhTb12TEb",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 61,
     address: "7nPPGNTqqtLoC49237G8qoneALBid7nBAkHRKhbekdn1",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 62,
     address: "5MDe6AEwRaoNVPUskB43qEe2bhwWVmf1rwaKgMH48PXy",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   },
   {
-    consumedBy: null,
     slot: 63,
     address: "5iwxrFsZ36KoEtEz7BPck6FRgG7UB3o95Ba6zietRkN6",
     alias: "payee.test",
-    armed: true
+    armed: true,
+    consumedBy: null
   }
 ];
 
