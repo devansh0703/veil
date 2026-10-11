@@ -6,7 +6,26 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { DEVNET, PLACEHOLDER_MINT, SOLANA_DEVNET } from '../../x402-core/src/index.ts';
+import {
+  appendTransactionMessageInstructions,
+  compileTransaction,
+  createTransactionMessage,
+  getBase64EncodedWireTransaction,
+  pipe,
+  setTransactionMessageFeePayer,
+  setTransactionMessageLifetimeUsingBlockhash,
+  type Address,
+  type Instruction,
+} from '@solana/kit';
+
+import {
+  DEVNET,
+  PLACEHOLDER_MINT,
+  SOLANA_DEVNET,
+  TOKEN_2022_PROGRAM_ADDRESS,
+  isValidAddress,
+} from '../../x402-core/src/index.ts';
+import { buildConfidentialTransfer } from '../../onchain/src/index.ts';
 import { PoolLedger, type StoredSettlement } from '../../derive/src/index.ts';
 import {
   HOSTED_DEFAULTS,
@@ -23,6 +42,84 @@ import {
 // A real 32-byte address with no account behind it, so the tests exercise the
 // same validation path a deployment does.
 const MINT = PLACEHOLDER_MINT;
+
+/** The fee payer a hand-built wire names. Never a signer this suite holds. */
+const FEE_PAYER = '3RWhpyX2JaE89UWqxM8LRsB3xykSVwHyEvBmgdo9N1FJ' as Address;
+/** The payer's source token account. Only its address reaches the wire. */
+const SOURCE_TOKEN = '8V561rigpmqDT2JgbeXywg56rdTsxcL2r3bkhiUwnB21' as Address;
+/** The authority over the source account — the payer's own key. */
+const PAYER_AUTHORITY = 'Ep1X1BnzWk3u5tgbFUSi2xHiym8CbnmraJZaPVxhGpcR' as Address;
+/** A 64-byte signature slot. Never verified; a decoded message is not signed here. */
+const PLACEHOLDER_SIGNATURE_BYTES = new Uint8Array(64).fill(7) as never;
+
+/**
+ * Build, compile and encode a transaction exactly as a payer's client would.
+ *
+ * Shared by every wire this file hands to the server, so the *only* thing that
+ * varies between a confidential payment and a hostile one is the instruction —
+ * which is the property the confidentiality reading has to be tested against.
+ */
+function wireFrom(instructions: readonly Instruction[]): string {
+  const message = pipe(
+    createTransactionMessage({ version: 0 }),
+    (m) => setTransactionMessageFeePayer(FEE_PAYER, m),
+    (m) =>
+      setTransactionMessageLifetimeUsingBlockhash(
+        { blockhash: '11111111111111111111111111111111' as never, lastValidBlockHeight: 0n },
+        m,
+      ),
+    (m) => appendTransactionMessageInstructions(instructions, m),
+  );
+  const compiled = compileTransaction(message);
+  return getBase64EncodedWireTransaction({
+    ...compiled,
+    signatures: { [FEE_PAYER]: PLACEHOLDER_SIGNATURE_BYTES },
+  });
+}
+
+/**
+ * A real Token-2022 confidential transfer paying `destination`.
+ *
+ * The instruction is built by the same `buildConfidentialTransfer` the funded
+ * payer scripts use, so this is the shape the rail will actually read on devnet:
+ * family 27, operation 7, with (source, mint, destination, authority) in that
+ * order.
+ */
+function confidentialWire(destination: string): string {
+  return wireFrom(
+    buildConfidentialTransfer({
+      sourceToken: SOURCE_TOKEN,
+      mint: MINT as unknown as Address,
+      destinationToken: destination as Address,
+      authority: { address: PAYER_AUTHORITY } as never,
+      newSourceDecryptableAvailableBalance: new Uint8Array(36),
+    }),
+  );
+}
+
+/**
+ * A plain, public Token-2022 transfer — the hostile case.
+ *
+ * Discriminator 3 is `Transfer`, which is the instruction that puts an amount in
+ * the clear on the public ledger. Nothing else about this wire differs from the
+ * confidential one, so if the rail serves it, the reading is not happening.
+ */
+function publicTransferWire(destination: string): string {
+  // The roles are the wire's own numbers (0 readonly, 1 writable, 2 readonly
+  // signer), cast because the enum that names them lives one package below kit's
+  // re-exports and importing it would add a dependency to a test double.
+  const instruction = {
+    programAddress: TOKEN_2022_PROGRAM_ADDRESS,
+    accounts: [
+      { address: SOURCE_TOKEN, role: 1 },
+      { address: MINT, role: 0 },
+      { address: destination, role: 1 },
+      { address: PAYER_AUTHORITY, role: 2 },
+    ],
+    data: new Uint8Array([3, 0xe8, 0x03, 0, 0, 0, 0, 0, 0, 0]),
+  } as unknown as Instruction;
+  return wireFrom([instruction]);
+}
 
 function resource(
   path: string,
@@ -193,11 +290,44 @@ async function harness(options: {
   };
 }
 
+/**
+ * The pool's seats, as real 32-byte addresses.
+ *
+ * They have to be real: the suite now hands the server transactions it actually
+ * decodes, and a hand-built Solana transaction can only name a valid address. A
+ * short label like `mA0` would have made the confidentiality reading untestable —
+ * the wire would refuse to compile before the server ever saw it.
+ */
+const SEAT = {
+  m0: 'FQAN6AmfJXKoXUa9KC3AQxCpXMi1Fv5121spDrGBRDJW',
+  m1: '27BPmc5bjmF7kUp4WRXfaCBsv9jXfU9pskoTmmuSwWob',
+  m2: '64jdda3xnLRBEh7UwvpNNZct8AxsMYECsMtek9UzPZTr',
+  m3: '24gxra9g5FYMJ1oYojtx1kPDKzxTkvcCHrpz3ifhFMnC',
+  m4: '5zpSByi2G1u5nRiRNwgi3WHp1Mg2p932gJqddiUoA4oA',
+  m5: 'EUzJYZrACF3SNmipA5VEkAtjFFEYz2YdHjtdxFFP34Ds',
+  m6: 'BP2H1EtEmNvg9FPaNwGqgG4SvpuMqLwjFbt5u62WLFsg',
+  m7: '5qmTqPBMn7kGJ9hXukVb7TTpz82x2vpkNc6NA2ZsGtKQ',
+  other0: 'HmZBAMZe2PEqN9K5oNkgzqZMHx44cs2CnLzMKzQdWoAS',
+  other1: '2FFxPmwcqRGUyGDBbuymCKaDTsUPbUqxEn8e2KyrV5Ta',
+  one0: 'GDsJjqkNJvboSkf3JLSuwLKbVfkK2U5drcuX5s3mD7ZK',
+} as const;
+
+const SEATS_M: readonly string[] = [
+  SEAT.m0,
+  SEAT.m1,
+  SEAT.m2,
+  SEAT.m3,
+  SEAT.m4,
+  SEAT.m5,
+  SEAT.m6,
+  SEAT.m7,
+];
+
 const pool = [
-  ...Array.from({ length: 8 }, (_, i) => ({ slot: i, address: `mA${i}`, alias: 'm' })),
-  { slot: 0, address: 'oA0', alias: 'other' },
-  { slot: 1, address: 'oA1', alias: 'other' },
-  { slot: 0, address: 'oneA0', alias: 'one' },
+  ...SEATS_M.map((address, slot) => ({ slot, address, alias: 'm' })),
+  { slot: 0, address: SEAT.other0, alias: 'other' },
+  { slot: 1, address: SEAT.other1, alias: 'other' },
+  { slot: 0, address: SEAT.one0, alias: 'one' },
 ];
 
 /** Ask for a price and return the one-time address the server offered. */
@@ -229,6 +359,14 @@ function paymentHeader(input: {
   version?: number;
   acceptedPayTo?: string;
   omitAccepted?: boolean;
+  /**
+   * The resource the offer named, which the payment is bound to (F7).
+   *
+   * Defaults to `/t/data` because that is what most of this suite pays for; a
+   * test against another resource passes its own path, and a test that wants the
+   * *binding* to fail passes a path the request is not made against.
+   */
+  resource?: string;
 }): string {
   const accept = {
     scheme: 'exact-confidential',
@@ -237,7 +375,7 @@ function paymentHeader(input: {
     payTo: input.acceptedPayTo ?? input.payTo,
     maxAmountRequired: '49000',
     amount: '49000',
-    resource: '/x',
+    resource: input.resource ?? '/t/data',
     maxTimeoutSeconds: 60,
     extra: { privacy: 'confidential-balances', decimals: 6, poolIndex: 0, hides: [] },
   };
@@ -248,7 +386,14 @@ function paymentHeader(input: {
       network: input.network ?? DEVNET,
       ...(input.omitAccepted ? {} : { accepted: accept }),
       payload: {
-        transaction: input.transaction ?? 'AQIDBA==',
+        // A real confidential transfer whenever the destination is a real
+        // address, so the server's reading of the signed bytes is exercised
+        // rather than skipped. `AQIDBA==` decodes to nothing, which the rail
+        // accepts only in its chain-free mode — and the tests that need it (a
+        // destination Veil never issued) are exactly the ones a wire cannot name.
+        transaction:
+          input.transaction ??
+          (isValidAddress(input.payTo) ? confidentialWire(input.payTo) : 'AQIDBA=='),
         payTo: input.payTo,
         asset: input.asset ?? MINT,
       },
@@ -543,7 +688,7 @@ describe('verification rejects payments that do not add up', () => {
   });
 
   test('a payment in the wrong mint is rejected', async () => {
-    const res = await pay(paymentHeader({ payTo: 'mA0', asset: 'SomeOtherMint111' }));
+    const res = await pay(paymentHeader({ payTo: SEAT.m0, asset: 'SomeOtherMint111' }));
     const body = (await res.json()) as { detail: string };
     assert.equal(res.status, 402);
     assert.match(body.detail, /wrong mint/);
@@ -557,16 +702,16 @@ describe('verification rejects payments that do not add up', () => {
   });
 
   test("a payment to another merchant's account is rejected", async () => {
-    // oA0 belongs to alias 'other', so crediting it against /t/data would pay the
-    // wrong party. This is the check that keeps attribution honest.
-    const res = await pay(paymentHeader({ payTo: 'oA0' }));
+    // other0 belongs to alias 'other', so crediting it against /t/data would pay
+    // the wrong party. This is the check that keeps attribution honest.
+    const res = await pay(paymentHeader({ payTo: SEAT.other0 }));
     const body = (await res.json()) as { detail: string };
     assert.equal(res.status, 402);
     assert.match(body.detail, /belongs to other/);
   });
 
   test('a foreign scheme is rejected', async () => {
-    const res = await pay(paymentHeader({ payTo: 'mA0', scheme: 'exact' }));
+    const res = await pay(paymentHeader({ payTo: SEAT.m0, scheme: 'exact' }));
     const body = (await res.json()) as { detail: string };
     assert.equal(res.status, 402);
     assert.match(body.detail, /scheme must be/);
@@ -576,7 +721,7 @@ describe('verification rejects payments that do not add up', () => {
     // x402 v2 makes `accepted` mandatory. A payload that omits it is not a
     // version we can verify, so it is refused rather than assumed to mean the
     // right thing.
-    const res = await pay(paymentHeader({ payTo: 'mA0', omitAccepted: true }));
+    const res = await pay(paymentHeader({ payTo: SEAT.m0, omitAccepted: true }));
     const body = (await res.json()) as { detail: string };
     assert.equal(res.status, 402);
     assert.match(body.detail, /accepted is required/);
@@ -586,7 +731,7 @@ describe('verification rejects payments that do not add up', () => {
     // The two halves of the payload must agree. A payment whose declared terms
     // point somewhere else is a contradiction, and crediting it would let a payer
     // pick which merchant hears about a payment independently of where it went.
-    const res = await pay(paymentHeader({ payTo: 'mA0', acceptedPayTo: 'mA1' }));
+    const res = await pay(paymentHeader({ payTo: SEAT.m0, acceptedPayTo: SEAT.m1 }));
     const body = (await res.json()) as { detail: string };
     assert.equal(res.status, 402);
     assert.match(body.detail, /does not match the account paid/);
@@ -656,7 +801,7 @@ describe('settlement never claims more than it did', () => {
       const paid = await fetch(`${h.url}/t/other`, {
         headers: {
           'x-payer': 'b1',
-          'x-payment': paymentHeader({ payTo: offered }),
+          'x-payment': paymentHeader({ payTo: offered, resource: '/t/other' }),
         },
       });
       assert.equal(paid.status, 200);
@@ -694,7 +839,7 @@ describe('settlement never claims more than it did', () => {
     const h = await harness({ pool, withStubRpc: true });
     try {
       const res = await fetch(`${h.url}/t/data`, {
-        headers: { 'x-payer': 'buyer1', 'x-payment': paymentHeader({ payTo: 'mA3' }) },
+        headers: { 'x-payer': 'buyer1', 'x-payment': paymentHeader({ payTo: SEAT.m3 }) },
       });
       assert.equal(res.status, 200);
       const ledger = (await (await fetch(`${h.url}/api/ledger`)).json()) as {

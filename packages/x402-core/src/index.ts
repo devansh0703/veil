@@ -206,7 +206,9 @@ export type RefusalCode =
   | 'VEIL-CONF-003' // this payment cannot be made confidential — refuse to serve
   | 'VEIL-CONF-004' // buyer would exceed its declared spend cap
   | 'VEIL-CONF-005' // pool exhausted: no unconsumed one-time account available
-  | 'VEIL-CONF-006'; // could not claim an address before another instance took it
+  | 'VEIL-CONF-006' // could not claim an address before another instance took it
+  | 'VEIL-CONF-007' // the payment is bound to a different resource than the one presented
+  | 'VEIL-CONF-008'; // the transaction is not a confidential transfer
 
 export interface Refusal {
   readonly code: RefusalCode;
@@ -265,6 +267,22 @@ const REFUSALS: Record<RefusalCode, Omit<Refusal, 'code'>> = {
       'Another instance consumed every address this payment could be offered before this one could record its claim on one. Answering with an address this instance does not hold would offer the same one-time account to two payments, which is the relinking the pool exists to prevent — so the offer is refused instead.',
     remedy:
       'Retry the request. If it keeps happening, the rail is answering quotes faster than one instance can record reservations: grow the pool, or run fewer instances against the same store.',
+    recoverable: true,
+  },
+  'VEIL-CONF-007': {
+    title: 'Payment is bound to a different resource',
+    detail:
+      'The signed payment names a resource other than the one it was presented against. A payment is a claim against one offer, and a captured payment replayed against a different endpoint is the replay attack the binding exists to stop — the seat ledger alone only prevents the same payment being credited twice, not it being spent somewhere it was never signed for.',
+    remedy:
+      'Re-quote the resource you actually want and sign a payment for that offer. If you are retrying, retry the identical request: an idempotent retry is recognised by its payment identity and does not need a new payment.',
+    recoverable: true,
+  },
+  'VEIL-CONF-008': {
+    title: 'Transaction is not a confidential transfer',
+    detail:
+      'The transaction decoded successfully, and it does not contain a Token-2022 confidential transfer (instruction family 27, operation 7). Settling it would move the amount onto the public ledger while the payer believed it was private, which is the one outcome Veil refuses rather than reports.',
+    remedy:
+      'Build the payment as a confidential transfer against the offered account and mint. If you need a public payment, use a plain x402 facilitator — Veil will not settle one.',
     recoverable: true,
   },
 };

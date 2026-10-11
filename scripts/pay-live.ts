@@ -132,7 +132,7 @@ import {
   encryptBalance,
   PROOF_OFFSET_IMMEDIATELY_PRECEDING,
 } from '../packages/onchain/src/proofs.ts';
-import { PoolLedger } from '../packages/derive/src/index.ts';
+import { PoolLedger, derivePaymentId } from '../packages/derive/src/index.ts';
 import {
   PLACEHOLDER_MINT,
   buildPaymentPayload,
@@ -1497,6 +1497,41 @@ if (paymentSignature && failed === 0 && payer) {
     ],
   } satisfies PayLiveState);
   ok('the run was recorded', relative(PAY_LIVE_PATH));
+
+  // The pool ledger is the record of which one-time seats are spent, and until
+  // this block existed that record lived *only* in this file's run list. Any other
+  // reader of the ledger — the hosted rail through its durable store, `status`, a
+  // later `veil replay --ledger` — saw seats that had taken real payments as
+  // `armed: true, consumedBy: null`, and could hand one out again. Five live
+  // payments (2026-10-03) were sitting in exactly that state: money on chain, the
+  // pool saying the address was free. Two payments into one address is the
+  // relinking the one-time seat pool exists to prevent, so the consumption is
+  // written here, with the same payment-id vocabulary the rail's own settlement
+  // path uses.
+  //
+  // A failure here is reported rather than swallowed: the payment is already
+  // final, so there is nothing to roll back, and the only useful thing this run
+  // can do is refuse to claim success while the pool's memory disagrees with the
+  // chain.
+  try {
+    const paymentId = derivePaymentId({
+      resource: '/v1/price/SOL',
+      payer: String(payer.address),
+      nonce: state.runs.length,
+    });
+    ledger.claim(String(destination), paymentId);
+    ledger.settle(String(destination), paymentId, new Date().toISOString());
+    await saveJSON(options.ledgerPath, ledger.toJSON());
+    ok(
+      'the seat is recorded as consumed in the pool ledger',
+      `${relative(options.ledgerPath)} · ${String(destination).slice(0, 8)}…`,
+    );
+  } catch (error) {
+    stop(
+      'the seat could not be recorded as consumed',
+      `${(error as Error).message ?? String(error)} — the payment is on chain, but the pool still offers this address`,
+    );
+  }
 }
 
 process.stdout.write(

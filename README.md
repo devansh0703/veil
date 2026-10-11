@@ -59,6 +59,35 @@ not a reconciliation story. Veil therefore reconciles the way the cryptography
 actually allows: **each merchant decrypts its own recipient ciphertext with the key
 derived from its own wallet.** The auditor key is off by default (`auditor: null`).
 
+**How to check all of that without trusting us.** The claim above is a claim about
+someone else's blockchain, so it should not have to be taken on our word:
+
+```bash
+npm run replay -- <transaction signature>
+```
+
+That reads the chain — not our ledger, not our server — and asserts seven things:
+the transaction exists, succeeded, contains exactly one Token-2022 confidential
+transfer (instruction family 27, operation 7), contains no plaintext transfer, carries
+no readable amount field, moved no readable balance in public state, and pays a
+one-time seat of this rail. Exit code 0 means every assertion held. A rail could only
+mislead you about *which* transaction to read; a rail that named the wrong one fails
+the assertions rather than passing them. Where a check genuinely cannot be answered
+from the host you run it on — a seat belonging to a different deployment's pool — it
+prints `INFO` and says so, rather than counting as a pass or a failure.
+
+**What we do not claim about anyone else.** Other confidential-payment designs for
+x402 exist and are shipped or in flight, and none of them is on Solana:
+TACEO Merces (MPC, amounts secret-shared 3-of-3), PrivateX402 (Nethermind; proofs run
+in a TEE today), Fhenix (FHE). Each is honest about its own limits — Merces says
+sender, receiver, frequency and timing stay public, as ours does — and each asks you
+to trust an operator set a replay tool cannot audit: an MPC cluster, a TEE, an FHE
+coprocessor. We do not claim their privacy fails; we have not measured their systems.
+The difference we *can* demonstrate is that ours is checked by the chain's own
+program and re-derivable from public state by the command above. The sources, dates
+and the may-claim/may-not-claim register behind these sentences are in
+`docs/notes/x402-2026-landscape.md`.
+
 ---
 
 ## Quick start
@@ -67,8 +96,9 @@ Requires Node ≥ 22. No global installs.
 
 ```bash
 npm install
-npm run verify     # typecheck + 141 unit tests, no network
+npm run verify     # typecheck + 210 unit tests, no network
 npm run demo       # 10 protocol scenarios over real HTTP, then render the pages
+npm run replay -- <signature>   # re-derive a settled payment's privacy from chain state
 npm run standalone # optional: one self-contained HTML file per surface
 ```
 

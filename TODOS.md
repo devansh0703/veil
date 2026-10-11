@@ -129,3 +129,19 @@ Deferred from the /office-hours 2026 session. Full plan in the design doc; nothi
 - **F4 (P2):** name the moat in docs: stock facilitators structurally cannot verify confidential transfers (published Sep 2026 audit); Veil's verifier asserts proof inclusion + merchant-only decryption.
 - **F5 (P2):** `docs/notes/confidential-liquidity-2026.md` — PYUSD/USDG auto_approve=false, USDC/USDT/EURC not extension-capable, wrap-mint route; feeds T-4 mint-topology inputs.
 - **F6 (P2):** session receipts — per-session reconciliation artifact (voucher head, merchant-decrypted total, settled seat).
+- **CEO-review deferral 1 (P2, S):** demo-script doc (docs/demo-script.md) — shot list + narration beats for D-10; write alongside the recording.
+- **CEO-review deferral 2 (P2, S):** ledger-consistency check — periodic script comparing Upstash pool-ledger state vs on-chain seat ownership; catches CAS drift the live settlements don't exercise.
+- **CEO-review deferral 3 (P3, M):** web dashboard session-economics rows — F6 ships CLI-first; surface sessions on dashboard.html post-deadline.
+- **Design-review deferral 1 (P3, S):** dashboard a11y sweep (post-deadline) — full WCAG pass over web/dashboard.html after D-9 lands; the pending column already uses measured tokens, visible labels, and the existing focus ring, so this is the comprehensive keyboard/screen-reader/contrast audit, not a blocker.
+
+---
+
+## 2026-10-12 — `pay:live` paid into seats it never marked consumed — FIXED, with residue
+
+**What was wrong:** `scripts/pay-live.ts` chose its destination with `armed && !consumedBy && !paid.has(address)`, where `paid` came from its own run files (`data/go-live*.json`, `data/pay-live*.json`). It never wrote consumption into the **pool ledger**, so `data/pool-ledger.devnet.json` listed all five live-paid seats of 2026-10-03 as `armed: true, consumedBy: null`. Any other reader — the hosted rail through its durable store, `status`, a later `veil replay --ledger` — would have read those addresses as free and could hand one out again.
+**Why it matters:** the guard that existed was private to this one script. Two payments into one address is the per-payment linkage the one-time seat pool exists to break, so the graph claim rested on a file only `pay-live` read. The money claims were never at risk; the *pool's* claim was.
+**Fixed:** after a successful settlement the run now calls `PoolLedger.claim` + `settle` and saves the ledger, in the same payment-id vocabulary the rail's own settlement path uses; a failure there is reported as a failed check rather than swallowed, because the payment is already final and the only honest option is to stop claiming success. Verified on real devnet: run [`53pN4tq…SetmFqg8tf`](https://explorer.solana.com/tx/53pN4tq487McwLmaRSFxBA5dnhztxPJv5DwsdFgCLG3ri9y41KV6ZiSbfdUVit7fkVmbPUyMEBoHx8SetmFqg8tf?cluster=devnet) recorded seat `7GT198oj…` (slot 7, `oracle.tide`) as consumed, and `npm run replay` now prints `slot 7, alias oracle.tide, consumed by 202a5e6b1421…` for all 7 assertions.
+**Residue (open):** the five 2026-10-03 seats are still `armed` with a real confidential balance in them and no consumption record — `H6Hm6TXydvh6aMW5QSpa3cggkSfEgKS6ooquRxuRkuX5`, `4sCsYfcmkYjVLj2JPN66L5XftTS5uGsWwdYmptPyivuX`, `8q3Mbg1tmEieqTr6nCTs9hdM7tzpjaKMj1DCJF86sGWj`, `6UoZb2ea6jNNGZucW9GQCdHjXkqeJYJvvPFuBDKc44Hy`, `B4kMvqdAvSswhkPYidze9jvU2mzUccfcfN4W3TD9QR2w`. Spending them is `--apply` territory and they are harmless while no code hands them out, but a backfill (mark them consumed with their own recorded signatures, or re-arm the pool deliberately and say so) is the right end state. The general form of this check is CEO-review deferral 2 above, run against devnet rather than only the Upstash store.
+**Effort:** human: XS (backfill) / CC: XS
+**Priority:** P2
+**Depends on:** nothing

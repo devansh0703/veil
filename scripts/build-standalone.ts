@@ -144,14 +144,32 @@ async function buildOne(name: (typeof SURFACES)[number]): Promise<string> {
   }
 
   // The failure this build already shipped once: a stray HTML token inside the
-  // inline script. Asserting the two obvious invariants here is cheaper than
-  // diagnosing it in a browser. `Pretext` must survive, and no HTML tag may sit
-  // inside the block.
-  const block = html.slice(html.indexOf('<script>'), html.lastIndexOf('</script>'));
-  if (!block.includes("window.Pretext=")) {
+  // inlined script. Asserting the invariants here is cheaper than diagnosing them
+  // in a browser. `Pretext` must survive, and no HTML tag may sit inside the block.
+  //
+  // These assertions run against the block this function *built*, not against a
+  // slice of the finished document. The first version sliced from the first
+  // `<script>` to the last `</script>` — and every surface has its own inline block
+  // before the inlined assets, so that slice spanned page markup and reported the
+  // first `</span>` in the body as a leak. It failed a page whose script was
+  // perfectly fine, which is a check lying about the artifact: exactly the failure
+  // mode these assertions exist to prevent, one level up.
+  const block = `<script>\n${indent(js, '  ')}\n</script>`;
+  if (!html.includes(block)) {
+    throw new Error(`${name}: the inlined script block did not survive the splice`);
+  }
+  if (!js.includes("window.Pretext=")) {
     throw new Error(`${name}: the inlined script does not assign window.Pretext`);
   }
-  const stray = block.match(/<\/(?:body|html|div|p|span)>/);
+  // `</script>` inside the block would close it early. The inlining escapes every
+  // occurrence on the way in, so one surviving here means the escaping was undone.
+  if (js.includes('</script')) {
+    throw new Error(`${name}: an unescaped </script> is inside the inlined script`);
+  }
+  // Document-level tokens from the page body. `</span>` is deliberately not in this
+  // list: a script may legitimately return `'</span>'` in a string, and the only
+  // token that actually breaks the block is `</script>`, asserted above.
+  const stray = js.match(/<\/(?:body|html|div|p|main|header|footer)>/);
   if (stray) {
     throw new Error(
       `${name}: ${stray[0]} leaked into the inlined script — the JS would not parse`,

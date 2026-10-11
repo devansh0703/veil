@@ -26,6 +26,7 @@
  *   settlement it did not make.
  */
 
+import { createHash } from 'node:crypto';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
@@ -33,6 +34,7 @@ import { dirname } from 'node:path';
 import {
   DEVNET,
   PLACEHOLDER_MINT,
+  fromAtomic,
   buildPaymentRequired,
   buildRefusal402,
   checkBudget,
@@ -57,6 +59,14 @@ import {
   type StoredSettlement,
   type PaymentIdentity,
 } from '../../derive/src/index.ts';
+import { inspectPaymentTransaction } from './inspect.ts';
+import {
+  BatchSessionManager,
+  capDecimal,
+  type BatchSession,
+  type ChargeFailure,
+  type SignedVoucher,
+} from './batch.ts';
 
 /**
  * How many times to try to win a seat reservation before refusing the offer.
@@ -178,6 +188,16 @@ export interface ServerConfig {
    * a deployment opts in by configuring a store rather than by swapping code.
    */
   readonly ledgerStore?: LedgerStore;
+  /**
+   * The `batch-confidential` session manager.
+   *
+   * Omit it and Veil serves one-time seats only, exactly as before: sessions are
+   * an additive scheme, negotiated by the caller choosing to open one. Supplying
+   * it mounts three routes — `POST /v1/sessions`, `GET /v1/sessions/{id}`, and
+   * `POST /v1/sessions/{id}/settle` — and lets any protected resource be paid
+   * with a cumulative voucher (`X-VOUCHER`) instead of a payment transaction.
+   */
+  readonly batchSessions?: BatchSessionManager;
 }
 
 /**
@@ -274,9 +294,34 @@ export async function loadLedgerFor(config: {
 // The facilitator
 // ---------------------------------------------------------------------------
 
+/**
+ * What this rail did, counted.
+ *
+ * `confidential_assertion_failures` is the one that matters: the number of times
+ * Veil refused because it could not assert that a payment was confidential. Veil's
+ * entire claim is that this is the thing it will not trade away, and a claim
+ * nobody can read is not a check — so the counter is published on `/api/ledger`
+ * and `/v1/health` rather than left to be inferred from a log.
+ *
+ * It is a per-process counter, not a lifetime one: on a serverless deployment
+ * each cold start begins at zero, which is why the structured settlement log is
+ * the durable record and this is the live one. Both are reported, and the mode is
+ * named next to them, so neither can be mistaken for the other.
+ */
+export interface RailMetrics {
+  /** Refusals where confidentiality could not be asserted, or was disproved. */
+  readonly confidential_assertion_failures: number;
+  /** Settlements this process recorded. */
+  readonly settlements: number;
+  /** Settlements this process actually broadcast to a chain. */
+  readonly broadcasts: number;
+}
+
 export interface Facilitator {
   readonly config: ServerConfig;
   readonly state: ServerState;
+  /** Live counters for the preconditions this rail enforces. */
+  readonly metrics: RailMetrics;
   /**
    * Price this resource for this caller, or explain why we will not serve.
    *
@@ -300,7 +345,20 @@ export interface Facilitator {
     resource: ResourceDefinition,
   ):
     | { readonly ok: true; readonly payload: VeilPaymentPayload; readonly address: string }
-    | { readonly ok: false; readonly status: number; readonly reason: string };
+    | {
+        readonly ok: false;
+        readonly status: number;
+        readonly reason: string;
+        /**
+         * A refusal-catalog code, when the refusal is one the catalog names.
+         *
+         * Optional because most verify failures are the payer's mistake (a bad
+         * mint, a foreign account) rather than a policy refusal, and dressing a
+         * typo up as a policy code would make the catalog useless for deciding
+         * what to do next.
+         */
+        readonly code?: RefusalCode;
+      };
   /** Record a settlement. Refuses to invent one. */
   settle(input: {
     readonly payload: VeilPaymentPayload;
@@ -364,6 +422,34 @@ export function createFacilitator(
   }
 
   const settled: Settlement[] = [];
+  /**
+   * Counters, kept next to the state they count.
+   *
+   * Deliberately not written to the ledger: a counter is per-process and the
+   * ledger is shared, so mixing them would make a redeploy look like a fall in
+   * refusals — the one number that must never be quietly reset by a deploy.
+   */
+  const counts = { confidential_assertion_failures: 0, settlements: 0, broadcasts: 0 };
+
+  /**
+   * One JSON line per settlement or refusal, on stdout.
+   *
+   * Structured rather than prose because the preconditions this rail refuses on
+   * are only auditable if the refusals can be counted: a line a human reads is a
+   * log, a line a pipeline can group by is evidence, and D-4's counter is only
+   * trustworthy if the events behind it are visible.
+   *
+   * `alias_hash`, not the alias: a merchant alias is a public identifier and the
+   * public graph is exactly what the one-time-address pool exists to break —
+   * republishing it per payment would undo the pool in a log file.
+   */
+  const logEvent = (event: Record<string, unknown>): void => {
+    process.stdout.write(`${JSON.stringify({ at: new Date().toISOString(), ...event })}\n`);
+  };
+
+  /** A stable, non-reversible label for a merchant alias. */
+  const aliasHash = (alias: string): string =>
+    createHash('sha256').update(alias, 'utf8').digest('hex').slice(0, 16);
   // Per buyer, not global. A cap is the buyer's own budget guard, so one buyer
   // reaching its ceiling must never refuse a different buyer — that would turn
   // an open rail into a first-come-first-served one, and it did: a single
@@ -383,13 +469,29 @@ export function createFacilitator(
    * and Veil must not offer a settlement it cannot make private.
    */
   const gate = (alias: string): { code: RefusalCode } | null => {
-    if (!config.privacy) return { code: 'VEIL-CONF-003' };
+    // Every path out of this function is a refusal to *assert* confidentiality,
+    // so the counter is bumped in one place instead of at five return
+    // statements. A counter that can be forgotten at a branch is a counter that
+    // reports zero on a rail that is refusing everything.
+    const blocked = (code: RefusalCode): { code: RefusalCode } => {
+      counts.confidential_assertion_failures += 1;
+      logEvent({
+        event: 'refusal',
+        decision: 'refused',
+        stage: 'gate',
+        reason: code,
+        alias_hash: aliasHash(alias),
+        confidential_asserted: false,
+      });
+      return { code };
+    };
+    if (!config.privacy) return blocked('VEIL-CONF-003');
     const mint = config.privacy.mintConfidential();
-    if (mint === false) return { code: 'VEIL-CONF-001' };
-    if (mint === 'unknown') return { code: 'VEIL-CONF-003' };
+    if (mint === false) return blocked('VEIL-CONF-001');
+    if (mint === 'unknown') return blocked('VEIL-CONF-003');
     const accounts = config.privacy.accountsArmed(alias);
-    if (accounts === false) return { code: 'VEIL-CONF-002' };
-    if (accounts === 'unknown') return { code: 'VEIL-CONF-003' };
+    if (accounts === false) return blocked('VEIL-CONF-002');
+    if (accounts === 'unknown') return blocked('VEIL-CONF-003');
     return null;
   };
 
@@ -457,6 +559,11 @@ export function createFacilitator(
 
   const facilitator: Facilitator = {
     config,
+    // A getter, not a copy: a snapshot taken once would report whatever the
+    // counters happened to be when the server started.
+    get metrics(): RailMetrics {
+      return { ...counts };
+    },
     // A getter, not a copy: `refresh` swaps the ledger object, and every read of
     // `state.ledger` — the spent-identity check included — must see the swap.
     state: {
@@ -678,6 +785,84 @@ export function createFacilitator(
           reason: `payload.payTo belongs to ${entry.alias}, not the merchant for ${resource.path}`,
         };
       }
+
+      // --- the payment is bound to the resource it was signed for -------------
+      //
+      // F7, and the answer to the arXiv replay attack's live result (one captured
+      // payment reused for 248 grants). The seat ledger already stops one payment
+      // being *credited* twice — that is the strongest defence in the paper's own
+      // taxonomy — but it says nothing about *where* a payment is redeemed. A
+      // captured payment replayed against a different endpoint would be a
+      // different payment identity and therefore a different seat, so the ledger
+      // would happily credit it. Binding the payment to the offer it answered is
+      // what closes that, and `accepted.resource` is already the payer's own
+      // signed statement of which offer that was — F7 is the check, not a new
+      // field. Compared by path, because Veil publishes an absolute URL wherever
+      // the request arrived with a Host header and the path is the part the payer
+      // and the merchant must agree on.
+      const bound = pathOf(accepted.resource);
+      if (bound !== resource.path) {
+        return {
+          ok: false,
+          status: 402,
+          code: 'VEIL-CONF-007',
+          reason: `this payment is bound to ${bound ?? 'a resource Veil cannot read'}, but it was presented against ${resource.path}`,
+        };
+      }
+
+      // --- the transaction must actually BE a confidential transfer -----------
+      //
+      // The gate above proves a confidential transfer was *possible*: the mint
+      // carries the extension and the destination accepts confidential credits.
+      // It says nothing about the bytes the payer signed, and a payer can hold a
+      // perfectly armed seat and still hand over a plain SPL transfer whose
+      // amount is public. Reading the transaction is what turns "we intend to be
+      // private" into "this payment is private", and it is the check the hostile
+      // QA test forces: a public transfer is refused here, and the refusal is
+      // counted, because it is the one event this product claims cannot happen.
+      const reading = inspectPaymentTransaction(inner.transaction, {
+        payTo: inner.payTo,
+        mint: config.mint,
+      });
+      if (!reading.ok) {
+        if (reading.kind === 'not-confidential') {
+          counts.confidential_assertion_failures += 1;
+          logEvent({
+            event: 'refusal',
+            decision: 'refused',
+            stage: 'transaction',
+            reason: 'VEIL-CONF-008',
+            alias_hash: aliasHash(entry.alias),
+            detail: reading.reason,
+            confidential_asserted: false,
+          });
+          return { ok: false, status: 402, code: 'VEIL-CONF-008', reason: reading.reason };
+        }
+        // No reading at all. `'unknown'` is never a pass, but the consequence
+        // depends on whether a chain settlement was going to happen: a rail with
+        // an RPC is about to broadcast, so it refuses; a chain-free local run is
+        // not claiming a chain fact about placeholder bytes, and reports itself
+        // as `local-ledger-only` everywhere it is asked.
+        if (config.rpcUrl !== undefined) {
+          counts.confidential_assertion_failures += 1;
+          logEvent({
+            event: 'refusal',
+            decision: 'refused',
+            stage: 'transaction',
+            reason: 'VEIL-CONF-008',
+            alias_hash: aliasHash(entry.alias),
+            detail: reading.reason,
+            confidential_asserted: 'unknown',
+          });
+          return {
+            ok: false,
+            status: 402,
+            code: 'VEIL-CONF-008',
+            reason: `cannot assert this payment is confidential: ${reading.reason}`,
+          };
+        }
+      }
+
       return {
         ok: true,
         payload: payload as VeilPaymentPayload,
@@ -687,6 +872,9 @@ export function createFacilitator(
 
     async settle(input) {
       const { payload, resource, address, paymentId } = input;
+      // Measured from entry, not from the broadcast: what a settlement costs a
+      // merchant is the whole leg, and the broadcast is only part of it.
+      const startedAt = Date.now();
 
       // Order matters here, and it is not arbitrary. Accounting is validated
       // *before* the broadcast, because a broadcast is irreversible: if we sent
@@ -707,11 +895,19 @@ export function createFacilitator(
         ledger.claim(address, paymentId);
         ledger.settleable(address, paymentId);
       } catch (error) {
-        return {
-          ok: false,
-          status: 402,
-          reason: error instanceof Error ? error.message : 'settlement rejected',
-        };
+        const reason = error instanceof Error ? error.message : 'settlement rejected';
+        logEvent({
+          event: 'settlement',
+          payment_id: paymentId,
+          alias_hash: aliasHash(resource.alias),
+          slot: ledger.resolve(address)?.slot ?? null,
+          signature: null,
+          confidential_asserted: null,
+          decision: 'refused',
+          reason,
+          duration_ms: Date.now() - startedAt,
+        });
+        return { ok: false, status: 402, reason };
       }
 
       // Broadcasting is only honest when it can actually happen. Reporting a
@@ -770,6 +966,19 @@ export function createFacilitator(
         resource: settlement.resource,
         at: settlement.at,
         signature: settlement.signature,
+      });
+      counts.settlements += 1;
+      if (signature !== null) counts.broadcasts += 1;
+      logEvent({
+        event: 'settlement',
+        payment_id: settlement.paymentId,
+        alias_hash: aliasHash(settlement.alias),
+        slot: ledger.resolve(settlement.address)?.slot ?? null,
+        signature: settlement.signature,
+        confidential_asserted: true,
+        decision: 'served',
+        settlement_mode: signature !== null ? 'rpc' : 'local-ledger-only',
+        duration_ms: Date.now() - startedAt,
       });
       return { ok: true, settlement };
     },
@@ -884,7 +1093,12 @@ async function broadcast(rpcUrl: string, base64Transaction: string): Promise<str
 // HTTP surface
 // ---------------------------------------------------------------------------
 
-function json(res: ServerResponse, status: number, body: unknown): void {
+function json(
+  res: ServerResponse,
+  status: number,
+  body: unknown,
+  headers: Record<string, string> = {},
+): void {
   // Atomic amounts are bigint, and JSON.stringify throws on those. Serialising
   // them as decimal strings keeps precision exactly and stops a whole class of
   // "works until it reaches a response" bug: an endpoint that forgot to convert
@@ -898,10 +1112,26 @@ function json(res: ServerResponse, status: number, body: unknown): void {
   res.writeHead(status, {
     'content-type': 'application/json; charset=utf-8',
     'content-length': Buffer.byteLength(text),
+    // F8 — paid content is never cacheable. This lives in the one function every
+    // response is written through, so a new route cannot forget it; the arXiv
+    // paper leaked paid content through misconfigured caches on 100% of the
+    // nginx configurations it tested, and the published mitigation is exactly
+    // this header. The regression test asserts it on a granted paid GET.
     'cache-control': 'no-store',
+    // F8 — and a response that varies with the caller's identity must say so, or
+    // a shared cache that ignores `no-store` could still hand one payer's answer
+    // to the next one keyed only by URL.
+    vary: 'x-payer, x-payment, payment-signature, x-voucher',
     // Payers are browsers and agents on other origins — a hosted rail must
     // answer them. No credentials are accepted here, so `*` is safe.
     'access-control-allow-origin': '*',
+    // The payment headers are the response half of the protocol. Without this
+    // list a browser payer can read the body but not the challenge or the
+    // settlement receipt, which is the difference between an x402 client that
+    // works in a page and one that only works in a script.
+    'access-control-expose-headers':
+      'payment-required, payment-response, x-idempotency-key, x-payment-signature',
+    ...headers,
   });
   res.end(text);
 }
@@ -932,6 +1162,140 @@ async function readBody(req: IncomingMessage): Promise<unknown> {
  * Returns `undefined` when there is no host, which leaves the offer relative
  * rather than inventing an origin.
  */
+/**
+ * The path part of whatever `accepted.resource` carries.
+ *
+ * x402 v2's `resource` is a URL and v1's is a path, and Veil emits both forms —
+ * absolute whenever the request arrived with a `Host` header. Comparing the path
+ * rather than the whole string is what makes a payment signed against
+ * `https://rail.example/t/data` verifiable at a server reached on a different
+ * port or behind a proxy, which is the normal case for every deployment.
+ */
+function pathOf(resource: unknown): string | null {
+  if (typeof resource !== 'string' || resource.length === 0) return null;
+  if (resource.startsWith('/')) return resource;
+  try {
+    return new URL(resource).pathname;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Decode the raw ed25519 public key a session is opened with.
+ *
+ * Base64 or hex, because the two are indistinguishable in a config file and a
+ * key the server refuses to parse is a session nobody can open. Length is the
+ * only thing checked: a 32-byte key is what ed25519 verification needs, and
+ * anything else would fail later with a message about signatures rather than
+ * about the key that produced them.
+ */
+function decodePublicKey(value: string): Uint8Array | null {
+  if (/^[0-9a-fA-F]{64}$/.test(value)) {
+    return Buffer.from(value, 'hex');
+  }
+  const bytes = Buffer.from(value, 'base64');
+  return bytes.length === 32 ? bytes : null;
+}
+
+/**
+ * Read the claims a voucher states, or `null` when it is not shaped like one.
+ *
+ * Shape first, signature second, and never a throw: a malformed voucher is a
+ * refusal with a reason, not an exception on the charge path.
+ */
+function readVoucherClaims(
+  signed: SignedVoucher,
+): { readonly sessionId: string; readonly seq: number; readonly total: bigint } | null {
+  const voucher = signed?.voucher;
+  if (
+    typeof voucher?.sessionId !== 'string' ||
+    voucher.sessionId.length === 0 ||
+    !Number.isSafeInteger(voucher.seq) ||
+    voucher.seq < 1 ||
+    typeof voucher.total !== 'string' ||
+    !/^\d+$/.test(voucher.total)
+  ) {
+    return null;
+  }
+  return { sessionId: voucher.sessionId, seq: voucher.seq, total: BigInt(voucher.total) };
+}
+
+/**
+ * Why a voucher was refused, in terms the payer can act on.
+ *
+ * The `code` in the body is the machine-readable half; this is the half a human
+ * (or an agent's planner) reads to decide what to do differently, which is a
+ * different sentence for each refusal.
+ */
+function voucherRefusalDetail(
+  code: ChargeFailure,
+  claims: { readonly seq: number; readonly total: bigint },
+  price: Atomic,
+  decimals: number,
+): string {
+  const unit = (value: Atomic): string => formatAtomic(value, decimals, '');
+  switch (code) {
+    case 'underpaid':
+      return `this call costs ${unit(price)}; a cumulative total of ${unit(
+        claims.total,
+      )} does not cover the session's served value plus this call. Sign a higher cumulative total.`;
+    case 'stale-seq':
+      return `sequence ${claims.seq} has already been charged in this session; a cumulative chain only moves forward, so sign sequence ${
+        claims.seq + 1
+      } with the new total.`;
+    case 'gap-seq':
+      return `sequence ${claims.seq} is not the next one owed; a gap would let one signature silently cover charges nobody vouched for.`;
+    case 'over-cap':
+      return 'the voucher total exceeds the cap this session was opened with. Open a new session with a larger cap to spend more.';
+    case 'bad-signature':
+      return 'the voucher signature does not verify against the public key this session was opened with.';
+    case 'session-expired':
+      return 'this session passed its expiry; open a new one.';
+    case 'session-closed':
+      return 'this session has already redeemed as one settlement, so a later voucher is a double-spend attempt rather than a late arrival.';
+    case 'unknown-session':
+      return 'no session with this id is open on the instance answering. Retry against the instance that opened it, or open a new session.';
+  }
+}
+
+/** How a session is published, so a client never has to guess the contract. */
+function sessionView(
+  session: BatchSession,
+  config: ServerConfig,
+  baseUrl?: string,
+): Record<string, unknown> {
+  return {
+    scheme: 'batch-confidential',
+    sessionId: session.id,
+    alias: session.alias,
+    payer: session.payer,
+    state: session.state,
+    cap: capDecimal(session, config.decimals),
+    headSeq: session.headSeq,
+    served: session.charged.toString(),
+    servedDecimal: fromAtomic(session.charged, config.decimals),
+    openedAt: session.openedAt,
+    expiresAt: session.expiresAt,
+    voucher: {
+      // The exact bytes a payer signs, published so a client does not have to
+      // guess the domain separation or the field order and then discover the
+      // mismatch as a signature failure.
+      format:
+        'veil-batch-voucher-v1 : u32be-len(sessionId) sessionId : u32be-len(seq) seq : u32be-len(total) total',
+      signedWith: 'ed25519 over the bytes above; signature is base64',
+      cumulative: true,
+      transport: {
+        header: 'X-VOUCHER',
+        encoding: 'base64 of JSON { voucher: { sessionId, seq, total }, signature }',
+      },
+      binding: 'docs/notes/svm-batch-binding.md',
+    },
+    settle: resolveResourceUrl(`/v1/sessions/${session.id}/settle`, baseUrl),
+    ...(session.receipt ? { receipt: session.receipt } : {}),
+  };
+}
+
 function requestBaseUrl(req: IncomingMessage): string | undefined {
   const host = req.headers['host'];
   if (typeof host !== 'string' || host.length === 0) return undefined;
@@ -975,7 +1339,8 @@ export function createVeilHandler(
         res.writeHead(204, {
           'access-control-allow-origin': '*',
           'access-control-allow-methods': 'GET, POST, OPTIONS',
-          'access-control-allow-headers': 'content-type, x-payer, x-payment',
+          'access-control-allow-headers':
+            'content-type, x-payer, x-payment, payment-signature, x-voucher',
           'access-control-max-age': '86400',
         });
         res.end();
@@ -1001,6 +1366,48 @@ export function createVeilHandler(
             ...(r.perUnit ? { perUnit: r.perUnit, units: r.units ?? 0 } : {}),
           })),
           privacySource: config.privacySource ?? 'none',
+          /**
+           * Who a caller must believe for the privacy claim to hold.
+           *
+           * Published because it is the honest half of the pitch: Veil's privacy
+           * is chain-verified — Token-2022 Confidential Balances means the
+           * transfer's zk proofs are checked by the zk-elgamal-proof program on
+           * chain and the amount is an ElGamal ciphertext under the recipient's
+           * key — so there is no operator set, no threshold, and no gateway in
+           * the trust path. A competing design that secret-shares balances across
+           * an MPC cluster, or decrypts inside an FHE coprocessor, is private for
+           * as long as that cluster behaves; this one is private for as long as
+           * the chain's own verifier holds, and anyone can re-derive the claim
+           * with `npm run replay` rather than take this server's word for it.
+           */
+          trust: {
+            model: 'chain-verified',
+            verifiedBy: 'the Token-2022 zk-elgamal-proof program, on chain',
+            keyHeldBy: 'the recipient only',
+            intermediates: [],
+            verifier: {
+              command: 'npm run replay <paymentId|signature>',
+              reads: 'chain state, with no Veil service in the loop',
+            },
+          },
+          paymentHeaders: {
+            v1: { request: 'X-PAYMENT' },
+            v2: {
+              request: 'PAYMENT-SIGNATURE',
+              challenge: 'PAYMENT-REQUIRED',
+              response: 'PAYMENT-RESPONSE',
+            },
+            idempotency: 'X-IDEMPOTENCY-KEY',
+          },
+          ...(config.batchSessions !== undefined
+            ? {
+                batch: {
+                  scheme: 'batch-confidential',
+                  sessions: resolveResourceUrl('/v1/sessions', baseUrl),
+                  binding: 'docs/notes/svm-batch-binding.md',
+                },
+              }
+            : {}),
           privacyGate:
             config.privacy === undefined
               ? {
@@ -1029,6 +1436,9 @@ export function createVeilHandler(
               'VEIL-CONF-003',
               'VEIL-CONF-004',
               'VEIL-CONF-005',
+              'VEIL-CONF-006',
+              'VEIL-CONF-007',
+              'VEIL-CONF-008',
             ] as const
           ).map((code: RefusalCode) => {
             const r = refusal(code);
@@ -1067,6 +1477,13 @@ export function createVeilHandler(
             : config.allowLocalSettlement === true
               ? 'local-ledger-only'
               : 'unavailable',
+          // D-4's counter, live. `/api/ledger` carries it too, so the dashboard
+          // and the CLI read the same number from the same place.
+          metrics: facilitator.metrics,
+          batchSessions:
+            config.batchSessions !== undefined
+              ? { open: config.batchSessions.list().length }
+              : null,
         });
       }
 
@@ -1079,12 +1496,198 @@ export function createVeilHandler(
           network: config.network,
           mint: config.mint,
           decimals: config.decimals,
+          // A refusal count that only exists in a log file is a claim; one next
+          // to the settlement rows is a check a reader can perform. Per-process,
+          // and labelled as such by `scope`.
+          metrics: {
+            scope: 'process',
+            counter: 'confidential_assertion_failures',
+            ...facilitator.metrics,
+          },
           pool: facilitator.state.ledger.toJSON(),
           // One row per settled seat, not one per settlement this instance
           // happened to broadcast, and with the signature and amount the shared
           // log recorded rather than a blank where another instance took the
           // payment. Nothing here is per-instance except the last write.
           settled: await facilitator.settlementLog(),
+        });
+      }
+
+      // --- batch sessions (the `batch-confidential` scheme) -----------------
+      //
+      // Mounted ahead of the resource table because a session id is not a priced
+      // resource: there is no offer to look up, and a 404 from the resource map
+      // would be the wrong answer for a live session. Every rule enforced here
+      // lives in `BatchSessionManager`; this is the transport.
+      if (config.batchSessions !== undefined && path.startsWith('/v1/sessions')) {
+        const sessions = config.batchSessions;
+        if (req.method === 'POST' && path === '/v1/sessions') {
+          const body = (await readBody(req)) as Record<string, unknown> | undefined;
+          const rawKey = body?.payerPubkey;
+          const pubkey = typeof rawKey === 'string' ? decodePublicKey(rawKey) : null;
+          if (pubkey === null) {
+            return json(res, 400, {
+              error: 'invalid-payer-pubkey',
+              detail:
+                'payerPubkey must be base64 or 64-char hex of a raw 32-byte ed25519 public key — the key every voucher in this session is verified against',
+            });
+          }
+          try {
+            const opened = sessions.open({
+              // The session's payer defaults to the caller's own identity. Read
+              // here rather than from the resource branch below, because a
+              // session is opened before any resource is named and the header is
+              // the only thing that says who is asking.
+              payer:
+                typeof body?.payer === 'string'
+                  ? body.payer
+                  : typeof req.headers['x-payer'] === 'string'
+                    ? (req.headers['x-payer'] as string)
+                    : 'anonymous',
+              alias: typeof body?.alias === 'string' ? body.alias : config.resources[0]!.alias,
+              payerPubkey: pubkey,
+              cap: typeof body?.cap === 'string' ? body.cap : '0.50',
+              decimals: config.decimals,
+            });
+            return json(res, 201, sessionView(opened, config, baseUrl));
+          } catch (error) {
+            return json(res, 400, {
+              error: 'session-not-opened',
+              detail: error instanceof Error ? error.message : 'unknown',
+            });
+          }
+        }
+
+        const sessionId = path.slice('/v1/sessions/'.length).split('/')[0] ?? '';
+        const session = sessions.get(sessionId);
+        if (!session) {
+          return json(res, 404, { error: 'unknown-session', sessionId });
+        }
+
+        if (req.method === 'GET' && path === `/v1/sessions/${sessionId}`) {
+          return json(res, 200, sessionView(session, config, baseUrl));
+        }
+
+        if (req.method === 'POST' && path === `/v1/sessions/${sessionId}/settle`) {
+          if (session.state === 'settled') {
+            return json(res, 409, {
+              error: 'session-already-settled',
+              detail:
+                'this session already redeemed: the value moved exactly once, and the receipt below is that record',
+              receipt: session.receipt,
+            });
+          }
+          const head = session.headVoucher;
+          if (head === null || session.charged === 0n) {
+            return json(res, 402, {
+              error: 'nothing-to-settle',
+              detail:
+                'no voucher has been charged to this session, so there is no value to redeem',
+            });
+          }
+
+          // The redemption is ONE ordinary `exact-confidential` payment for the
+          // session total, into a fresh one-time seat, through the same
+          // verify/settle path as any other payment. That is the whole point of
+          // composing the two schemes rather than inventing a third: the
+          // redemption inherits the confidentiality gate, the seat pool, the
+          // resource binding and the transaction reading without a line of new
+          // settlement code.
+          const total = BigInt(head.voucher.total);
+          const settleResource: ResourceDefinition = {
+            path: `/v1/sessions/${sessionId}/settle`,
+            alias: session.alias,
+            description: `Redeem session ${sessionId} — one confidential transfer for the whole session`,
+            base: fromAtomic(total, config.decimals),
+            produce: () => ({ redeemed: sessionId }),
+          };
+          const settleIdentity: PaymentIdentity = {
+            resource: settleResource.path,
+            payer: session.payer,
+            nonce: 0,
+          };
+          const settleHeader = req.headers['payment-signature'] ?? req.headers['x-payment'];
+          if (typeof settleHeader !== 'string') {
+            const quote = await facilitator.quote(settleResource, settleIdentity, baseUrl);
+            const challenge = {
+              'payment-required': Buffer.from(JSON.stringify(quote.body)).toString('base64'),
+            };
+            return json(res, quote.ok ? 402 : quote.status, quote.body, challenge);
+          }
+          let settleDecoded: unknown;
+          try {
+            settleDecoded = JSON.parse(Buffer.from(settleHeader, 'base64').toString('utf8'));
+          } catch {
+            return json(res, 402, {
+              error: 'malformed-payment-header',
+              detail: 'the redemption payment must be base64-encoded JSON',
+            });
+          }
+          const settleVerified = facilitator.verify(settleDecoded, settleResource);
+          if (!settleVerified.ok) {
+            return json(res, settleVerified.status, {
+              error: 'invalid-payment',
+              detail: settleVerified.reason,
+              ...(settleVerified.code !== undefined
+                ? { refusal: refusal(settleVerified.code) }
+                : {}),
+            });
+          }
+          const settleOutcome = await facilitator.settle({
+            payload: settleVerified.payload,
+            resource: settleResource,
+            address: settleVerified.address,
+            paymentId: derivePaymentId(settleIdentity),
+            payer: session.payer,
+            amount: total,
+          });
+          if (!settleOutcome.ok) {
+            return json(res, settleOutcome.status, {
+              error: 'settlement-failed',
+              detail: settleOutcome.reason,
+            });
+          }
+          const receipt = sessions.settle(sessionId, {
+            voucherHead: head,
+            seat: settleVerified.address,
+            signature: settleOutcome.settlement.signature,
+            settlementMode:
+              settleOutcome.settlement.signature !== null ? 'rpc' : 'local-ledger-only',
+          });
+          return json(
+            res,
+            200,
+            {
+              redeemed: true,
+              receipt,
+              ...(receipt === null
+                ? {
+                    detail:
+                      'the settlement landed and the session closed concurrently, so this response could not record the receipt — the settlement rows on /api/ledger are the record',
+                  }
+                : {}),
+            },
+            {
+              'x-idempotency-key': `${sessionId}:settle`,
+              ...(settleOutcome.settlement.signature !== null
+                ? { 'x-payment-signature': settleOutcome.settlement.signature }
+                : {}),
+              'payment-response': Buffer.from(
+                JSON.stringify({
+                  success: true,
+                  transaction: settleOutcome.settlement.signature,
+                  network: config.network,
+                  payer: session.payer,
+                }),
+              ).toString('base64'),
+            },
+          );
+        }
+
+        return json(res, 405, {
+          error: 'method-not-allowed',
+          detail: 'the session surface is POST /v1/sessions, GET /v1/sessions/{id}, POST /v1/sessions/{id}/settle',
+          path,
         });
       }
 
@@ -1113,7 +1716,12 @@ export function createVeilHandler(
       }
       const id: PaymentIdentity = { resource: path, payer, nonce };
 
-      const paymentHeader = req.headers['x-payment'];
+      // F3 — x402 v2 spells the payment `PAYMENT-SIGNATURE` where v1 spelled it
+      // `X-PAYMENT`. Both are read: a payer's client does not get to choose which
+      // one a merchant understands, and refusing a v2 client over a header name
+      // would make Veil unusable beside every other 2026 x402 server. The v1
+      // spelling still works, byte for byte, because the hosted demo uses it.
+      const paymentHeader = req.headers['payment-signature'] ?? req.headers['x-payment'];
 
       // Read through the durable ledger before deciding anything. Quote and
       // payment can land on different instances, and the one answering now must
@@ -1121,6 +1729,78 @@ export function createVeilHandler(
       // to the next caller, which is the relinking the pool exists to prevent.
       // A no-op when no store is configured.
       await facilitator.refresh();
+
+      // --- batch sessions: a cumulative voucher in place of a payment --------
+      //
+      // F1's hot path. The voucher is verified offline — no chain lookup, no seat
+      // reservation, no 402 — which is the "speed of HTTP" property the x402
+      // batch-settlement post claims, kept here with amounts hidden. The resource
+      // is served on the strength of a signature; value moves once, later, when
+      // the session redeems.
+      const voucherHeader = req.headers['x-voucher'];
+      if (typeof voucherHeader === 'string') {
+        const sessions = config.batchSessions;
+        if (sessions === undefined) {
+          return json(res, 501, {
+            error: 'sessions-not-enabled',
+            detail:
+              'this rail was started without a session manager, so it serves one-time seats only. Configure batchSessions to accept vouchers, or pay per call with a confidential transfer.',
+          });
+        }
+        let signed: SignedVoucher;
+        try {
+          signed = JSON.parse(
+            Buffer.from(voucherHeader, 'base64').toString('utf8'),
+          ) as SignedVoucher;
+        } catch {
+          return json(res, 402, {
+            error: 'malformed-voucher-header',
+            detail: 'X-VOUCHER must be base64-encoded JSON of { voucher, signature }',
+          });
+        }
+        const claims = readVoucherClaims(signed);
+        if (claims === null) {
+          return json(res, 402, {
+            error: 'malformed-voucher',
+            detail:
+              'a voucher must carry { voucher: { sessionId, seq, total }, signature }; anything else is refused rather than interpreted',
+          });
+        }
+        const price = priceFor(
+          {
+            base: resource.base,
+            ...(resource.perUnit !== undefined ? { perUnit: resource.perUnit } : {}),
+            ...(resource.units !== undefined ? { units: resource.units } : {}),
+          },
+          config.decimals,
+        );
+        const charged = sessions.charge(claims.sessionId, signed, price);
+        if (!charged.ok) {
+          return json(res, 402, {
+            error: 'voucher-rejected',
+            code: charged.code,
+            detail: voucherRefusalDetail(charged.code, claims, price, config.decimals),
+          });
+        }
+        return json(
+          res,
+          200,
+          {
+            paid: true,
+            session: {
+              sessionId: claims.sessionId,
+              headSeq: charged.headSeq,
+              served: charged.charged.toString(),
+              servedDecimal: fromAtomic(charged.charged, config.decimals),
+              settlesWith: resolveResourceUrl(`/v1/sessions/${claims.sessionId}/settle`, baseUrl),
+              deferred:
+                'charged to the session: the per-call usage is a voucher signature and never reaches the chain, and the session redeems as one confidential transfer',
+            },
+            data: resource.produce({ paid: true }),
+          },
+          { 'x-idempotency-key': `${claims.sessionId}:${charged.headSeq}` },
+        );
+      }
 
       // No payment yet: quote the price. This is the normal x402 first leg.
       if (typeof paymentHeader !== 'string') {
@@ -1139,13 +1819,19 @@ export function createVeilHandler(
           });
         }
         const quote = await facilitator.quote(resource, id, baseUrl);
-        if (!quote.ok) return json(res, quote.status, quote.body);
+        // F3 — the same challenge body, base64'd into the v2 header, so an x402
+        // v2 client that reads headers instead of bodies sees the identical
+        // terms rather than an empty challenge.
+        const challenge = {
+          'payment-required': Buffer.from(JSON.stringify(quote.body)).toString('base64'),
+        };
+        if (!quote.ok) return json(res, quote.status, quote.body, challenge);
         // No flush here. `quote` does not return an address until the shared
         // ledger says this payment owns it, so the promise not to sell the same
         // seat twice has already been recorded — and the local file is left
         // alone, where writing a seat map on every unpaid GET would dirty the
         // committed pool.
-        return json(res, 402, quote.body);
+        return json(res, 402, quote.body, challenge);
       }
 
       // A payment was supplied. Decode, verify, settle, then serve.
@@ -1163,7 +1849,15 @@ export function createVeilHandler(
 
       const verified = facilitator.verify(decoded, resource);
       if (!verified.ok) {
-        return json(res, verified.status, { error: 'invalid-payment', detail: verified.reason });
+        return json(res, verified.status, {
+          error: 'invalid-payment',
+          detail: verified.reason,
+          // The policy refusals carry their catalog entry, so a client can tell
+          // "your payment is bound to another resource" (VEIL-CONF-007) from "your
+          // transaction would settle in public" (VEIL-CONF-008) without parsing
+          // prose — and so the counter and the body name the same event.
+          ...(verified.code !== undefined ? { refusal: refusal(verified.code) } : {}),
+        });
       }
 
       // The payment is identified by the request identity, the same inputs the
@@ -1178,7 +1872,10 @@ export function createVeilHandler(
         config.decimals,
       );
 
-      // verify() already resolved and attributed the destination.
+      // verify() already resolved the destination, bound the payment to this
+      // resource, and confirmed on the signed bytes that the transfer is a
+      // confidential one. Nothing below this line can put an amount on the public
+      // ledger.
       const outcome = await facilitator.settle({
         payload: verified.payload,
         resource,
@@ -1195,16 +1892,42 @@ export function createVeilHandler(
         });
       }
 
-      return json(res, 200, {
-        paid: true,
-        settled: {
-          signature: outcome.settlement.signature,
-          amount: outcome.settlement.amount.toString(),
-          at: outcome.settlement.at,
-          confid: 'amount hidden on chain by Token-2022 confidential balances',
+      return json(
+        res,
+        200,
+        {
+          paid: true,
+          settled: {
+            signature: outcome.settlement.signature,
+            amount: outcome.settlement.amount.toString(),
+            at: outcome.settlement.at,
+            paymentId,
+            seat: outcome.settlement.address,
+            confid: 'amount hidden on chain by Token-2022 confidential balances',
+          },
+          data: resource.produce({ paid: true }),
         },
-        data: resource.produce({ paid: true }),
-      });
+        {
+          // F7 — the idempotency key is derived from the payment identity, so
+          // the payer and the merchant compute the same key for the same payment
+          // without either telling the other. A retried HTTP request answers on
+          // the same key, which is what makes "deterministic instead of a second
+          // grant" checkable rather than merely intended.
+          'x-idempotency-key': paymentId,
+          ...(outcome.settlement.signature !== null
+            ? { 'x-payment-signature': outcome.settlement.signature }
+            : {}),
+          // F3 — v2's settlement receipt, in a header, mirroring the body.
+          'payment-response': Buffer.from(
+            JSON.stringify({
+              success: true,
+              transaction: outcome.settlement.signature,
+              network: config.network,
+              payer: id.payer,
+            }),
+          ).toString('base64'),
+        },
+      );
     } catch (error) {
       // A thrown error must not leak internals.
       json(res, 500, {
@@ -1468,3 +2191,33 @@ export {
   parsePaymentRequired,
   refusal,
 };
+
+/**
+ * The second scheme, published from the same entry point as the first.
+ *
+ * `batch-confidential` is additive: a merchant that never opens a session never
+ * touches this code, and a client that only speaks `exact-confidential` is
+ * unaffected — which is how an x402 extension is supposed to land.
+ */
+export {
+  BatchSessionManager,
+  canonicalVoucher,
+  verifyVoucher,
+  voucherSignerFromSeed,
+  type BatchSession,
+  type ChargeFailure,
+  type SessionReceipt,
+  type SignedVoucher,
+  type Voucher,
+} from './batch.ts';
+
+/**
+ * The transaction reading, exported so a verifier can run the rail's own check.
+ *
+ * `scripts/replay.ts` uses this against chain state: the replay tool deliberately
+ * reads a settled transaction with the *same* reader the rail uses, and prints the
+ * raw primitives (program ids, discriminators, byte lengths, balance deltas)
+ * beside the verdict — so the report can be checked by hand rather than trusted
+ * because it came from the same code.
+ */
+export { inspectConfidentialTransfer, inspectPaymentTransaction } from './inspect.ts';
