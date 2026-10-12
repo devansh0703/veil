@@ -61,6 +61,110 @@ the one whose amounts cannot be read.
 
 ---
 
+## Portal questions, answered
+
+The second page of the submission form asks six more fields. All are written to
+fit their character counters, measured rather than estimated.
+
+**Project website**
+
+> https://veil-devnet.vercel.app
+
+**What are you building, and who is it for?** — 993/1000
+
+> Veil is a payment rail for AI agents that keeps the amount private.
+>
+> x402 is how an agent pays for an API call with no account and no human. Every
+> payment it settles is a permanent public record: who paid whom, how much, how
+> often, at what price. For an agent operator that record is their research stack.
+> For a merchant it is their book of business.
+>
+> Veil is a drop-in x402 facilitator that settles in Solana's Token-2022
+> Confidential Balances instead of a plain transfer. The amount becomes ciphertext
+> on chain, and each payment lands in a fresh one-time account, so two payments to
+> the same merchant never share an address. The merchant still reconciles to the
+> cent with its own wallet key. If the rail cannot demonstrate a payment will be
+> confidential, it refuses to quote rather than fall back to a public transfer.
+>
+> Two buyers: the merchant, who loses pricing power at every renewal while
+> per-client revenue is public, and the agent operator, whose vendor list is public
+> on any explorer.
+
+**Why did you decide to build this, and why build it now?** — 987/1000
+
+> I already build x402 handlers, and the leak is not a bug in the protocol. A
+> public ledger is what makes settlement auditable, so it is the design.
+>
+> Three things changed. Solana re-enabled Token-2022 Confidential Balances on
+> mainnet in June 2026 after a year-long audit pause, putting ElGamal encryption
+> and zero-knowledge proofs inside the token program. x402 batch settlement
+> shipped in May, keeping per-call amounts off-chain. txv1 raised the transaction
+> size cap in September, collapsing a four-transaction proof dance into one.
+>
+> So the primitive is new, the protocol is large enough that the ledger is
+> competitive intelligence, and nobody had combined them. Three other teams ship
+> confidential x402, all on EVM, each asking you to trust an operator set: TACEO
+> on MPC, PrivateX402 in a TEE, Fhenix on FHE. None is on Solana, where the
+> chain's own program verifies the proofs.
+>
+> Privacy is the one part of agent payments where a new entrant can be
+> structurally better, not just cheaper.
+
+**What technologies are you using or integrating with to build your product?**
+
+> **Solana.** Token-2022 Confidential Balances is the settlement primitive: the
+> three zero-knowledge proofs (ciphertext-commitment equality, batched grouped
+> ciphertext validity, batched u128 range) are generated client-side by WASM
+> inside `@solana/zk-sdk` and verified on chain by the `zk-elgamal-proof` program.
+> `@solana/kit` for RPC and transaction building, `@solana-program/token-2022` for
+> the confidential-transfer instruction family, `@solana-program/zk-elgamal-proof`
+> for verification. txv1 (SIMD-0385) for single-transaction settlement, gated on
+> runtime feature detection. The Ed25519 precompile verifies batch-session
+> vouchers at redemption.
+>
+> **Protocol.** x402, both V1 (`X-PAYMENT`) and V2 (`PAYMENT-SIGNATURE` /
+> `PAYMENT-REQUIRED` / `PAYMENT-RESPONSE`), negotiated per request. `@x402/core`
+> and `@x402/svm` 2.28 for type compatibility; the protocol core is written from
+> scratch with zero runtime dependencies so the 402 body can be read in one
+> sitting.
+>
+> **Runtime and hosting.** Node 22+ with native TypeScript execution, no build
+> step for the product. Vercel Hobby for two deployments, one per cluster.
+> Upstash Redis over its HTTP REST API for the durable shared seat ledger.
+> Helius free tier for a devnet RPC node. GitHub Actions for CI.
+>
+> **Developer tools.** TypeScript 5.7 and esbuild (the browser prover artifact and
+> the Vercel function bundles), Node's built-in test runner (210 tests),
+> Playwright-driven headless Chromium for the browser checks, ffmpeg for the video
+> encodes, HyperFrames for the two submission videos, fontTools for converting the
+> wordmark to vector outlines.
+>
+> **AI tools.** Claude with the gstack skill suite for plan review (CEO,
+> engineering, design, developer-experience) and the recorded QA pass. Kokoro-82M
+> run locally for the video narration, so no service is in the loop. Hermes Agent
+> for session orchestration. Web research for the 2026 protocol landscape, with
+> every external claim tied to a dated primary source in
+> `docs/notes/x402-2026-landscape.md`.
+
+**Which chains does your product use?**
+
+> **Solana** only. Nothing else is integrated.
+
+**How does your product use these chains?** — 487/500
+
+> Solana is the settlement layer and trust anchor.
+>
+> Payments settle as Token-2022 confidential transfers (family 27, op 7) against a
+> self-issued test-dollar mint we own, so we control Confidential Balances and the
+> auditor policy. Solana's token program verifies the proofs, so no MPC cluster,
+> enclave or coprocessor is trusted.
+>
+> Each payment lands in a fresh pre-armed account, never reused, so two payments
+> to one merchant never share an address. The same code runs on devnet and
+> testnet.
+
+---
+
 ## Product name
 
 **Veil**
