@@ -7,6 +7,60 @@ a live transaction with an explorer link.
 
 ---
 
+## Form-ready answers
+
+**Project name**
+
+> Veil
+
+**Brief description** — 491 characters, measured (limit 500)
+
+> Veil makes the amount of an agent payment private. A conformant x402 facilitator
+> on Solana, settling in Token-2022 Confidential Balances: amounts are ciphertext
+> on chain, and each payment lands in a fresh one-time seat, so two payments to
+> one merchant never share an address. Solana's own program verifies the proofs -
+> no MPC cluster or enclave to trust. The rail refuses rather than downgrade to a
+> public transfer. Live on devnet, MIT licensed, re-derivable from chain state in
+> one command.
+
+**Category** — one only
+
+> **Payments & Remittance**
+
+**Why that category.** Veil's literal function is settling payments: x402 is a
+payments protocol and the product is a payment rail. The category's judges assess
+settlement, fees, integration and compliance, and this project is strong on all
+four — real settlements on two clusters with explorer links, ~1/1000th-of-a-cent
+fees, a one-line merchant integration, and an auditor key for the compliance
+path. The privacy is then a *differentiator inside payments* rather than the
+whole category, which is the better relative position: a payments judge compares
+this to public payment rails and finds it strictly better, where a privacy judge
+would compare it to anonymity networks and find it lacking.
+
+**Where the choice is weakest, stated plainly.** "Remittance" implies
+cross-border person-to-person transfers; this is machine-to-machine API payments,
+so a narrow reading of the category sees a mismatch. There is no "machine
+payments" category, so Payments is the nearest home rather than a perfect one.
+
+**The runner-up: Developer Infrastructure**, which is the cleaner literal fit —
+the wedge *is* a drop-in facilitator, and the deliverables are an SDK, a CLI, a
+scaffold and a docs set. It was not chosen because it undersells Novelty/Insight,
+which is where the confidential-settlement primitive does the work: in Developer
+Infrastructure this reads as another x402 facilitator, in Payments it reads as
+the one whose amounts cannot be read.
+
+**Categories deliberately avoided:**
+
+| Category | Why not |
+|---|---|
+| Identity & Privacy | The honest limits are a strength in Payments and a weakness here. This project is explicitly *not* an anonymity network, and it says so in `README.md`: addresses, mint and timing stay public. |
+| AI Platforms / Agents | Veil serves agents but is not an agent platform; the category would overclaim. |
+| ZK / Crypto Research | Uses zero-knowledge proofs; produces no research. |
+| Stablecoins | Settles in a self-issued test dollar, but that is the substrate, not the product. |
+| FinTech | Broader and bank-shaped; Payments & Remittance is the precise fit. |
+
+---
+
 ## Product name
 
 **Veil**
