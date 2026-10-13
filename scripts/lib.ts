@@ -329,9 +329,34 @@ export function decodeSecret(raw: string): Uint8Array | null {
  * the file nor the difference, so both are accepted here rather than leaving the
  * caller to discover which file they happened to point at.
  */
-export async function signerFromKeyBytes(bytes: Uint8Array): Promise<KeyPairSigner> {
+export async function signerFromKeyBytes(
+  bytes: Uint8Array,
+  label = 'the key file',
+): Promise<KeyPairSigner> {
   if (bytes.length === 32) return createKeyPairSignerFromPrivateKeyBytes(bytes);
-  return createKeyPairSignerFromBytes(bytes);
+  if (bytes.length === 64) return createKeyPairSignerFromBytes(bytes);
+  throw new Error(
+    `${label} holds ${bytes.length} bytes; expected 32 (a seed) or 64 (a CLI keypair, seed || public key)`,
+  );
+}
+
+/**
+ * A signer from a key file on disk.
+ *
+ * The one path every script should use. Reading the file, rejecting a
+ * non-array, and accepting both byte layouts are all things four scripts used
+ * to do slightly differently, and one of them (the agent's own `pay:agent`)
+ * did not do at all — so a key in the format `npm run sandbox` writes failed
+ * there with a raw `SolanaError` that named neither the file nor the cause.
+ */
+export async function signerFromKeyFile(path: string): Promise<KeyPairSigner> {
+  const raw = JSON.parse(await readFile(path, 'utf8')) as unknown;
+  if (!Array.isArray(raw)) {
+    throw new Error(
+      `${path} is not a JSON array of bytes; expected a 32-byte seed or a 64-byte CLI keypair`,
+    );
+  }
+  return signerFromKeyBytes(Uint8Array.from(raw as number[]), path);
 }
 
 /** Minimal base58 decoder, so scripts do not need a dependency for one helper. */

@@ -15,7 +15,7 @@
 
 import { readFile } from 'node:fs/promises';
 
-import { createKeyPairSignerFromBytes, type KeyPairSigner } from '@solana/kit';
+import { type KeyPairSigner } from '@solana/kit';
 import { ConfidentialKeys } from '@solana/zk-sdk';
 
 import { createVeilAgent, isVeilError } from '../packages/client/src/index.ts';
@@ -23,7 +23,7 @@ import {
   confidentialDerivationMessage,
   confidentialKeysFrom,
 } from '../packages/onchain/src/proofs.ts';
-import { defaultRpcUrl } from './lib.ts';
+import { defaultRpcUrl, signerFromKeyFile } from './lib.ts';
 
 function flag(name: string): string | undefined {
   const index = process.argv.indexOf(`--${name}`);
@@ -55,7 +55,7 @@ if (!keyPath) {
 }
 
 const bytes = Uint8Array.from(JSON.parse(await readFile(keyPath, 'utf8')));
-const signer: KeyPairSigner = await createKeyPairSignerFromBytes(bytes);
+const signer: KeyPairSigner = await signerFromKeyFile(keyPath);
 const keys: ConfidentialKeys = await confidentialKeysFrom(() => signDerivation(bytes.slice(0, 32)));
 
 const urls = repeated('url');

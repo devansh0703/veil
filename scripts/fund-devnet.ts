@@ -25,9 +25,10 @@ import { fileURLToPath } from 'node:url';
 import { generateKeyPairSync, createPrivateKey, createPublicKey } from 'node:crypto';
 import {
   createKeyPairSignerFromBytes,
-  createKeyPairSignerFromPrivateKeyBytes,
   type KeyPairSigner,
 } from '@solana/kit';
+
+import { signerFromKeyBytes } from './lib.ts';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 
@@ -115,12 +116,7 @@ async function loadSigner(path: string): Promise<KeyPairSigner> {
         `64-byte CLI keypair (seed || public key).`,
     );
   }
-  const bytes = Uint8Array.from(raw as number[]);
-  if (bytes.length === 64) return createKeyPairSignerFromBytes(bytes);
-  if (bytes.length === 32) return createKeyPairSignerFromPrivateKeyBytes(bytes);
-  throw new Error(
-    `${path} holds ${bytes.length} bytes; expected 64 (CLI keypair) or 32 (seed)`,
-  );
+  return signerFromKeyBytes(Uint8Array.from(raw as number[]), path);
 }
 
 async function rpc(

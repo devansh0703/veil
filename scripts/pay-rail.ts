@@ -13,7 +13,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { createKeyPairSignerFromBytes, getBase58Decoder, type Address } from '@solana/kit';
+import { getBase58Decoder, type Address } from '@solana/kit';
 import { ElGamalPubkey } from '@solana/zk-sdk';
 
 import {
@@ -25,7 +25,7 @@ import {
   confidentialDerivationMessage,
   confidentialKeysFrom,
 } from '../packages/onchain/src/proofs.ts';
-import { defaultRpcUrl } from './lib.ts';
+import { defaultRpcUrl, signerFromKeyFile } from './lib.ts';
 
 const KEYS_DIR = join(process.cwd(), '.keys');
 
@@ -53,7 +53,7 @@ const rpcUrl = flag('rpc') ?? process.env.VEIL_RPC_URL ?? defaultRpcUrl(rail);
 const keyPath = flag('key') ?? join(KEYS_DIR, 'test-payer.json');
 
 const payerBytes = Uint8Array.from(JSON.parse(await readFile(keyPath, 'utf8')));
-const payer = await createKeyPairSignerFromBytes(payerBytes);
+const payer = await signerFromKeyFile(keyPath);
 const keys = await confidentialKeysFrom(() => signDerivation(payerBytes.slice(0, 32)));
 
 console.log('');
@@ -106,7 +106,7 @@ console.log(`  replay (no X-PAYMENT)  http ${replay.status}  ${JSON.stringify(re
 const payeePath = flag('payee-key');
 if (payeePath) {
   const payeeBytes = Uint8Array.from(JSON.parse(await readFile(payeePath, 'utf8')));
-  const payee = await createKeyPairSignerFromBytes(payeeBytes);
+  const payee = await signerFromKeyFile(payeePath);
   const payeeKeys = await confidentialKeysFrom(() => signDerivation(payeeBytes.slice(0, 32)));
   const seat = result.payTo as Address;
   const state = await readTokenAccount(

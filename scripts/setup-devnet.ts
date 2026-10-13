@@ -46,7 +46,6 @@ import { readFile, writeFile } from 'node:fs/promises';
 import {
   appendTransactionMessageInstructions,
   assertIsFullySignedTransaction,
-  createKeyPairSignerFromBytes,
   createKeyPairSignerFromPrivateKeyBytes,
   createSolanaRpc,
   createTransactionMessage,
@@ -100,6 +99,7 @@ import {
   relative,
   saveJSON,
   saveLedger,
+  signerFromKeyBytes,
   table,
 } from './lib.ts';
 
@@ -156,7 +156,7 @@ async function loadOrCreate(
     const raw = await readFile(path, 'utf8');
     const bytes = decodeSecret(raw);
     if (!bytes) return { created: false, problem: `${relative(path)} is not a valid keypair` };
-    return { signer: await signerFromBytes(bytes), created: false };
+    return { signer: await signerFromKeyBytes(bytes, relative(path)), created: false };
   } catch (error) {
     const code = (error as { code?: string }).code;
     if (code !== 'ENOENT') {
@@ -168,13 +168,6 @@ async function loadOrCreate(
   const signer = await createKeyPairSignerFromPrivateKeyBytes(seed);
   await writeFile(path, `${JSON.stringify([...seed])}\n`, { mode: 0o600 });
   return { signer, created: true };
-}
-
-/** A 64-byte secret key or a 32-byte seed, both of which users actually have. */
-async function signerFromBytes(bytes: Uint8Array): Promise<KeyPairSigner> {
-  return bytes.length === 32
-    ? createKeyPairSignerFromPrivateKeyBytes(bytes)
-    : createKeyPairSignerFromBytes(bytes);
 }
 
 // ---------------------------------------------------------------------------
